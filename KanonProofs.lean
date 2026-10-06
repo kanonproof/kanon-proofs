@@ -5,3 +5,6 @@ import KanonProofs.Ladder
 import KanonProofs.Completeness
 import KanonProofs.HoldCheck
 import KanonProofs.Payments
+import KanonProofs.Brackets
+import KanonProofs.Years
+import KanonProofs.UkMatch

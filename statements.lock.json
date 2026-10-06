@@ -1,6 +1,30 @@
 {
   "reviewedBy": "pending human review (drafted by the KANON build agent, 2026-10-06)",
   "theorems": {
+    "Kanon.Brackets.fixed_allowance_mono": {
+      "file": "Brackets.lean",
+      "sha": "42d8c6ec2fe635d1"
+    },
+    "Kanon.Brackets.slice_mono": {
+      "file": "Brackets.lean",
+      "sha": "31a48ca82cb2dcf7"
+    },
+    "Kanon.Brackets.stacked_nonneg": {
+      "file": "Brackets.lean",
+      "sha": "aaa7d3d4ff9b152a"
+    },
+    "Kanon.Brackets.taper_allowance_mono": {
+      "file": "Brackets.lean",
+      "sha": "5d9620aeb099b025"
+    },
+    "Kanon.Brackets.taxBp_mono": {
+      "file": "Brackets.lean",
+      "sha": "c7c3a744b282cf22"
+    },
+    "Kanon.Brackets.tax_mono": {
+      "file": "Brackets.lean",
+      "sha": "695e6ec31a660d1a"
+    },
     "Kanon.CashOut.cheapest_le_start": {
       "file": "CashOut.lean",
       "sha": "bc9e08f67ac695a6"
@@ -160,6 +184,46 @@
     "Kanon.Pay.costs_bounded": {
       "file": "Payments.lean",
       "sha": "c30be7d241cccc9f"
+    },
+    "Kanon.UkMatch.parts_sum": {
+      "file": "UkMatch.lean",
+      "sha": "67f66878a6be7bd5"
+    },
+    "Kanon.UkMatch.pool_cost_le": {
+      "file": "UkMatch.lean",
+      "sha": "db7f9c33657aeb57"
+    },
+    "Kanon.UkMatch.take_each": {
+      "file": "UkMatch.lean",
+      "sha": "fa7416d12d003907"
+    },
+    "Kanon.UkMatch.take_left": {
+      "file": "UkMatch.lean",
+      "sha": "c66d0f3674de703c"
+    },
+    "Kanon.UkMatch.take_sum": {
+      "file": "UkMatch.lean",
+      "sha": "1575f5de3d43535f"
+    },
+    "Kanon.UkMatch.window_once": {
+      "file": "UkMatch.lean",
+      "sha": "84e9eb42dcb81ba6"
+    },
+    "Kanon.UkMatch.within_limits": {
+      "file": "UkMatch.lean",
+      "sha": "00117346ad89915c"
+    },
+    "Kanon.Years.only_through_carry": {
+      "file": "Years.lean",
+      "sha": "d7d11945f37e1fdb"
+    },
+    "Kanon.Years.past_events_unchanged": {
+      "file": "Years.lean",
+      "sha": "82e0254c82c1610d"
+    },
+    "Kanon.Years.past_unchanged": {
+      "file": "Years.lean",
+      "sha": "5b9e83cfcfc14a04"
     }
   }
 }

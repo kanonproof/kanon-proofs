@@ -177,6 +177,26 @@
       "file": "Lots.lean",
       "sha": "d15be98ca7996bc5"
     },
+    "Kanon.Matching.all_long": {
+      "file": "Matching.lean",
+      "sha": "c14e5b660da57866"
+    },
+    "Kanon.Matching.avg_conserves": {
+      "file": "Matching.lean",
+      "sha": "b8f060e93ecb4cd4"
+    },
+    "Kanon.Matching.avg_kept": {
+      "file": "Matching.lean",
+      "sha": "a97da1f9d8b5394e"
+    },
+    "Kanon.Matching.fifo_newest_left": {
+      "file": "Matching.lean",
+      "sha": "2bdc213b7ad06a57"
+    },
+    "Kanon.Matching.split_total": {
+      "file": "Matching.lean",
+      "sha": "308dd5c6f49eaac9"
+    },
     "Kanon.Pay.conserved": {
       "file": "Payments.lean",
       "sha": "236454d5ba33332b"

@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Official-source tested" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 14 of the 31 planned checks done
+## Status: 15 of the 31 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -21,6 +21,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 2 | **Statement lock:** every theorem's statement is fingerprinted. Changing one fails the build until a reviewer checks it against the official source and re-locks. | `statements.lock.json` |
 | 3 | **Lot conservation:** coins sold + coins left = coins before; cost of coins sold + cost still held = cost before. A sale never sells more than is held. | `KanonProofs/Lots.lean` |
 | 4 | **Moving coins between your own wallets** is never a sale: every lot keeps its date, amount and cost. Each arrival matches at most one departure. | `KanonProofs/Lots.lean` |
+| 5 | **Which coins count as sold, per country.** UK: each sale's same-day, 30-day, pool and unknown parts add up exactly to what was sold, no purchase is used twice, the pool never gives out more cost than it holds. Oldest first: only the oldest lots are used and every newer lot is untouched. Holding period (Germany's one-year rule, US long/short term): every coin sold is counted once as held-long or held-short. Average cost (Brazil, Japan, South Africa): cost taken + cost left = cost, and what's left keeps the average to within one unit. | `KanonProofs/UkMatch.lean`, `KanonProofs/Matching.lean` |
 | 7 | **Tax never falls as income rises:** bracket schedules after an allowance (fixed, or shrinking like the UK taper) and less a rebate are monotone, so the extra tax on a stacked gain is never negative. | `KanonProofs/Brackets.lean` |
 | 8 | **Tax-year isolation:** changing one year's rules or events never changes an earlier year; a later year changes only through what's carried forward. | `KanonProofs/Years.lean` |
 | 10 | **Cash-out plans** sell only lots that exist, never the same lot twice, never more than a lot holds, and raise the cash asked for when the coins are there. | `KanonProofs/CashOut.lean` |
@@ -31,11 +32,6 @@ here; the production code (TypeScript) is tested against the same cases.
 | 22 | **"Data complete" score** stays between 0 and 100, and explaining a transfer never lowers it. | `KanonProofs/Completeness.lean` |
 | 23 | **Hold check:** holding more at every hour never lowers the 7-day average; the average never exceeds the highest balance; each wallet counted once; enough tokens always give access. | `KanonProofs/HoldCheck.lean` |
 | 24 | **Payments:** every USDC paid in = burned + costs + pending, exactly; costs never exceed what's owed or dip into the burn. | `KanonProofs/Payments.lean` |
-
-Started, not counted until complete: per-country lot matching (5). The UK part is proven in
-`KanonProofs/UkMatch.lean`: each sale's same-day, 30-day, pool and unknown parts add up exactly to what
-was sold, no purchase is used twice, and the pool never gives out more cost than it holds.
-FIFO per country and Germany's one-year rule are still to do.
 
 Planned next (not proven yet, so not claimed): rounding (6), engine reference models (9), price impact (12, 13),
 simulator error bounds (14), no look-ahead (15), alert timing (16), agent guardrail (17),

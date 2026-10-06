@@ -59,4 +59,65 @@ def lotCases : String := Id.run do
     out := out ++ [s!"\{\"lots\": {jlist js}, \"sell\": {q.head!}, \"sold\": {r.1}, \"cost\": {r.2.1}, \"leftQty\": {Lots.totalQty r.2.2}, \"leftCost\": {Lots.totalCost r.2.2}}"]
   return jlist out
 
-#eval IO.println s!"\{\"br\": {brCases},\n\"za\": {zaCases},\n\"lots\": {lotCases}}"
+
+/-- 2026 figures (Rev. Proc. 2025-32), in cents. -/
+def us2026 : List (String × Reference.UsSchedule) := [
+  ("single", ⟨[(1240000, 1000), (5040000, 1200), (10570000, 2200), (20177500, 2400), (25622500, 3200), (64060000, 3500)], 3700, 4945000, 54550000⟩),
+  ("mfj", ⟨[(2480000, 1000), (10080000, 1200), (21140000, 2200), (40355000, 2400), (51245000, 3200), (76870000, 3500)], 3700, 9890000, 61370000⟩)]
+
+def usCases : String := Id.run do
+  let mut s := 17
+  let mut out : List String := []
+  for i in [0:240] do
+    let (st, sch) := us2026[i % 2]!
+    let (t, s1) := draws s 1 (if i % 3 == 0 then 90000000 else 10000000); s := s1
+    let taxable := t.head!
+    let (g, s2) := draws s 1 (taxable + 1); s := s2
+    let gain := if i % 4 == 0 then 0 else g.head!
+    out := out ++ [s!"\{\"status\": \"{st}\", \"taxable\": {taxable}, \"gain\": {gain}, \"bp\": {Reference.usBp taxable gain sch}, \"regularBp\": {Reference.regularBp taxable sch}}"]
+  return jlist out
+
+def jpCases : String := Id.run do
+  let mut s := 19
+  let mut out : List String := []
+  for _ in [0:240] do
+    let (o, s1) := draws s 2 1000000; s := s1
+    let openQty := o[0]!
+    let openCost := if openQty == 0 then 0 else o[1]! * 3
+    let (k, s2) := draws s 1 6; s := s2
+    let mut held := openQty
+    let mut ts : List Reference.JpTrade := []
+    let mut js : List String := []
+    for _ in [0:k.head! + 1] do
+      let (r, s3) := draws s 3 1000000; s := s3
+      if r[0]! % 2 == 0 || held == 0 then
+        let q := r[1]! + 1
+        ts := ts ++ [.buy q (r[2]! * 5)]; js := js ++ [s!"\{\"kind\": \"buy\", \"qty\": {q}, \"cost\": {r[2]! * 5}}"]; held := held + q
+      else
+        let q := r[1]! % held + 1
+        ts := ts ++ [.sell q]; js := js ++ [s!"\{\"kind\": \"sell\", \"qty\": {q}}"]; held := held - q
+    let (tn, td) := Reference.jpTotal openQty openCost ts
+    let (mn, md) := Reference.jpMoving openQty openCost ts
+    out := out ++ [s!"\{\"openQty\": {openQty}, \"openCost\": {openCost}, \"trades\": {jlist js}, \"total\": [\"{tn}\", \"{td}\"], \"moving\": [\"{mn}\", \"{md}\"]}"]
+  return jlist out
+
+def ukCases : String := Id.run do
+  let mut s := 23
+  let mut out : List String := []
+  for _ in [0:240] do
+    let (k, s1) := draws s 1 6; s := s1
+    let mut day := 0
+    let mut days : List Reference.UkDay := []
+    for j in [0:k.head! + 2] do
+      let (r, s2) := draws s 6 100000; s := s2
+      day := day + r[0]! % 25 + (if j == 0 then 0 else 1)
+      let buy := if r[1]! % 3 == 0 then 0 else r[2]! + 1
+      let sell := if j == 0 || r[3]! % 2 == 0 then 0 else r[4]! % 90000 + 1
+      days := days ++ [⟨day, buy, buy * (r[5]! % 50 + 1), sell, sell * (r[5]! % 70 + 1)⟩]
+    let r := Reference.ukMatch days
+    let jd := days.map fun d => s!"\{\"day\": {d.day}, \"buy\": {d.buy}, \"buyCost\": {d.buyCost}, \"sell\": {d.sell}, \"proceeds\": {d.proceeds}}"
+    let jo := r.disposals.map fun (d, q, p, c) => s!"\{\"day\": {d}, \"sold\": {q}, \"proceeds\": {p}, \"cost\": {c}}"
+    out := out ++ [s!"\{\"days\": {jlist jd}, \"disposals\": {jlist jo}, \"poolQty\": {r.poolQty}, \"poolCost\": {r.poolCost}}"]
+  return jlist out
+
+#eval IO.println s!"\{\"br\": {brCases},\n\"za\": {zaCases},\n\"lots\": {lotCases},\n\"us\": {usCases},\n\"jp\": {jpCases},\n\"uk\": {ukCases}}"

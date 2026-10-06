@@ -233,6 +233,10 @@
       "file": "Reference.lean",
       "sha": "505edd747e560637"
     },
+    "Kanon.Reference.us_le_regular": {
+      "file": "Reference.lean",
+      "sha": "0e3aabd8bc0e1c36"
+    },
     "Kanon.Reference.za_no_flip": {
       "file": "Reference.lean",
       "sha": "e61078d9e0343f05"

@@ -236,9 +236,9 @@ def thBrackets : List Bracket :=
    ⟨75000000, 100000000, 2000⟩, ⟨100000000, 200000000, 2500⟩, ⟨200000000, 400000000, 3000⟩, ⟨400000000, 10 ^ 18, 3500⟩]
 
 /-- Tax (basis points of satang): progressive on net income, but at least 0.5% of income under 40(2)–(8) once that
-is 120,000 baht or more. -/
+is 120,000 baht or more, unless that 0.5% comes to 5,000 baht or less (RD crypto guide, Q8). -/
 def thTaxBp (net a : Nat) : Nat :=
-  max (Kanon.Brackets.taxBp thBrackets net) (if a ≥ 12000000 then a * 50 else 0)
+  max (Kanon.Brackets.taxBp thBrackets net) (if a ≥ 12000000 ∧ a * 50 > 5000000000 then a * 50 else 0)
 
 /-- **#9** Thailand: more net income never means less tax. -/
 theorem th_mono_net (a : Nat) {x y : Nat} (h : x ≤ y) : thTaxBp x a ≤ thTaxBp y a := by
@@ -246,8 +246,8 @@ theorem th_mono_net (a : Nat) {x y : Nat} (h : x ≤ y) : thTaxBp x a ≤ thTaxB
   have := Kanon.Brackets.taxBp_mono thBrackets (by intro b hb; simp [thBrackets] at hb; rcases hb with h|h|h|h|h|h|h|h <;> subst h <;> decide) h
   omega
 
-/-- **#9** Thailand: with 120,000 baht or more under 40(2)–(8), the tax is at least 0.5% of it. -/
-theorem th_at_least_half_percent (net a : Nat) (h : a ≥ 12000000) : a * 50 ≤ thTaxBp net a := by
+/-- **#9** Thailand: with 120,000 baht or more under 40(2)–(8), and 0.5% of it over 5,000 baht, the tax is at least that 0.5%. -/
+theorem th_at_least_half_percent (net a : Nat) (h : a ≥ 12000000 ∧ a * 50 > 5000000000) : a * 50 ≤ thTaxBp net a := by
   unfold thTaxBp; rw [if_pos h]; exact Nat.le_max_right _ _
 
 /-! ## Nigeria: the dollar gain at the sale-day rate, and the individual bands (NRS guidelines 9.1; NTA 2025)

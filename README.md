@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Official-source tested" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 19 of the 31 planned checks done
+## Status: 20 of the 31 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -36,10 +36,11 @@ here; the production code (TypeScript) is tested against the same cases.
 | 22 | **"Data complete" score** stays between 0 and 100, and explaining a transfer never lowers it. | `KanonProofs/Completeness.lean` |
 | 23 | **Hold check:** holding more at every hour never lowers the 7-day average; the average never exceeds the highest balance; each wallet counted once; enough tokens always give access. | `KanonProofs/HoldCheck.lean` |
 | 24 | **Payments:** every USDC paid in = burned + costs + pending, exactly; costs never exceed what's owed or dip into the burn. | `KanonProofs/Payments.lean` |
+| 27 | **Grouping never creates or loses coins:** sorting a file's movements into one pile per transaction keeps every wallet's balance of every coin, drops or duplicates nothing, and each pile holds only its own transaction. The app's grouping is tested against the same property on random histories. | `KanonProofs/Grouping.lean` |
 
 Planned next (not proven yet, so not claimed): splitting across pools (13),
 simulator error bounds (14), no look-ahead (15), alert timing (16),
-cohort privacy (19), and 25–31.
+cohort privacy (19), and 25, 26, 28–31.
 
 **Statement review:** the statements are locked but still waiting for a named human reviewer
 (see `reviewedBy` in `statements.lock.json`).

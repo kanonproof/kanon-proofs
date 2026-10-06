@@ -101,6 +101,30 @@
       "file": "FeeSplit.lean",
       "sha": "a1631d21956fb013"
     },
+    "Kanon.Grouping.balance_append": {
+      "file": "Grouping.lean",
+      "sha": "93e53a45ac130f22"
+    },
+    "Kanon.Grouping.balance_flatten_insert": {
+      "file": "Grouping.lean",
+      "sha": "977e8959bbb67967"
+    },
+    "Kanon.Grouping.group_keeps_balance": {
+      "file": "Grouping.lean",
+      "sha": "451044fe0c43015e"
+    },
+    "Kanon.Grouping.group_keeps_count": {
+      "file": "Grouping.lean",
+      "sha": "214915872ff339d5"
+    },
+    "Kanon.Grouping.length_flatten_insert": {
+      "file": "Grouping.lean",
+      "sha": "03db948389e8f346"
+    },
+    "Kanon.Grouping.piles_are_one_tx": {
+      "file": "Grouping.lean",
+      "sha": "364d72ff149147ec"
+    },
     "Kanon.Guard.fallback_ok": {
       "file": "Guard.lean",
       "sha": "795c2d4783e2e19b"

@@ -101,6 +101,26 @@
       "file": "FeeSplit.lean",
       "sha": "a1631d21956fb013"
     },
+    "Kanon.Fresh.agent_never_gets_stale": {
+      "file": "Fresh.lean",
+      "sha": "ca28774334814460"
+    },
+    "Kanon.Fresh.label_keeps_value": {
+      "file": "Fresh.lean",
+      "sha": "01507405c7a4947b"
+    },
+    "Kanon.Fresh.old_is_labelled": {
+      "file": "Fresh.lean",
+      "sha": "b3943d9179e646af"
+    },
+    "Kanon.Fresh.stale_stays_stale": {
+      "file": "Fresh.lean",
+      "sha": "63e0b6446a34394c"
+    },
+    "Kanon.Fresh.undated_is_labelled": {
+      "file": "Fresh.lean",
+      "sha": "d79fa95de0067ca8"
+    },
     "Kanon.Grouping.balance_append": {
       "file": "Grouping.lean",
       "sha": "93e53a45ac130f22"

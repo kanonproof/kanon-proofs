@@ -289,6 +289,10 @@
       "file": "Reference.lean",
       "sha": "505edd747e560637"
     },
+    "Kanon.Reference.ng_mono": {
+      "file": "Reference.lean",
+      "sha": "f605cc70a9636439"
+    },
     "Kanon.Reference.th_at_least_half_percent": {
       "file": "Reference.lean",
       "sha": "f950fc9e087a6cc4"

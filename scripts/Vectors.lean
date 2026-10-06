@@ -130,4 +130,17 @@ def thCases : String := Id.run do
     out := out ++ [s!"\{\"net\": {net}, \"other\": {a}, \"bp\": {Reference.thTaxBp net a}}"]
   return jlist out
 
-#eval IO.println s!"\{\"br\": {brCases},\n\"za\": {zaCases},\n\"lots\": {lotCases},\n\"us\": {usCases},\n\"jp\": {jpCases},\n\"uk\": {ukCases},\n\"th\": {thCases}}"
+def ngCases : String := Id.run do
+  let mut s := 31
+  let mut out : List String := []
+  for _ in [0:240] do
+    let (r, s1) := draws s 4 1000000000; s := s1
+    let cost := r[0]! % 50000000
+    let proceeds := cost + r[1]! % 50000000
+    let rate := 400 + r[2]! % 1600
+    let income := r[3]! % 8000000000
+    let g := Reference.ngGainKobo proceeds cost rate
+    out := out ++ [s!"\{\"usdCostCents\": {cost}, \"usdProceedsCents\": {proceeds}, \"rate\": {rate}, \"gainKobo\": \"{g}\", \"income\": {income}, \"incomeBp\": \"{Reference.ngTaxBp income}\", \"withGainBp\": \"{Reference.ngTaxBp (income + g)}\"}"]
+  return jlist out
+
+#eval IO.println s!"\{\"br\": {brCases},\n\"za\": {zaCases},\n\"lots\": {lotCases},\n\"us\": {usCases},\n\"jp\": {jpCases},\n\"uk\": {ukCases},\n\"th\": {thCases},\n\"ng\": {ngCases}}"

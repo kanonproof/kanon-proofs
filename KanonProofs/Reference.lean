@@ -250,4 +250,24 @@ theorem th_mono_net (a : Nat) {x y : Nat} (h : x ≤ y) : thTaxBp x a ≤ thTaxB
 theorem th_at_least_half_percent (net a : Nat) (h : a ≥ 12000000) : a * 50 ≤ thTaxBp net a := by
   unfold thTaxBp; rw [if_pos h]; exact Nat.le_max_right _ _
 
+/-! ## Nigeria: the dollar gain at the sale-day rate, and the individual bands (NRS guidelines 9.1; NTA 2025)
+
+Dollar amounts in cents, rates in naira per dollar, naira in kobo; tax in kobo × 10,000 (basis points). -/
+
+/-- Naira gain in kobo: (dollar proceeds − dollar cost, in cents) × rate. A loss is 0 here; netting is done on totals. -/
+def ngGainKobo (usdProceedsCents usdCostCents rate : Nat) : Nat := (usdProceedsCents - usdCostCents) * rate
+
+open Kanon.Brackets in
+/-- First ₦800,000 at 0%, next ₦2.2m 15%, next ₦9m 18%, next ₦13m 21%, next ₦25m 23%, above ₦50m 25% (kobo). -/
+def ngBrackets : List Bracket :=
+  [⟨0, 80000000, 0⟩, ⟨80000000, 300000000, 1500⟩, ⟨300000000, 1200000000, 1800⟩, ⟨1200000000, 2500000000, 2100⟩,
+   ⟨2500000000, 5000000000, 2300⟩, ⟨5000000000, 10 ^ 18, 2500⟩]
+
+def ngTaxBp (income : Nat) : Nat := Kanon.Brackets.taxBp ngBrackets income
+
+/-- **#9** Nigeria: more income never means less tax. -/
+theorem ng_mono {x y : Nat} (h : x ≤ y) : ngTaxBp x ≤ ngTaxBp y :=
+  Kanon.Brackets.taxBp_mono ngBrackets (by intro b hb; simp [ngBrackets] at hb; rcases hb with h|h|h|h|h|h <;> subst h <;> decide) h
+
+
 end Kanon.Reference

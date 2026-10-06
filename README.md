@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Official-source tested" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 15 of the 31 planned checks done
+## Status: 16 of the 31 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -26,6 +26,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 8 | **Tax-year isolation:** changing one year's rules or events never changes an earlier year; a later year changes only through what's carried forward. | `KanonProofs/Years.lean` |
 | 10 | **Cash-out plans** sell only lots that exist, never the same lot twice, never more than a lot holds, and raise the cash asked for when the coins are there. | `KanonProofs/CashOut.lean` |
 | 11 | **The chosen plan's tax is never higher than the country's default method's.** | `KanonProofs/CashOut.lean` |
+| 17 | **Agent guardrail:** whatever the agent shows has passed the checker: every number is a small count or year, or within 50 cents / 0.5% of a number the engines produced (the app also accepts the same number written as a percent), and no banned word (advice, promises, jargon) appears. If no try passes, the fixed "can't answer" reply is shown, and it passes too. | `KanonProofs/Guard.lean` |
 | 18 | **Creator fees:** the 50/30/20 split adds up exactly; rounding dust goes to the reserve (under 2 units); burns only lower supply; the swap's minimum-out bounds the price paid. | `KanonProofs/FeeSplit.lean` |
 | 20 | **Proof-carrying reports:** every report can name this repo's commit and proof-bank hash; `manifest` prints them. | `scripts/proofs.py manifest` |
 | 21 | **Exit ladder:** steps adding up to 100% or less never sell more than is held; each step sells no more than is left; UK tax-year boundary (5 / 6 April). | `KanonProofs/Ladder.lean` |
@@ -34,7 +35,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 24 | **Payments:** every USDC paid in = burned + costs + pending, exactly; costs never exceed what's owed or dip into the burn. | `KanonProofs/Payments.lean` |
 
 Planned next (not proven yet, so not claimed): rounding (6), engine reference models (9), price impact (12, 13),
-simulator error bounds (14), no look-ahead (15), alert timing (16), agent guardrail (17),
+simulator error bounds (14), no look-ahead (15), alert timing (16),
 cohort privacy (19), and 25–31.
 
 **Statement review:** the statements are locked but still waiting for a named human reviewer

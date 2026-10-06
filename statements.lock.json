@@ -101,6 +101,22 @@
       "file": "FeeSplit.lean",
       "sha": "a1631d21956fb013"
     },
+    "Kanon.Guard.fallback_ok": {
+      "file": "Guard.lean",
+      "sha": "795c2d4783e2e19b"
+    },
+    "Kanon.Guard.shown_no_banned": {
+      "file": "Guard.lean",
+      "sha": "2434557fd1fd4fd3"
+    },
+    "Kanon.Guard.shown_numbers_sourced": {
+      "file": "Guard.lean",
+      "sha": "fa24e7dcae4b4ae1"
+    },
+    "Kanon.Guard.shown_passes": {
+      "file": "Guard.lean",
+      "sha": "968a0cff52215c40"
+    },
     "Kanon.Hold.atLeast_len": {
       "file": "HoldCheck.lean",
       "sha": "db8d53b53fad8a99"

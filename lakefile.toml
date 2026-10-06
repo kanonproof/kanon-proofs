@@ -1,0 +1,6 @@
+name = "KanonProofs"
+version = "0.1.0"
+defaultTargets = ["KanonProofs"]
+
+[[lean_lib]]
+name = "KanonProofs"

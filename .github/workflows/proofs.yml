@@ -1,0 +1,29 @@
+# Every push and pull request: build every proof, run the axiom gate and the statement lock.
+# A release of KANON is blocked unless this passes (the app's CI checks this repo's status).
+name: Proofs
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lean
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Build every proof
+        run: lake build
+      - name: "#1 Axiom gate (no sorry, no native_decide, no custom axioms)"
+        run: python3 scripts/proofs.py gate
+      - name: "#2 Statement lock (statements match their reviewed versions)"
+        run: python3 scripts/proofs.py lock
+      - name: "#20 Proof manifest"
+        run: python3 scripts/proofs.py manifest | tee manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proof-manifest
+          path: manifest.json

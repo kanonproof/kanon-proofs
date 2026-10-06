@@ -1,0 +1,165 @@
+{
+  "reviewedBy": "pending human review (drafted by the KANON build agent, 2026-10-06)",
+  "theorems": {
+    "Kanon.CashOut.cheapest_le_start": {
+      "file": "CashOut.lean",
+      "sha": "bc9e08f67ac695a6"
+    },
+    "Kanon.CashOut.chosen_le_default": {
+      "file": "CashOut.lean",
+      "sha": "779dc5f64fd3223c"
+    },
+    "Kanon.CashOut.fifoPlan_cash": {
+      "file": "CashOut.lean",
+      "sha": "874b7d7b388604c7"
+    },
+    "Kanon.CashOut.fifoPlan_hits": {
+      "file": "CashOut.lean",
+      "sha": "8d048e75a6832b99"
+    },
+    "Kanon.CashOut.fifoPlan_idx": {
+      "file": "CashOut.lean",
+      "sha": "ad9fa464962da6d5"
+    },
+    "Kanon.CashOut.fifoPlan_nodup": {
+      "file": "CashOut.lean",
+      "sha": "ce3e3b836b2753be"
+    },
+    "Kanon.CashOut.fifoPlan_valid": {
+      "file": "CashOut.lean",
+      "sha": "129b8fb1d2b620bb"
+    },
+    "Kanon.CashOut.fifoPlan_within": {
+      "file": "CashOut.lean",
+      "sha": "ccaf21f5ae553dd4"
+    },
+    "Kanon.Complete.fix_never_lowers": {
+      "file": "Completeness.lean",
+      "sha": "78f331912086be00"
+    },
+    "Kanon.Complete.score_le_100": {
+      "file": "Completeness.lean",
+      "sha": "0f09293bb778f5a3"
+    },
+    "Kanon.Complete.shares_exact": {
+      "file": "Completeness.lean",
+      "sha": "5098e93f4293647a"
+    },
+    "Kanon.Fees.burn_le": {
+      "file": "FeeSplit.lean",
+      "sha": "0dc041292d122a3c"
+    },
+    "Kanon.Fees.minOut_bounds_price": {
+      "file": "FeeSplit.lean",
+      "sha": "57d57f6054009e0c"
+    },
+    "Kanon.Fees.ops_le": {
+      "file": "FeeSplit.lean",
+      "sha": "5ff589d65e3bd3a0"
+    },
+    "Kanon.Fees.reserve_dust": {
+      "file": "FeeSplit.lean",
+      "sha": "8524af2ba201bd2e"
+    },
+    "Kanon.Fees.reserve_ge": {
+      "file": "FeeSplit.lean",
+      "sha": "2744d649cc55dabc"
+    },
+    "Kanon.Fees.split_sums": {
+      "file": "FeeSplit.lean",
+      "sha": "cd72e79cce794378"
+    },
+    "Kanon.Fees.supply_exact": {
+      "file": "FeeSplit.lean",
+      "sha": "07148c6e52a6d79c"
+    },
+    "Kanon.Fees.supply_falls": {
+      "file": "FeeSplit.lean",
+      "sha": "a1631d21956fb013"
+    },
+    "Kanon.Hold.atLeast_len": {
+      "file": "HoldCheck.lean",
+      "sha": "db8d53b53fad8a99"
+    },
+    "Kanon.Hold.dedup_once": {
+      "file": "HoldCheck.lean",
+      "sha": "9450e3525fd01895"
+    },
+    "Kanon.Hold.enough_gives_access": {
+      "file": "HoldCheck.lean",
+      "sha": "b64765a382611528"
+    },
+    "Kanon.Hold.mem_dedup": {
+      "file": "HoldCheck.lean",
+      "sha": "32f84fcc13627a25"
+    },
+    "Kanon.Hold.more_never_less": {
+      "file": "HoldCheck.lean",
+      "sha": "3439337593dd5d56"
+    },
+    "Kanon.Hold.twa_le_max": {
+      "file": "HoldCheck.lean",
+      "sha": "1628a78de186f4d6"
+    },
+    "Kanon.Ladder.never_oversells": {
+      "file": "Ladder.lean",
+      "sha": "e973ff9ea9399a3d"
+    },
+    "Kanon.Ladder.sold_le": {
+      "file": "Ladder.lean",
+      "sha": "dc56b99573854886"
+    },
+    "Kanon.Ladder.step_within": {
+      "file": "Ladder.lean",
+      "sha": "e0421d5e1beaf631"
+    },
+    "Kanon.Ladder.uk_boundary": {
+      "file": "Ladder.lean",
+      "sha": "2147ef8d65aa6c7d"
+    },
+    "Kanon.Lots.matchOnce_nodup": {
+      "file": "Lots.lean",
+      "sha": "8c452e38bb007c14"
+    },
+    "Kanon.Lots.matchOnce_sub": {
+      "file": "Lots.lean",
+      "sha": "34a47b18964a8a3c"
+    },
+    "Kanon.Lots.move_dest": {
+      "file": "Lots.lean",
+      "sha": "11b9da85d69e6d7b"
+    },
+    "Kanon.Lots.move_keeps_lots": {
+      "file": "Lots.lean",
+      "sha": "3dfe61681674d8c3"
+    },
+    "Kanon.Lots.sell_cost": {
+      "file": "Lots.lean",
+      "sha": "1988fa5ebfc5a69e"
+    },
+    "Kanon.Lots.sell_exact": {
+      "file": "Lots.lean",
+      "sha": "26373797fdf3bad2"
+    },
+    "Kanon.Lots.sell_le": {
+      "file": "Lots.lean",
+      "sha": "8f76963abb584dd0"
+    },
+    "Kanon.Lots.sell_qty": {
+      "file": "Lots.lean",
+      "sha": "bc7e4195b2503baf"
+    },
+    "Kanon.Lots.sliceCost_le": {
+      "file": "Lots.lean",
+      "sha": "d15be98ca7996bc5"
+    },
+    "Kanon.Pay.conserved": {
+      "file": "Payments.lean",
+      "sha": "236454d5ba33332b"
+    },
+    "Kanon.Pay.costs_bounded": {
+      "file": "Payments.lean",
+      "sha": "c30be7d241cccc9f"
+    }
+  }
+}

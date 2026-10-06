@@ -120,4 +120,14 @@ def ukCases : String := Id.run do
     out := out ++ [s!"\{\"days\": {jlist jd}, \"disposals\": {jlist jo}, \"poolQty\": {r.poolQty}, \"poolCost\": {r.poolCost}}"]
   return jlist out
 
-#eval IO.println s!"\{\"br\": {brCases},\n\"za\": {zaCases},\n\"lots\": {lotCases},\n\"us\": {usCases},\n\"jp\": {jpCases},\n\"uk\": {ukCases}}"
+def thCases : String := Id.run do
+  let mut s := 29
+  let mut out : List String := []
+  for i in [0:240] do
+    let (r, s1) := draws s 3 600000000; s := s1
+    let net := if i % 5 == 0 then r[0]! % 20000000 else r[0]!
+    let a := if i % 3 == 0 then 0 else r[1]! % 400000000
+    out := out ++ [s!"\{\"net\": {net}, \"other\": {a}, \"bp\": {Reference.thTaxBp net a}}"]
+  return jlist out
+
+#eval IO.println s!"\{\"br\": {brCases},\n\"za\": {zaCases},\n\"lots\": {lotCases},\n\"us\": {usCases},\n\"jp\": {jpCases},\n\"uk\": {ukCases},\n\"th\": {thCases}}"

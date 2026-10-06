@@ -289,6 +289,14 @@
       "file": "Reference.lean",
       "sha": "505edd747e560637"
     },
+    "Kanon.Reference.th_at_least_half_percent": {
+      "file": "Reference.lean",
+      "sha": "f950fc9e087a6cc4"
+    },
+    "Kanon.Reference.th_mono_net": {
+      "file": "Reference.lean",
+      "sha": "119b1fe1158aba42"
+    },
     "Kanon.Reference.us_le_regular": {
       "file": "Reference.lean",
       "sha": "0e3aabd8bc0e1c36"

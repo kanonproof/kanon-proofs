@@ -1,3 +1,4 @@
+import KanonProofs.Brackets
 /-!
 # Reference models (#9)
 
@@ -222,5 +223,31 @@ def ukMatch (days : List UkDay) : UkOut := Id.run do
       pc := pc - c; pq := pq - t
     if days[i]!.sell > 0 then out := out ++ [(days[i]!.day, days[i]!.sell, days[i]!.proceeds, cost[i]!)]
   return ⟨out, pq, pc⟩
+
+/-! ## Thailand: personal income tax with the 0.5% minimum (RD personal income tax rates; Revenue Code s.48(2))
+
+Net income in satang; tax in satang × 10,000 (basis points), so it is exact. Crypto gains under 40(4) follow the
+lot rules already modelled (oldest first in `Lots`, the running average as in Japan's moving average). -/
+
+open Kanon.Brackets in
+/-- 0–150,000 baht exempt, then 5, 10, 15, 20, 25, 30 and 35%. Amounts in satang, rates in basis points. -/
+def thBrackets : List Bracket :=
+  [⟨0, 15000000, 0⟩, ⟨15000000, 30000000, 500⟩, ⟨30000000, 50000000, 1000⟩, ⟨50000000, 75000000, 1500⟩,
+   ⟨75000000, 100000000, 2000⟩, ⟨100000000, 200000000, 2500⟩, ⟨200000000, 400000000, 3000⟩, ⟨400000000, 10 ^ 18, 3500⟩]
+
+/-- Tax (basis points of satang): progressive on net income, but at least 0.5% of income under 40(2)–(8) once that
+is 120,000 baht or more. -/
+def thTaxBp (net a : Nat) : Nat :=
+  max (Kanon.Brackets.taxBp thBrackets net) (if a ≥ 12000000 then a * 50 else 0)
+
+/-- **#9** Thailand: more net income never means less tax. -/
+theorem th_mono_net (a : Nat) {x y : Nat} (h : x ≤ y) : thTaxBp x a ≤ thTaxBp y a := by
+  unfold thTaxBp
+  have := Kanon.Brackets.taxBp_mono thBrackets (by intro b hb; simp [thBrackets] at hb; rcases hb with h|h|h|h|h|h|h|h <;> subst h <;> decide) h
+  omega
+
+/-- **#9** Thailand: with 120,000 baht or more under 40(2)–(8), the tax is at least 0.5% of it. -/
+theorem th_at_least_half_percent (net a : Nat) (h : a ≥ 12000000) : a * 50 ≤ thTaxBp net a := by
+  unfold thTaxBp; rw [if_pos h]; exact Nat.le_max_right _ _
 
 end Kanon.Reference

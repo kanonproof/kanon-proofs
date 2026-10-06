@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Official-source tested" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 17 of the 31 planned checks done
+## Status: 18 of the 31 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -22,6 +22,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 3 | **Lot conservation:** coins sold + coins left = coins before; cost of coins sold + cost still held = cost before. A sale never sells more than is held. | `KanonProofs/Lots.lean` |
 | 4 | **Moving coins between your own wallets** is never a sale: every lot keeps its date, amount and cost. Each arrival matches at most one departure. | `KanonProofs/Lots.lean` |
 | 5 | **Which coins count as sold, per country.** UK: each sale's same-day, 30-day, pool and unknown parts add up exactly to what was sold, no purchase is used twice, the pool never gives out more cost than it holds. Oldest first: only the oldest lots are used and every newer lot is untouched. Holding period (Germany's one-year rule, US long/short term): every coin sold is counted once as held-long or held-short. Average cost (Brazil, Japan, South Africa): cost taken + cost left = cost, and what's left keeps the average to within one unit. | `KanonProofs/UkMatch.lean`, `KanonProofs/Matching.lean` |
+| 6 | **Rounding:** a shown amount is rounded half up, so it's never more than half a cent from the exact figure; KANON's own tax estimates are rounded up, so they never understate the tax and are less than a cent above it. (Where a tax office prescribes its rounding, like Brazil's DARF, the engine follows the office.) | `KanonProofs/Rounding.lean` |
 | 7 | **Tax never falls as income rises:** bracket schedules after an allowance (fixed, or shrinking like the UK taper) and less a rebate are monotone, so the extra tax on a stacked gain is never negative. | `KanonProofs/Brackets.lean` |
 | 8 | **Tax-year isolation:** changing one year's rules or events never changes an earlier year; a later year changes only through what's carried forward. | `KanonProofs/Years.lean` |
 | 9 | **Reference models:** every tax engine (US worksheet with Tax Table rounding, Brazil month, UK same-day/30-day/pool, South Africa year, Japan total and moving average) and the lot ledger has a small executable model here. `scripts/Vectors.lean` runs them on 1,440 generated cases (`vectors/reference.json`); CI regenerates the file, and the app's engines must give the same answers (exact, or within a penny per matched part where the model rounds down). Proven about the models: Brazil's exemption and monotone bands, the US worksheet never above ordinary tax, South Africa's exclusion never flipping sign. | `KanonProofs/Reference.lean`, `scripts/Vectors.lean` |
@@ -35,7 +36,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 23 | **Hold check:** holding more at every hour never lowers the 7-day average; the average never exceeds the highest balance; each wallet counted once; enough tokens always give access. | `KanonProofs/HoldCheck.lean` |
 | 24 | **Payments:** every USDC paid in = burned + costs + pending, exactly; costs never exceed what's owed or dip into the burn. | `KanonProofs/Payments.lean` |
 
-Planned next (not proven yet, so not claimed): rounding (6), price impact (12, 13),
+Planned next (not proven yet, so not claimed): price impact (12, 13),
 simulator error bounds (14), no look-ahead (15), alert timing (16),
 cohort privacy (19), and 25–31.
 

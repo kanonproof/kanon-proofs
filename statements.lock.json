@@ -245,6 +245,18 @@
       "file": "Reference.lean",
       "sha": "0ffd2195a1ad7223"
     },
+    "Kanon.Rounding.halfUp_close": {
+      "file": "Rounding.lean",
+      "sha": "2efa586e90cdaf4f"
+    },
+    "Kanon.Rounding.halfUp_le_up": {
+      "file": "Rounding.lean",
+      "sha": "929d464e490f2413"
+    },
+    "Kanon.Rounding.up_never_under": {
+      "file": "Rounding.lean",
+      "sha": "cb995af36b6e36e3"
+    },
     "Kanon.UkMatch.parts_sum": {
       "file": "UkMatch.lean",
       "sha": "67f66878a6be7bd5"

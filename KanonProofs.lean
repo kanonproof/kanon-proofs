@@ -12,3 +12,4 @@ import KanonProofs.Matching
 import KanonProofs.Guard
 import KanonProofs.Reference
 import KanonProofs.Rounding
+import KanonProofs.PriceImpact

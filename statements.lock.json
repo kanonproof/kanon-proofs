@@ -221,6 +221,18 @@
       "file": "Payments.lean",
       "sha": "c30be7d241cccc9f"
     },
+    "Kanon.PriceImpact.k_never_falls": {
+      "file": "PriceImpact.lean",
+      "sha": "62872f7f3de98d05"
+    },
+    "Kanon.PriceImpact.kept_falls": {
+      "file": "PriceImpact.lean",
+      "sha": "5d69ab492a8fd720"
+    },
+    "Kanon.PriceImpact.kept_le_fee": {
+      "file": "PriceImpact.lean",
+      "sha": "5a68c178a6e981e3"
+    },
     "Kanon.Reference.bandBp_mono": {
       "file": "Reference.lean",
       "sha": "2982f037964caa8a"

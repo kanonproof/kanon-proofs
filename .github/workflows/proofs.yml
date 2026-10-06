@@ -21,6 +21,10 @@ jobs:
         run: python3 scripts/proofs.py gate
       - name: "#2 Statement lock (statements match their reviewed versions)"
         run: python3 scripts/proofs.py lock
+      - name: "#9 Reference vectors come from the models (regenerate and compare)"
+        run: |
+          lake env lean scripts/Vectors.lean > /tmp/reference.json
+          diff vectors/reference.json /tmp/reference.json
       - name: "#20 Proof manifest"
         run: python3 scripts/proofs.py manifest | tee manifest.json
       - uses: actions/upload-artifact@v4

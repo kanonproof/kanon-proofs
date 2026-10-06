@@ -221,6 +221,26 @@
       "file": "Payments.lean",
       "sha": "c30be7d241cccc9f"
     },
+    "Kanon.Reference.bandBp_mono": {
+      "file": "Reference.lean",
+      "sha": "2982f037964caa8a"
+    },
+    "Kanon.Reference.band_first": {
+      "file": "Reference.lean",
+      "sha": "11ae556a6e11af22"
+    },
+    "Kanon.Reference.br_exempt": {
+      "file": "Reference.lean",
+      "sha": "505edd747e560637"
+    },
+    "Kanon.Reference.za_no_flip": {
+      "file": "Reference.lean",
+      "sha": "e61078d9e0343f05"
+    },
+    "Kanon.Reference.za_one_or_other": {
+      "file": "Reference.lean",
+      "sha": "0ffd2195a1ad7223"
+    },
     "Kanon.UkMatch.parts_sum": {
       "file": "UkMatch.lean",
       "sha": "67f66878a6be7bd5"

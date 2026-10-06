@@ -34,7 +34,11 @@ here; the production code (TypeScript) is tested against the same cases.
 | 23 | **Hold check:** holding more at every hour never lowers the 7-day average; the average never exceeds the highest balance; each wallet counted once; enough tokens always give access. | `KanonProofs/HoldCheck.lean` |
 | 24 | **Payments:** every USDC paid in = burned + costs + pending, exactly; costs never exceed what's owed or dip into the burn. | `KanonProofs/Payments.lean` |
 
-Planned next (not proven yet, so not claimed): rounding (6), engine reference models (9), price impact (12, 13),
+Started, not counted until every engine has one: reference models (9). Brazil, South Africa and the lot ledger have
+executable models in `KanonProofs/Reference.lean`; `scripts/Vectors.lean` writes 720 cases to `vectors/reference.json`,
+CI regenerates them, and the app's engines must match them exactly. US, UK and Japan still to do.
+
+Planned next (not proven yet, so not claimed): rounding (6), price impact (12, 13),
 simulator error bounds (14), no look-ahead (15), alert timing (16),
 cohort privacy (19), and 25–31.
 

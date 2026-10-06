@@ -301,6 +301,30 @@
       "file": "Reference.lean",
       "sha": "0ffd2195a1ad7223"
     },
+    "Kanon.Rotation.new_cost_is_value_received": {
+      "file": "Rotation.lean",
+      "sha": "b7808fbc39375eae"
+    },
+    "Kanon.Rotation.part_at_most_price": {
+      "file": "Rotation.lean",
+      "sha": "d58474e06cd3fcb0"
+    },
+    "Kanon.Rotation.parts_le": {
+      "file": "Rotation.lean",
+      "sha": "1594b9a7ad7023f2"
+    },
+    "Kanon.Rotation.sale_equals_new_cost": {
+      "file": "Rotation.lean",
+      "sha": "2f24e5f677820e1b"
+    },
+    "Kanon.Rotation.sold_for_what_came_in": {
+      "file": "Rotation.lean",
+      "sha": "5ec7d194d68ea626"
+    },
+    "Kanon.Rotation.sum_parts": {
+      "file": "Rotation.lean",
+      "sha": "721b984a65de8c70"
+    },
     "Kanon.Rounding.halfUp_close": {
       "file": "Rounding.lean",
       "sha": "2efa586e90cdaf4f"

@@ -305,6 +305,18 @@
       "file": "PriceImpact.lean",
       "sha": "5a68c178a6e981e3"
     },
+    "Kanon.Ranking.cheaper_first": {
+      "file": "Ranking.lean",
+      "sha": "b8e9801852f7c513"
+    },
+    "Kanon.Ranking.never_below_dearer": {
+      "file": "Ranking.lean",
+      "sha": "dc0dbbd67bbead0c"
+    },
+    "Kanon.Ranking.same_routes": {
+      "file": "Ranking.lean",
+      "sha": "07546f4d5da02da0"
+    },
     "Kanon.Reference.bandBp_mono": {
       "file": "Reference.lean",
       "sha": "2982f037964caa8a"

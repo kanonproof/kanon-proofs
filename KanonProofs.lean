@@ -19,3 +19,4 @@ import KanonProofs.Rotation
 import KanonProofs.Grade
 import KanonProofs.LookAhead
 import KanonProofs.Spread
+import KanonProofs.Ranking

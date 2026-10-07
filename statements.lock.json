@@ -121,6 +121,18 @@
       "file": "Fresh.lean",
       "sha": "d79fa95de0067ca8"
     },
+    "Kanon.Grade.followed_iff": {
+      "file": "Grade.lean",
+      "sha": "8ceac54982f41753"
+    },
+    "Kanon.Grade.never_skipped_incomplete": {
+      "file": "Grade.lean",
+      "sha": "819a1cf96f05a09a"
+    },
+    "Kanon.Grade.skipped_means": {
+      "file": "Grade.lean",
+      "sha": "dfc20bcf0099e1ea"
+    },
     "Kanon.Grouping.balance_append": {
       "file": "Grouping.lean",
       "sha": "93e53a45ac130f22"

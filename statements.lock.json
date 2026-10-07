@@ -397,6 +397,10 @@
       "file": "Spread.lean",
       "sha": "7704a4e72b86f443"
     },
+    "Kanon.Spread.finishes_soonest": {
+      "file": "Spread.lean",
+      "sha": "e60ccc57af7bbe48"
+    },
     "Kanon.Spread.first_within": {
       "file": "Spread.lean",
       "sha": "5e8fd6ab9b4fb2b8"

@@ -6,8 +6,9 @@ amount: this month only up to what's left of the limit after what's already been
 until the amount is sold. Amounts are in cents, as whole numbers. The app uses this rule in `src/lib/exit/spread.ts`.
 
 Shown here: the months add up to exactly the amount; every month stays within the limit, this month counting what
-was already sold; no month sells nothing; and after this month the plan takes the fewest months any plan within
-the limit could.
+was already sold; no month sells nothing; and no plan within the limit finishes sooner: any plan that sells some part
+this month (within what's left of the limit) and then up to the limit a month needs at least as many months
+after this one.
 -/
 
 namespace Kanon.Spread
@@ -113,6 +114,19 @@ theorem fewest_months (cap sold amount : Nat) (hc : 0 < cap) (L : List Nat)
   rw [sells] at hs
   have : (amount - first cap sold amount + cap - 1) / cap < L.length + 1 := by
     rw [Nat.div_lt_iff_lt_mul hc, Nat.succ_mul]
+    omega
+  omega
+
+/-- **#32** No plan within the limit finishes sooner: whatever `now` it sells this month (within what's left of the
+limit) and however it splits the rest into months of at most the limit, it needs at least as many later months. -/
+theorem finishes_soonest (cap sold amount now : Nat) (hc : 0 < cap) (later : List Nat)
+    (room : now ≤ cap - sold) (within : ∀ x ∈ later, x ≤ cap) (sells : now + later.sum = amount) :
+    (chunks cap amount (amount - first cap sold amount)).length ≤ later.length := by
+  rw [chunks_length cap hc _ _ (by unfold first; omega)]
+  have hs := sum_le_length_mul cap later within
+  have : (amount - first cap sold amount + cap - 1) / cap < later.length + 1 := by
+    rw [Nat.div_lt_iff_lt_mul hc, Nat.succ_mul]
+    unfold first
     omega
   omega
 

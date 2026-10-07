@@ -213,6 +213,22 @@
       "file": "Ladder.lean",
       "sha": "2147ef8d65aa6c7d"
     },
+    "Kanon.LookAhead.foldl_attained": {
+      "file": "LookAhead.lean",
+      "sha": "e9004fd8c0330f60"
+    },
+    "Kanon.LookAhead.foldl_congr": {
+      "file": "LookAhead.lean",
+      "sha": "f64ade31785fa42e"
+    },
+    "Kanon.LookAhead.peak_attained": {
+      "file": "LookAhead.lean",
+      "sha": "269f761a62f63627"
+    },
+    "Kanon.LookAhead.reached_no_lookahead": {
+      "file": "LookAhead.lean",
+      "sha": "8fc84b336cb87e6c"
+    },
     "Kanon.Lots.matchOnce_nodup": {
       "file": "Lots.lean",
       "sha": "8c452e38bb007c14"

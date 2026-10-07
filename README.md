@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Official-source tested" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 23 of the 31 planned checks done
+## Status: 24 of the 31 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -28,6 +28,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 9 | **Reference models:** every tax engine (US worksheet with Tax Table rounding, Brazil month, UK same-day/30-day/pool, South Africa year, Japan total and moving average, Thailand with its 0.5% minimum, Nigeria's dollar gain at the sale-day rate and its bands) and the lot ledger has a small executable model here. `scripts/Vectors.lean` runs them on 2,160 generated cases (`vectors/reference.json`); CI regenerates the file, and the app's engines must give the same answers (exact, or within a penny per matched part where the model rounds down). Proven about the models: Brazil's exemption and monotone bands, Brazil's R$10 DARF minimum (nothing paid under R$10, and every centavo is paid or still carried), the US worksheet never above ordinary tax, South Africa's exclusion never flipping sign, Thailand's tax never falling as income rises and never below 0.5% of other income once that minimum applies (over 5,000 baht), Nigeria's tax never falling as income rises. | `KanonProofs/Reference.lean`, `scripts/Vectors.lean` |
 | 10 | **Cash-out plans** sell only lots that exist, never the same lot twice, never more than a lot holds, and raise the cash asked for when the coins are there. | `KanonProofs/CashOut.lean` |
 | 11 | **The chosen plan's tax is never higher than the country's default method's.** | `KanonProofs/CashOut.lean` |
+| 15 | **No look-ahead:** the "missed sale" finding (best price since purchase) and the Watcher's check at a day use only prices up to that day: histories that agree up to then give the same answer, and the best price is always one actually seen in the window. Covers those two; the Options cards have no scores over time yet. | `KanonProofs/LookAhead.lean` |
 | 17 | **Agent guardrail:** whatever the agent shows has passed the checker: every number is a small count or year, or within 50 cents / 0.5% of a number the engines produced (the app also accepts the same number written as a percent), and no banned word (advice, promises, jargon) appears. If no try passes, the fixed "can't answer" reply is shown, and it passes too. | `KanonProofs/Guard.lean` |
 | 12 | **Price impact** (constant-product pools): the share of today's value you keep falls as you sell more, never exceeds what the fee allows, and the payout (rounded down) never breaks the pool's x·y = k. Concentrated-liquidity pools are shown as "about" in the app and not claimed here. | `KanonProofs/PriceImpact.lean` |
 | 18 | **Creator fees:** the 50/30/20 split adds up exactly; rounding dust goes to the reserve (under 2 units); burns only lower supply; the swap's minimum-out bounds the price paid. | `KanonProofs/FeeSplit.lean` |
@@ -42,7 +43,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 31 | **A swap is a sale, and the new coins cost what came in:** the old coins' sale price and the new coins' cost both add up exactly to the value received, split by value with the last coin taking what's left, so nothing is lost or invented between the old cost and the new one; no part exceeds the whole. | `KanonProofs/Rotation.lean` |
 
 Planned next (not proven yet, so not claimed): splitting across pools (13),
-simulator error bounds (14), no look-ahead (15), alert timing (16),
+simulator error bounds (14), alert timing (16),
 cohort privacy (19), and 26, 29, 30.
 
 **Statement review:** the statements are locked but still waiting for a named human reviewer

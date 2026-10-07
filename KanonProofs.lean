@@ -17,3 +17,4 @@ import KanonProofs.Grouping
 import KanonProofs.Fresh
 import KanonProofs.Rotation
 import KanonProofs.Grade
+import KanonProofs.LookAhead

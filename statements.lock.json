@@ -393,6 +393,30 @@
       "file": "Rounding.lean",
       "sha": "cb995af36b6e36e3"
     },
+    "Kanon.Split.never_worse_than_one_pool": {
+      "file": "Split.lean",
+      "sha": "e25cb76fc86c7d8c"
+    },
+    "Kanon.Split.pick_le": {
+      "file": "Split.lean",
+      "sha": "87b3f51627b8a7b7"
+    },
+    "Kanon.Split.pick_mem": {
+      "file": "Split.lean",
+      "sha": "c1a56e03d312e423"
+    },
+    "Kanon.Split.prorata_adds_up": {
+      "file": "Split.lean",
+      "sha": "b854fc296799a426"
+    },
+    "Kanon.Split.prorata_exact": {
+      "file": "Split.lean",
+      "sha": "4151397f158d8926"
+    },
+    "Kanon.Split.shown_exact": {
+      "file": "Split.lean",
+      "sha": "3024a9b09ad40a66"
+    },
     "Kanon.Spread.chunks_length": {
       "file": "Spread.lean",
       "sha": "7b4030c5cc77f103"

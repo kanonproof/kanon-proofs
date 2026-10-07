@@ -429,6 +429,26 @@
       "file": "Spread.lean",
       "sha": "1e77299077cf82a0"
     },
+    "Kanon.StockToken.no_change_nothing_added": {
+      "file": "StockToken.lean",
+      "sha": "a326a001a2e5a1d0"
+    },
+    "Kanon.StockToken.rise_adds_exactly": {
+      "file": "StockToken.lean",
+      "sha": "37dc8a0470e6bac0"
+    },
+    "Kanon.StockToken.rise_adds_something": {
+      "file": "StockToken.lean",
+      "sha": "df6ddebce2537d83"
+    },
+    "Kanon.StockToken.shares_grow_with_multiplier": {
+      "file": "StockToken.lean",
+      "sha": "c4e7ee165a4cf1d5"
+    },
+    "Kanon.StockToken.value_by_feed": {
+      "file": "StockToken.lean",
+      "sha": "6a1df0d9a13520ca"
+    },
     "Kanon.UkMatch.parts_sum": {
       "file": "UkMatch.lean",
       "sha": "67f66878a6be7bd5"

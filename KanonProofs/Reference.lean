@@ -270,4 +270,42 @@ theorem ng_mono {x y : Nat} (h : x ≤ y) : ngTaxBp x ≤ ngTaxBp y :=
   Kanon.Brackets.taxBp_mono ngBrackets (by intro b hb; simp [ngBrackets] at hb; rcases hb with h|h|h|h|h|h <;> subst h <;> decide) h
 
 
+/-! ## Brazil: the R$10 DARF minimum (carried to the next month)
+
+Each month's tax in centavos. Under R$10 (1,000 centavos) nothing is paid; the amount is added to the next month,
+and paid once the running total reaches R$10. -/
+
+/-- Months' taxes in, (payments per month, what's still carried) out. -/
+def darfPay : List Nat → Nat → List Nat × Nat
+  | [], carry => ([], carry)
+  | t :: ts, carry =>
+    let due := carry + t
+    let pay := if due ≥ 1000 then due else 0
+    let (rest, left) := darfPay ts (due - pay)
+    (pay :: rest, left)
+
+def total : List Nat → Nat
+  | [] => 0
+  | x :: xs => x + total xs
+
+/-- **#9** Brazil: no centavo of tax is lost or invented: paid + still carried = all the months' tax (+ carry in). -/
+theorem darf_conserves : ∀ (ts : List Nat) (carry : Nat), total (darfPay ts carry).1 + (darfPay ts carry).2 = carry + total ts
+  | [], carry => by simp [darfPay, total]
+  | t :: ts, carry => by
+    have ih := darf_conserves ts
+    simp only [darfPay, total]
+    split <;> rename_i h
+    · have := ih (carry + t - (carry + t)); simp only [Nat.sub_self] at this ⊢; omega
+    · have := ih (carry + t - 0); simp only [Nat.sub_zero] at this ⊢; omega
+
+/-- **#9** Brazil: a DARF is never paid for less than R$10. -/
+theorem darf_min : ∀ (ts : List Nat) (carry : Nat), ∀ p ∈ (darfPay ts carry).1, p = 0 ∨ p ≥ 1000
+  | [], _ => by simp [darfPay]
+  | t :: ts, carry => by
+    intro p hp
+    simp only [darfPay, List.mem_cons] at hp
+    rcases hp with rfl | hp
+    · split <;> omega
+    · exact darf_min ts _ p hp
+
 end Kanon.Reference

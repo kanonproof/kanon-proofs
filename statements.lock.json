@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "pending human review (drafted by the KANON build agent, 2026-10-06)",
+  "reviewedBy": "pending human review (drafted by the KANON build agent, 2026-10-07)",
   "theorems": {
     "Kanon.Brackets.fixed_allowance_mono": {
       "file": "Brackets.lean",
@@ -288,6 +288,10 @@
     "Kanon.Reference.br_exempt": {
       "file": "Reference.lean",
       "sha": "505edd747e560637"
+    },
+    "Kanon.Reference.darf_conserves": {
+      "file": "Reference.lean",
+      "sha": "5892b0110296df4f"
     },
     "Kanon.Reference.ng_mono": {
       "file": "Reference.lean",

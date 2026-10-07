@@ -18,3 +18,4 @@ import KanonProofs.Fresh
 import KanonProofs.Rotation
 import KanonProofs.Grade
 import KanonProofs.LookAhead
+import KanonProofs.Spread

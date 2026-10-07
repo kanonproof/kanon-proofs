@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Official-source tested" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 24 of the 31 planned checks done
+## Status: 25 of the 32 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -41,6 +41,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 27 | **Grouping never creates or loses coins:** sorting a file's movements into one pile per transaction keeps every wallet's balance of every coin, drops or duplicates nothing, and each pile holds only its own transaction. The app's grouping is tested against the same property on random histories. | `KanonProofs/Grouping.lean` |
 | 28 | **Freshness:** a hand-checked number (rate, fee, tax rule) older than its limit is never shown without a "stale" label; a number with no readable date is always stale; the label never changes the number; the agent is only given numbers within their limit; once stale, a number stays stale until re-checked. | `KanonProofs/Fresh.lean` |
 | 31 | **A swap is a sale, and the new coins cost what came in:** the old coins' sale price and the new coins' cost both add up exactly to the value received, split by value with the last coin taking what's left, so nothing is lost or invented between the old cost and the new one; no part exceeds the whole. | `KanonProofs/Rotation.lean` |
+| 32 | **Brazil's monthly planner:** spreading a sale over months, this month only up to what's left of the R$35,000 limit after what's already been sold, then up to the limit each month: the months add up to exactly the amount, every month stays within the limit (this month counting what was already sold), no month sells nothing, and after this month no plan within the limit could take fewer months. | `KanonProofs/Spread.lean` |
 
 Planned next (not proven yet, so not claimed): splitting across pools (13),
 simulator error bounds (14), alert timing (16),

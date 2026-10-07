@@ -381,6 +381,38 @@
       "file": "Rounding.lean",
       "sha": "cb995af36b6e36e3"
     },
+    "Kanon.Spread.chunks_length": {
+      "file": "Spread.lean",
+      "sha": "7b4030c5cc77f103"
+    },
+    "Kanon.Spread.chunks_sum": {
+      "file": "Spread.lean",
+      "sha": "ac0f59da37762ced"
+    },
+    "Kanon.Spread.chunks_within": {
+      "file": "Spread.lean",
+      "sha": "c7742c22fb75f540"
+    },
+    "Kanon.Spread.fewest_months": {
+      "file": "Spread.lean",
+      "sha": "7704a4e72b86f443"
+    },
+    "Kanon.Spread.first_within": {
+      "file": "Spread.lean",
+      "sha": "5e8fd6ab9b4fb2b8"
+    },
+    "Kanon.Spread.plan_sum": {
+      "file": "Spread.lean",
+      "sha": "7027e899c314e546"
+    },
+    "Kanon.Spread.plan_within": {
+      "file": "Spread.lean",
+      "sha": "f38846d1c1bb3fac"
+    },
+    "Kanon.Spread.sum_le_length_mul": {
+      "file": "Spread.lean",
+      "sha": "1e77299077cf82a0"
+    },
     "Kanon.UkMatch.parts_sum": {
       "file": "UkMatch.lean",
       "sha": "67f66878a6be7bd5"

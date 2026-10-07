@@ -123,15 +123,15 @@
     },
     "Kanon.Grade.followed_iff": {
       "file": "Grade.lean",
-      "sha": "8ceac54982f41753"
+      "sha": "f4c8fc25cd845aff"
     },
     "Kanon.Grade.never_skipped_incomplete": {
       "file": "Grade.lean",
-      "sha": "819a1cf96f05a09a"
+      "sha": "489ed2804fcb66c9"
     },
     "Kanon.Grade.skipped_means": {
       "file": "Grade.lean",
-      "sha": "dfc20bcf0099e1ea"
+      "sha": "cd04497bfda05d02"
     },
     "Kanon.Grouping.balance_append": {
       "file": "Grouping.lean",

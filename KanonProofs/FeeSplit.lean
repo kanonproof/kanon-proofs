@@ -1,15 +1,16 @@
 /-!
 # Creator fees: the 50/30/20 split and burns (#18)
 
-Fees arrive in whole smallest units. 50% runs the agent and pays the team, 30% buys and burns
-$KANON, 20% goes to the reserve. Dust rule (explicit): the two percentages are rounded down and
+Fees arrive in whole smallest units. 50% buys and burns $KANON, 30% runs the agent and pays the
+team, 20% goes to the reserve ("half of everything is burned", decided 8 Oct 2026; before that the
+burn was 30% and running costs 50%). Dust rule (explicit): the two percentages are rounded down and
 every unit of rounding goes to the reserve, so nothing is lost or invented.
 -/
 
 namespace Kanon.Fees
 
-def ops (fee : Nat) : Nat := fee * 50 / 100
-def burn (fee : Nat) : Nat := fee * 30 / 100
+def ops (fee : Nat) : Nat := fee * 30 / 100
+def burn (fee : Nat) : Nat := fee * 50 / 100
 def reserve (fee : Nat) : Nat := fee - ops fee - burn fee
 
 /-- **#18** The split sums exactly to the fee. -/
@@ -17,8 +18,8 @@ theorem split_sums (fee : Nat) : ops fee + burn fee + reserve fee = fee := by
   unfold reserve ops burn; omega
 
 /-- **#18** Neither rounded share is ever more than its percentage. -/
-theorem ops_le (fee : Nat) : ops fee * 100 ≤ fee * 50 := by unfold ops; exact Nat.div_mul_le_self _ _
-theorem burn_le (fee : Nat) : burn fee * 100 ≤ fee * 30 := by unfold burn; exact Nat.div_mul_le_self _ _
+theorem ops_le (fee : Nat) : ops fee * 100 ≤ fee * 30 := by unfold ops; exact Nat.div_mul_le_self _ _
+theorem burn_le (fee : Nat) : burn fee * 100 ≤ fee * 50 := by unfold burn; exact Nat.div_mul_le_self _ _
 
 /-- **#18** Dust rule: the reserve gets at least its 20%; rounding only ever adds to it, by under 2 units. -/
 theorem reserve_ge (fee : Nat) : fee * 20 ≤ reserve fee * 100 := by

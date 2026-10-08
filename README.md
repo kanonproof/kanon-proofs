@@ -10,7 +10,7 @@ lake build && python3 scripts/proofs.py gate && python3 scripts/proofs.py lock
 
 **What a proof here means:** the maths in KANON's engines follows the rule as written below.
 It does **not** mean the rule was read correctly from the law; that's what each country's
-"Official-source tested" badge and its worked examples are for. Each engine has a reference model
+"Matches N official examples" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
 ## Status: 28 of the 32 planned checks done
@@ -31,7 +31,7 @@ here; the production code (TypeScript) is tested against the same cases.
 | 15 | **No look-ahead:** the "missed sale" finding (best price since purchase) and the Watcher's check at a day use only prices up to that day: histories that agree up to then give the same answer, and the best price is always one actually seen in the window. Covers those two; the Options cards have no scores over time yet. | `KanonProofs/LookAhead.lean` |
 | 17 | **Agent guardrail:** whatever the agent shows has passed the checker: every number is a small count or year, or within 50 cents / 0.5% of a number the engines produced (the app also accepts the same number written as a percent), and no banned word (advice, promises, jargon) appears. If no try passes, the fixed "can't answer" reply is shown, and it passes too. | `KanonProofs/Guard.lean` |
 | 12 | **Price impact** (constant-product pools): the share of today's value you keep falls as you sell more, never exceeds what the fee allows, and the payout (rounded down) never breaks the pool's x·y = k. Concentrated-liquidity pools are shown as "about" in the app and not claimed here. | `KanonProofs/PriceImpact.lean` |
-| 18 | **Creator fees:** the 50/30/20 split adds up exactly; rounding dust goes to the reserve (under 2 units); burns only lower supply; the swap's minimum-out bounds the price paid. | `KanonProofs/FeeSplit.lean` |
+| 18 | **Creator fees:** the split (50% buy and burn, 30% running costs and team, 20% reserve) adds up exactly; rounding dust goes to the reserve (under 2 units); burns only lower supply; the swap's minimum-out bounds the price paid. | `KanonProofs/FeeSplit.lean` |
 | 20 | **Proof-carrying reports:** every report can name this repo's commit and proof-bank hash; `manifest` prints them. | `scripts/proofs.py manifest` |
 | 21 | **Exit ladder:** steps adding up to 100% or less never sell more than is held; each step sells no more than is left; UK tax-year boundary (5 / 6 April). | `KanonProofs/Ladder.lean` |
 | 22 | **"Data complete" score** stays between 0 and 100, and explaining a transfer never lowers it. | `KanonProofs/Completeness.lean` |

@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "pending human review (drafted by the KANON build agent, 2026-10-07)",
+  "reviewedBy": "pending review (drafted by the KANON build agent, 2026-10-08; statement review not done yet)",
   "theorems": {
     "Kanon.Brackets.fixed_allowance_mono": {
       "file": "Brackets.lean",
@@ -71,7 +71,7 @@
     },
     "Kanon.Fees.burn_le": {
       "file": "FeeSplit.lean",
-      "sha": "0dc041292d122a3c"
+      "sha": "a6e6d8c1fae0b0e5"
     },
     "Kanon.Fees.minOut_bounds_price": {
       "file": "FeeSplit.lean",
@@ -79,7 +79,7 @@
     },
     "Kanon.Fees.ops_le": {
       "file": "FeeSplit.lean",
-      "sha": "5ff589d65e3bd3a0"
+      "sha": "a1a652f6dd8f115f"
     },
     "Kanon.Fees.reserve_dust": {
       "file": "FeeSplit.lean",

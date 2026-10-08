@@ -4,3 +4,8 @@ defaultTargets = ["KanonProofs"]
 
 [[lean_lib]]
 name = "KanonProofs"
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.28.0"

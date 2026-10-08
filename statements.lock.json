@@ -73,6 +73,22 @@
       "file": "FeeSplit.lean",
       "sha": "a6e6d8c1fae0b0e5"
     },
+    "Kanon.Fees.burn_never_less": {
+      "file": "ReserveCap.lean",
+      "sha": "1343e3bfdac759af"
+    },
+    "Kanon.Fees.capped_sums": {
+      "file": "ReserveCap.lean",
+      "sha": "6d842dcdacede351"
+    },
+    "Kanon.Fees.full_reserve_burns_the_rest": {
+      "file": "ReserveCap.lean",
+      "sha": "be67283d6e4e732c"
+    },
+    "Kanon.Fees.half_is_burned": {
+      "file": "ReserveCap.lean",
+      "sha": "6d388af7865e8550"
+    },
     "Kanon.Fees.minOut_bounds_price": {
       "file": "FeeSplit.lean",
       "sha": "57d57f6054009e0c"
@@ -88,6 +104,10 @@
     "Kanon.Fees.reserve_ge": {
       "file": "FeeSplit.lean",
       "sha": "2744d649cc55dabc"
+    },
+    "Kanon.Fees.reserve_never_over_cap": {
+      "file": "ReserveCap.lean",
+      "sha": "330d3661519e2629"
     },
     "Kanon.Fees.split_sums": {
       "file": "FeeSplit.lean",

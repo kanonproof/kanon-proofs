@@ -1,6 +1,7 @@
 import KanonProofs.Lots
 import KanonProofs.CashOut
 import KanonProofs.FeeSplit
+import KanonProofs.ReserveCap
 import KanonProofs.Ladder
 import KanonProofs.Completeness
 import KanonProofs.HoldCheck

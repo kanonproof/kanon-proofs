@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Matches N official examples" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 28 of the 32 planned checks done
+## Status: 29 of the 33 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|

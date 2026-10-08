@@ -230,10 +230,11 @@ Net income in satang; tax in satang × 10,000 (basis points), so it is exact. Cr
 lot rules already modelled (oldest first in `Lots`, the running average as in Japan's moving average). -/
 
 open Kanon.Brackets in
-/-- 0–150,000 baht exempt, then 5, 10, 15, 20, 25, 30 and 35%. Amounts in satang, rates in basis points. -/
+/-- 0–150,000 baht exempt, then 5, 10, 15, 20, 25, 30 and 35%; the 30% band runs to 5,000,000 baht (since the 2017 tax
+year). Amounts in satang, rates in basis points. -/
 def thBrackets : List Bracket :=
   [⟨0, 15000000, 0⟩, ⟨15000000, 30000000, 500⟩, ⟨30000000, 50000000, 1000⟩, ⟨50000000, 75000000, 1500⟩,
-   ⟨75000000, 100000000, 2000⟩, ⟨100000000, 200000000, 2500⟩, ⟨200000000, 400000000, 3000⟩, ⟨400000000, 10 ^ 18, 3500⟩]
+   ⟨75000000, 100000000, 2000⟩, ⟨100000000, 200000000, 2500⟩, ⟨200000000, 500000000, 3000⟩, ⟨500000000, 10 ^ 18, 3500⟩]
 
 /-- Tax (basis points of satang): progressive on net income, but at least 0.5% of income under 40(2)–(8) once that
 is 120,000 baht or more, unless that 0.5% comes to 5,000 baht or less (RD crypto guide, Q8). -/

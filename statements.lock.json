@@ -493,6 +493,286 @@
       "file": "StockToken.lean",
       "sha": "6a1df0d9a13520ca"
     },
+    "Kanon.Tightened.agent_never_gets_staleT": {
+      "file": "Tightened.lean",
+      "sha": "815d4c336437ddea"
+    },
+    "Kanon.Tightened.avgSafe_audit_example": {
+      "file": "Tightened.lean",
+      "sha": "4d6a3ad8d43cdcf0"
+    },
+    "Kanon.Tightened.avgSafe_cost_conserves": {
+      "file": "Tightened.lean",
+      "sha": "807c3da86ff715ed"
+    },
+    "Kanon.Tightened.avgSafe_cost_le": {
+      "file": "Tightened.lean",
+      "sha": "968dcb0517c131ff"
+    },
+    "Kanon.Tightened.avgSafe_eq_old": {
+      "file": "Tightened.lean",
+      "sha": "b71f7f9b26614704"
+    },
+    "Kanon.Tightened.avgSafe_kept": {
+      "file": "Tightened.lean",
+      "sha": "43f7a0e3be11fcec"
+    },
+    "Kanon.Tightened.avgSafe_qty_conserves": {
+      "file": "Tightened.lean",
+      "sha": "563f9fd2924141ef"
+    },
+    "Kanon.Tightened.avgSafe_qty_le": {
+      "file": "Tightened.lean",
+      "sha": "e491cff069098a04"
+    },
+    "Kanon.Tightened.buyCost_le": {
+      "file": "Tightened.lean",
+      "sha": "d878342d60939a6f"
+    },
+    "Kanon.Tightened.byDate_sorted": {
+      "file": "Tightened.lean",
+      "sha": "2213507d5a42fcdc"
+    },
+    "Kanon.Tightened.cheapest_eq_pick": {
+      "file": "Tightened.lean",
+      "sha": "e7519873da025dff"
+    },
+    "Kanon.Tightened.checkT_audit_example": {
+      "file": "Tightened.lean",
+      "sha": "4dcc9617bf4b0eb8"
+    },
+    "Kanon.Tightened.day_count_cannot_separate": {
+      "file": "Tightened.lean",
+      "sha": "af5c447369498dcd"
+    },
+    "Kanon.Tightened.flatten_insert_perm": {
+      "file": "Tightened.lean",
+      "sha": "02783324142cbfb9"
+    },
+    "Kanon.Tightened.foldl_max_ge": {
+      "file": "Tightened.lean",
+      "sha": "632f78f023850acb"
+    },
+    "Kanon.Tightened.future_is_labelled": {
+      "file": "Tightened.lean",
+      "sha": "b44e8db3657ff179"
+    },
+    "Kanon.Tightened.future_never_for_agent": {
+      "file": "Tightened.lean",
+      "sha": "e3056b166e88517a"
+    },
+    "Kanon.Tightened.heldOverYear_feb29": {
+      "file": "Tightened.lean",
+      "sha": "9d6039313d3e7010"
+    },
+    "Kanon.Tightened.heldOverYear_leap_cases": {
+      "file": "Tightened.lean",
+      "sha": "412fcfb54726f38c"
+    },
+    "Kanon.Tightened.heldOverYear_mono": {
+      "file": "Tightened.lean",
+      "sha": "6e2fdc9cb7534da7"
+    },
+    "Kanon.Tightened.label_keeps_valueT": {
+      "file": "Tightened.lean",
+      "sha": "7e2a2cc72fd3f17e"
+    },
+    "Kanon.Tightened.new_cost_part_at_most_price": {
+      "file": "Tightened.lean",
+      "sha": "7444152729332f9b"
+    },
+    "Kanon.Tightened.old_is_labelledT": {
+      "file": "Tightened.lean",
+      "sha": "13280ddc81bf1de5"
+    },
+    "Kanon.Tightened.payout_lt_reserve": {
+      "file": "Tightened.lean",
+      "sha": "c3c311545db5bfae"
+    },
+    "Kanon.Tightened.peak_attained_nonempty": {
+      "file": "Tightened.lean",
+      "sha": "3c1ea0898af79392"
+    },
+    "Kanon.Tightened.prorataPools_audit_example": {
+      "file": "Tightened.lean",
+      "sha": "7e091b534b6e17a9"
+    },
+    "Kanon.Tightened.prorataPools_bounded": {
+      "file": "Tightened.lean",
+      "sha": "c74be522b992a855"
+    },
+    "Kanon.Tightened.prorataPools_exact": {
+      "file": "Tightened.lean",
+      "sha": "8298128346d9cb37"
+    },
+    "Kanon.Tightened.prorata_bounds": {
+      "file": "Tightened.lean",
+      "sha": "ad10aebe013ac145"
+    },
+    "Kanon.Tightened.prorata_zero_total": {
+      "file": "Tightened.lean",
+      "sha": "ec6c4eb0f330eac9"
+    },
+    "Kanon.Tightened.rounding_spot_checks": {
+      "file": "Tightened.lean",
+      "sha": "98f8217bf14ee108"
+    },
+    "Kanon.Tightened.safePlan_le_admissible": {
+      "file": "Tightened.lean",
+      "sha": "499725a4aa8e3321"
+    },
+    "Kanon.Tightened.safePlan_le_default": {
+      "file": "Tightened.lean",
+      "sha": "0c27977ccb2005a4"
+    },
+    "Kanon.Tightened.safePlan_qty": {
+      "file": "Tightened.lean",
+      "sha": "7ad3df8209058abf"
+    },
+    "Kanon.Tightened.safePlan_refuses_audit_examples": {
+      "file": "Tightened.lean",
+      "sha": "9bec28f315e5cd7c"
+    },
+    "Kanon.Tightened.safePlan_valid": {
+      "file": "Tightened.lean",
+      "sha": "ff55be4f895c78db"
+    },
+    "Kanon.Tightened.sellByDate_audit_example": {
+      "file": "Tightened.lean",
+      "sha": "5de1da7e93a55711"
+    },
+    "Kanon.Tightened.sellByDate_conserves": {
+      "file": "Tightened.lean",
+      "sha": "406dc523534fb661"
+    },
+    "Kanon.Tightened.sellByDate_untouched_not_older": {
+      "file": "Tightened.lean",
+      "sha": "fccbe6c34da58c1e"
+    },
+    "Kanon.Tightened.sell_untouched_not_older": {
+      "file": "Tightened.lean",
+      "sha": "60a982d16b1d69d0"
+    },
+    "Kanon.Tightened.sell_used_untouched": {
+      "file": "Tightened.lean",
+      "sha": "e82022fc4b747a84"
+    },
+    "Kanon.Tightened.shownPools_bounded": {
+      "file": "Tightened.lean",
+      "sha": "0a31ee41136ab264"
+    },
+    "Kanon.Tightened.shownT_money_close": {
+      "file": "Tightened.lean",
+      "sha": "6861d44640836576"
+    },
+    "Kanon.Tightened.shownT_money_sourced": {
+      "file": "Tightened.lean",
+      "sha": "01cb16696eafcd1f"
+    },
+    "Kanon.Tightened.shownT_no_banned": {
+      "file": "Tightened.lean",
+      "sha": "197f58babbfc32ec"
+    },
+    "Kanon.Tightened.shownT_numbers_sourced": {
+      "file": "Tightened.lean",
+      "sha": "2972892e4fd038ce"
+    },
+    "Kanon.Tightened.shownT_passes": {
+      "file": "Tightened.lean",
+      "sha": "e2053584ed284791"
+    },
+    "Kanon.Tightened.staleT_audit_example": {
+      "file": "Tightened.lean",
+      "sha": "ae3b108a92824944"
+    },
+    "Kanon.Tightened.staleT_eq_stale": {
+      "file": "Tightened.lean",
+      "sha": "f93a6c2ac13aa3b4"
+    },
+    "Kanon.Tightened.staleT_future_then_fresh": {
+      "file": "Tightened.lean",
+      "sha": "767dc3c08ab117dd"
+    },
+    "Kanon.Tightened.staleT_stays_stale": {
+      "file": "Tightened.lean",
+      "sha": "190111257207ffea"
+    },
+    "Kanon.Tightened.stale_implies_staleT": {
+      "file": "Tightened.lean",
+      "sha": "641a9aad22da52da"
+    },
+    "Kanon.Tightened.sumI_nonneg": {
+      "file": "Tightened.lean",
+      "sha": "f12435b08410a553"
+    },
+    "Kanon.Tightened.takeC_each": {
+      "file": "Tightened.lean",
+      "sha": "c51accdfb5a59e1d"
+    },
+    "Kanon.Tightened.takeC_qty": {
+      "file": "Tightened.lean",
+      "sha": "0a756b6ace487092"
+    },
+    "Kanon.Tightened.takeC_sum": {
+      "file": "Tightened.lean",
+      "sha": "07875dff28b1f380"
+    },
+    "Kanon.Tightened.totalCost_perm": {
+      "file": "Tightened.lean",
+      "sha": "a65c09c2c09e6c4b"
+    },
+    "Kanon.Tightened.totalQty_perm": {
+      "file": "Tightened.lean",
+      "sha": "4ee20b3a28401656"
+    },
+    "Kanon.Tightened.ukRun_audit_example": {
+      "file": "Tightened.lean",
+      "sha": "0afdcef294d83949"
+    },
+    "Kanon.Tightened.ukRun_cost_conserved": {
+      "file": "Tightened.lean",
+      "sha": "87a72bf6316401e9"
+    },
+    "Kanon.Tightened.ukRun_each_buy_once": {
+      "file": "Tightened.lean",
+      "sha": "33523779fec5d32a"
+    },
+    "Kanon.Tightened.ukRun_parts": {
+      "file": "Tightened.lean",
+      "sha": "d0ffa663eb0ca1cc"
+    },
+    "Kanon.Tightened.ukRun_qty_conserved": {
+      "file": "Tightened.lean",
+      "sha": "53530756ace463ff"
+    },
+    "Kanon.Tightened.ukRun_sameDay_le": {
+      "file": "Tightened.lean",
+      "sha": "01e0d5666df7cc1c"
+    },
+    "Kanon.Tightened.ukStep_conserves": {
+      "file": "Tightened.lean",
+      "sha": "a7b8f88cd322ebde"
+    },
+    "Kanon.Tightened.ukStep_is_matchSale": {
+      "file": "Tightened.lean",
+      "sha": "73edb91816a6a448"
+    },
+    "Kanon.Tightened.ukStep_parts": {
+      "file": "Tightened.lean",
+      "sha": "17865cb9eca5f46c"
+    },
+    "Kanon.Tightened.uk_tax_year_all_days": {
+      "file": "Tightened.lean",
+      "sha": "00a7664e26d69f5d"
+    },
+    "Kanon.Tightened.undated_is_labelledT": {
+      "file": "Tightened.lean",
+      "sha": "75022b05b28833d6"
+    },
+    "Kanon.Tightened.validB_iff": {
+      "file": "Tightened.lean",
+      "sha": "c352ac057ea8ca29"
+    },
     "Kanon.UkMatch.parts_sum": {
       "file": "UkMatch.lean",
       "sha": "67f66878a6be7bd5"

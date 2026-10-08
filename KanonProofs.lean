@@ -23,3 +23,4 @@ import KanonProofs.Spread
 import KanonProofs.Ranking
 import KanonProofs.StockToken
 import KanonProofs.Split
+import KanonProofs.Tightened

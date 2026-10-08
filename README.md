@@ -50,6 +50,17 @@ here; the production code (TypeScript) is tested against the same cases.
 Planned next (not proven yet, so not claimed): simulator error bounds (14), alert timing (16),
 cohort privacy (19) and fixed definitions in the take-profit report (26).
 
+## Audited by Aristotle
+
+On 8 October 2026 the whole bank was given to Aristotle (Harmonic's prover, used as a tool; no affiliation) with one
+job: find where a theorem says less than the words next to it. Every theorem was true and none was an empty promise,
+but it found 19 gaps, three of them real mistakes in the app (Thailand's top band, made-up amounts passing the
+agent's checker, future-dated numbers never going stale). Those are fixed. The stronger statements it then proved
+are in `KanonProofs/Tightened.lean`: a planner whose chosen plan is always valid, UK matching across a run of sales,
+oldest-first by date, a one-year rule on calendar dates, and more. The full audit and what could not be proved are in
+[`audit/AUDIT.md`](audit/AUDIT.md) and [`audit/TIGHTENED.md`](audit/TIGHTENED.md). Every proof it returned is
+rebuilt and gated here like any other.
+
 **Statement review:** the statements are locked but still waiting for a named human reviewer
 (see `reviewedBy` in `statements.lock.json`).
 

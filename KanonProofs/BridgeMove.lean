@@ -7,7 +7,9 @@ A token can have one name on a chain and another on Ethereum (bridged USDC on zk
 USDC). When it crosses that chain's official bridge it is the same property arriving in the user's own wallet, so the
 ledger moves its lots to the new wallet and the new name and touches nothing else: no sale, no new purchase.
 
-Model of the `toAsset` field of the ledger's transfer event (`src/lib/engine/lots.ts`).
+The app files such a token under the coin it arrived as for that wallet's whole history (`unifyBridged` in
+`src/lib/money-map/map.ts`), so in its ledger the crossing is the plain own-wallet move of #4. This file proves the
+same for a ledger that keeps the two names apart: `moveAs_is_move` is the bridge between the two views.
 -/
 
 namespace Kanon.Lots

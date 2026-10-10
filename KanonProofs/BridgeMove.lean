@@ -7,9 +7,9 @@ A token can have one name on a chain and another on Ethereum (bridged USDC on zk
 USDC). When it crosses that chain's official bridge it is the same property arriving in the user's own wallet, so the
 ledger moves its lots to the new wallet and the new name and touches nothing else: no sale, no new purchase.
 
-The app files such a token under the coin it arrived as for that wallet's whole history (`unifyBridged` in
-`src/lib/money-map/map.ts`), so in its ledger the crossing is the plain own-wallet move of #4. This file proves the
-same for a ledger that keeps the two names apart: `moveAs_is_move` is the bridge between the two views.
+Not applied in the app yet. Each country's own cost pool (Brazil's average, the UK's section 104 pool, Japan's
+averages…) would have to make the same move, and until they do the app books such a crossing as a sale and a new
+purchase at market value, and says so. This file fixes what the move must preserve when it is built.
 -/
 
 namespace Kanon.Lots

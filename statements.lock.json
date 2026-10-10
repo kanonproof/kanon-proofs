@@ -257,6 +257,22 @@
       "file": "Lots.lean",
       "sha": "34a47b18964a8a3c"
     },
+    "Kanon.Lots.moveAs_conserves": {
+      "file": "BridgeMove.lean",
+      "sha": "5aea334c136c12d4"
+    },
+    "Kanon.Lots.moveAs_dest": {
+      "file": "BridgeMove.lean",
+      "sha": "a7ba443acf6728ea"
+    },
+    "Kanon.Lots.moveAs_is_move": {
+      "file": "BridgeMove.lean",
+      "sha": "9586d0e1e70b0d9c"
+    },
+    "Kanon.Lots.moveAs_keeps_lots": {
+      "file": "BridgeMove.lean",
+      "sha": "8747920e5d726d1c"
+    },
     "Kanon.Lots.move_dest": {
       "file": "Lots.lean",
       "sha": "11b9da85d69e6d7b"

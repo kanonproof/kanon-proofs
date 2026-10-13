@@ -1,5 +1,6 @@
 import KanonProofs.Lots
 import KanonProofs.BridgeMove
+import KanonProofs.PoolMove
 import KanonProofs.CashOut
 import KanonProofs.FeeSplit
 import KanonProofs.ReserveCap

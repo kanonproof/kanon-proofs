@@ -329,6 +329,46 @@
       "file": "Payments.lean",
       "sha": "c30be7d241cccc9f"
     },
+    "Kanon.PoolMove.average_kept": {
+      "file": "PoolMove.lean",
+      "sha": "480ffb755fc4e25e"
+    },
+    "Kanon.PoolMove.carried_at_average": {
+      "file": "PoolMove.lean",
+      "sha": "acad34c64850c918"
+    },
+    "Kanon.PoolMove.cost_conserved": {
+      "file": "PoolMove.lean",
+      "sha": "a9ff3a033c3dc5d4"
+    },
+    "Kanon.PoolMove.destination_never_negative": {
+      "file": "PoolMove.lean",
+      "sha": "1ad85cb9bbe422e7"
+    },
+    "Kanon.PoolMove.empty_source": {
+      "file": "PoolMove.lean",
+      "sha": "5a6232f778566ca1"
+    },
+    "Kanon.PoolMove.excess_costs_nothing": {
+      "file": "PoolMove.lean",
+      "sha": "c84054485a9653ac"
+    },
+    "Kanon.PoolMove.never_negative": {
+      "file": "PoolMove.lean",
+      "sha": "d5d4ea6afb1fceff"
+    },
+    "Kanon.PoolMove.no_gain_from_moving": {
+      "file": "PoolMove.lean",
+      "sha": "6c93b39b3ab6e8cd"
+    },
+    "Kanon.PoolMove.qty_conserved": {
+      "file": "PoolMove.lean",
+      "sha": "651bac3b8ed7b57e"
+    },
+    "Kanon.PoolMove.whole_pool": {
+      "file": "PoolMove.lean",
+      "sha": "70d3d588da199f40"
+    },
     "Kanon.PriceImpact.k_never_falls": {
       "file": "PriceImpact.lean",
       "sha": "62872f7f3de98d05"

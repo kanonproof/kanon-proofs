@@ -7,9 +7,9 @@ A token can have one name on a chain and another on Ethereum (bridged USDC on zk
 USDC). When it crosses that chain's official bridge it is the same property arriving in the user's own wallet, so the
 ledger moves its lots to the new wallet and the new name and touches nothing else: no sale, no new purchase.
 
-Not applied in the app yet. Each country's own cost pool (Brazil's average, the UK's section 104 pool, Japan's
-averages…) would have to make the same move, and until they do the app books such a crossing as a sale and a new
-purchase at market value, and says so. This file fixes what the move must preserve when it is built.
+Applied in the app since 11 October 2026, in both directions of zkSync's own bridge (USDC.e paid out on Ethereum as
+USDC; USDC deposited arriving as USDC.e). The ledger used for the United States and Germany makes the move below.
+Countries that tax from an average-cost pool make the same move between pools: see `PoolMove.lean` (#35).
 -/
 
 namespace Kanon.Lots

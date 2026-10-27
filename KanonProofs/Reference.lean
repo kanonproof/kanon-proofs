@@ -46,9 +46,9 @@ theorem br_exempt (sales : List Sale) (h : totalValue sales ≤ exemptCents) : b
 theorem bandBp_mono {a b : Nat} (h : a ≤ b) : bandBp a ≤ bandBp b := by
   unfold bandBp
   have h1 : min a 500000000 ≤ min b 500000000 := by omega
-  have h2 : min a 1000000000 - 500000000 ≤ min b 1000000000 - 500000000 := by omega
-  have h3 : min a 3000000000 - 1000000000 ≤ min b 3000000000 - 1000000000 := by omega
-  have h4 : a - 3000000000 ≤ b - 3000000000 := by omega
+  have h2 : min a 1000000000 - 500000000 ≤ min b 1000000000 - 500000000 := by clear h1; omega
+  have h3 : min a 3000000000 - 1000000000 ≤ min b 3000000000 - 1000000000 := by clear h1 h2; omega
+  have h4 : a - 3000000000 ≤ b - 3000000000 := by clear h1 h2 h3; omega
   have := Nat.mul_le_mul_left 1500 h1
   have := Nat.mul_le_mul_left 1750 h2
   have := Nat.mul_le_mul_left 2000 h3

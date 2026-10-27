@@ -21,7 +21,7 @@ def rank (routes : List Route) : List Route := routes.mergeSort le
 
 /-- **#30** Every route ahead of another in the ranking costs no more than it. -/
 theorem cheaper_first (routes : List Route) : (rank routes).Pairwise (fun a b => a.fee ≤ b.fee) := by
-  have h := List.sorted_mergeSort (le := le)
+  have h := List.pairwise_mergeSort (le := le)
     (by intro a b c hab hbc; simp [le] at *; omega)
     (by intro a b; simp [le]; omega) routes
   exact h.imp (fun {a b} hab => by simpa [le] using hab)

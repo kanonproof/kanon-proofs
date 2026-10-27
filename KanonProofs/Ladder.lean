@@ -25,7 +25,7 @@ theorem sold_le (held : Nat) (bps : List Nat) : sold held bps * 10000 ≤ held *
   | cons b bs ih =>
     simp only [sold, total, Nat.add_mul, Nat.mul_add]
     have : stepQty held b * 10000 ≤ held * b := by unfold stepQty; exact Nat.div_mul_le_self _ _
-    omega
+    exact Nat.add_le_add this ih
 
 /-- **#21** Steps add up to at most 100% → the ladder never sells more than is held. -/
 theorem never_oversells (held : Nat) (bps : List Nat) (h : total bps ≤ 10000) : sold held bps ≤ held := by

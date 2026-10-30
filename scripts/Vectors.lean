@@ -15,7 +15,7 @@ def jlist (xs : List String) : String := "[" ++ ", ".intercalate xs ++ "]"
 def brCases : String := Id.run do
   let mut s := 7
   let mut out : List String := []
-  for i in [0:240] do
+  for i in [0:10000] do
     let (k, s1) := draws s 1 4; s := s1
     let n := k.head! + 1
     -- Mostly everyday amounts; every fifth case reaches the higher bands.
@@ -32,7 +32,7 @@ def toInt (n : Nat) (half : Nat) : Int := (n : Int) - half
 def zaCases : String := Id.run do
   let mut s := 11
   let mut out : List String := []
-  for i in [0:240] do
+  for i in [0:10000] do
     let (k, s1) := draws s 1 4; s := s1
     let (gs, s2) := draws s (k.head! + 1) 60000000; s := s2
     let gains := gs.map (toInt · 30000000)
@@ -46,7 +46,7 @@ def zaCases : String := Id.run do
 def lotCases : String := Id.run do
   let mut s := 13
   let mut out : List String := []
-  for _ in [0:240] do
+  for _ in [0:10000] do
     let (k, s1) := draws s 1 4; s := s1
     let n := k.head! + 1
     let (qs, s2) := draws s n 1000000; s := s2
@@ -68,7 +68,7 @@ def us2026 : List (String × Reference.UsSchedule) := [
 def usCases : String := Id.run do
   let mut s := 17
   let mut out : List String := []
-  for i in [0:240] do
+  for i in [0:10000] do
     let (st, sch) := us2026[i % 2]!
     let (t, s1) := draws s 1 (if i % 3 == 0 then 90000000 else 10000000); s := s1
     let taxable := t.head!
@@ -80,7 +80,7 @@ def usCases : String := Id.run do
 def jpCases : String := Id.run do
   let mut s := 19
   let mut out : List String := []
-  for _ in [0:240] do
+  for _ in [0:10000] do
     let (o, s1) := draws s 2 1000000; s := s1
     let openQty := o[0]!
     let openCost := if openQty == 0 then 0 else o[1]! * 3
@@ -104,7 +104,7 @@ def jpCases : String := Id.run do
 def ukCases : String := Id.run do
   let mut s := 23
   let mut out : List String := []
-  for _ in [0:240] do
+  for _ in [0:10000] do
     let (k, s1) := draws s 1 6; s := s1
     let mut day := 0
     let mut days : List Reference.UkDay := []
@@ -123,7 +123,7 @@ def ukCases : String := Id.run do
 def thCases : String := Id.run do
   let mut s := 29
   let mut out : List String := []
-  for i in [0:240] do
+  for i in [0:10000] do
     let (r, s1) := draws s 3 600000000; s := s1
     let net := if i % 5 == 0 then r[0]! % 20000000 else r[0]!
     let a := if i % 3 == 0 then 0 else r[1]! % 400000000
@@ -133,7 +133,7 @@ def thCases : String := Id.run do
 def ngCases : String := Id.run do
   let mut s := 31
   let mut out : List String := []
-  for _ in [0:240] do
+  for _ in [0:10000] do
     let (r, s1) := draws s 4 1000000000; s := s1
     let cost := r[0]! % 50000000
     let proceeds := cost + r[1]! % 50000000
@@ -146,7 +146,7 @@ def ngCases : String := Id.run do
 def darfCases : String := Id.run do
   let mut s := 37
   let mut out : List String := []
-  for _ in [0:240] do
+  for _ in [0:10000] do
     let (k, s1) := draws s 1 12; s := s1
     let (ts, s2) := draws s (k.head! + 1) 2500; s := s2
     let (pays, left) := Reference.darfPay ts 0

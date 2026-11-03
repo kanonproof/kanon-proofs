@@ -1,6 +1,62 @@
 {
-  "reviewedBy": "pending review (drafted by the KANON build agent, 2026-10-08; statement review not done yet)",
+  "reviewedBy": "pending named human review (drafted by the KANON build agent, 2026-10-08); #36-#42 checked by an independent AI reviewer, 2 rounds, 2026-11-03 (audit/REVIEW-2026-11-03.md)",
   "theorems": {
+    "Kanon.Answers.away_and_back": {
+      "file": "Answers.lean",
+      "sha": "5091ddabd6eeff36"
+    },
+    "Kanon.Answers.fits_direction": {
+      "file": "Answers.lean",
+      "sha": "7985cfaff36e8567"
+    },
+    "Kanon.Answers.lot_cost": {
+      "file": "Answers.lean",
+      "sha": "dfbbecde4c4542f6"
+    },
+    "Kanon.Answers.lot_day": {
+      "file": "Answers.lean",
+      "sha": "2c67d465882d95fa"
+    },
+    "Kanon.Answers.lot_day_le": {
+      "file": "Answers.lean",
+      "sha": "da1f0f9a16f80e71"
+    },
+    "Kanon.Answers.paid_not_after": {
+      "file": "Answers.lean",
+      "sha": "a5bc08199991d158"
+    },
+    "Kanon.Answers.sale_only_if_sold": {
+      "file": "Answers.lean",
+      "sha": "aec6eebdd3789fa5"
+    },
+    "Kanon.Answers.sold_needs_price": {
+      "file": "Answers.lean",
+      "sha": "083e19ed9097c515"
+    },
+    "Kanon.Answers.unanswered_not_sale": {
+      "file": "Answers.lean",
+      "sha": "b3487ec9d5a4438d"
+    },
+    "Kanon.BrRuns.joins_open": {
+      "file": "BrRuns.lean",
+      "sha": "d8d4c21988abf523"
+    },
+    "Kanon.BrRuns.joins_window": {
+      "file": "BrRuns.lean",
+      "sha": "96bed7cac9a1419a"
+    },
+    "Kanon.BrRuns.one_at_a_time": {
+      "file": "BrRuns.lean",
+      "sha": "4c84a6f69c3de670"
+    },
+    "Kanon.BrRuns.one_at_a_time_from_start": {
+      "file": "BrRuns.lean",
+      "sha": "7775c9169e02c6dc"
+    },
+    "Kanon.BrRuns.step_is_total": {
+      "file": "BrRuns.lean",
+      "sha": "f4429554e682848a"
+    },
     "Kanon.Brackets.fixed_allowance_mono": {
       "file": "Brackets.lean",
       "sha": "42d8c6ec2fe635d1"
@@ -24,6 +80,42 @@
     "Kanon.Brackets.tax_mono": {
       "file": "Brackets.lean",
       "sha": "695e6ec31a660d1a"
+    },
+    "Kanon.ByBalance.block_shows": {
+      "file": "ByBalance.lean",
+      "sha": "12ad7cae9b229ca6"
+    },
+    "Kanon.ByBalance.differs_has_block": {
+      "file": "ByBalance.lean",
+      "sha": "30a7860280655eb9"
+    },
+    "Kanon.ByBalance.excess_has_block": {
+      "file": "ByBalance.lean",
+      "sha": "5f65ed0dff6e8ff9"
+    },
+    "Kanon.ByBalance.fee_bounds": {
+      "file": "ByBalance.lean",
+      "sha": "61d3b005132a718f"
+    },
+    "Kanon.ByBalance.found_matches": {
+      "file": "ByBalance.lean",
+      "sha": "e62b9e4c5508feeb"
+    },
+    "Kanon.ByBalance.not_fee_without_own": {
+      "file": "ByBalance.lean",
+      "sha": "aae5a2591310ff5c"
+    },
+    "Kanon.ByBalance.search_finds": {
+      "file": "ByBalance.lean",
+      "sha": "9d6d16b86b952b48"
+    },
+    "Kanon.ByBalance.search_sound": {
+      "file": "ByBalance.lean",
+      "sha": "ae5df38833a2e568"
+    },
+    "Kanon.ByBalance.split_keeps": {
+      "file": "ByBalance.lean",
+      "sha": "a3d2ce6ea05db83e"
     },
     "Kanon.CashOut.cheapest_le_start": {
       "file": "CashOut.lean",
@@ -68,6 +160,30 @@
     "Kanon.Complete.shares_exact": {
       "file": "Completeness.lean",
       "sha": "5098e93f4293647a"
+    },
+    "Kanon.Entries.buy_rows": {
+      "file": "Entries.lean",
+      "sha": "6d60e858c143fee2"
+    },
+    "Kanon.Entries.fee_netted": {
+      "file": "Entries.lean",
+      "sha": "180374b6a9de0656"
+    },
+    "Kanon.Entries.in_rows": {
+      "file": "Entries.lean",
+      "sha": "73bbecd9a4146357"
+    },
+    "Kanon.Entries.invalid_nothing": {
+      "file": "Entries.lean",
+      "sha": "5261d38b8b4d2a67"
+    },
+    "Kanon.Entries.sell_rows": {
+      "file": "Entries.lean",
+      "sha": "b3d19582fc723fe7"
+    },
+    "Kanon.Entries.sent_rows": {
+      "file": "Entries.lean",
+      "sha": "feadf21fdc77677b"
     },
     "Kanon.Fees.burn_le": {
       "file": "FeeSplit.lean",
@@ -141,6 +257,46 @@
       "file": "Fresh.lean",
       "sha": "d79fa95de0067ca8"
     },
+    "Kanon.Germany.all_or_nothing": {
+      "file": "Germany.lean",
+      "sha": "c27684833e29719a"
+    },
+    "Kanon.Germany.at_or_over": {
+      "file": "Germany.lean",
+      "sha": "1ce37251a6377949"
+    },
+    "Kanon.Germany.counted_once": {
+      "file": "Germany.lean",
+      "sha": "d2cd7c480eff7239"
+    },
+    "Kanon.Germany.futures_off_form": {
+      "file": "Germany.lean",
+      "sha": "3f2b57778e829f67"
+    },
+    "Kanon.Germany.lines_add_up": {
+      "file": "Germany.lean",
+      "sha": "c3825a5fdcfe2270"
+    },
+    "Kanon.Germany.long_not_in_result": {
+      "file": "Germany.lean",
+      "sha": "c2e509df635a427e"
+    },
+    "Kanon.Germany.loss_untaxed": {
+      "file": "Germany.lean",
+      "sha": "d888dd81d4a61723"
+    },
+    "Kanon.Germany.result_exact": {
+      "file": "Germany.lean",
+      "sha": "a2cff73e87e4e853"
+    },
+    "Kanon.Germany.short_on_form": {
+      "file": "Germany.lean",
+      "sha": "22005ec0b69878f8"
+    },
+    "Kanon.Germany.under_threshold": {
+      "file": "Germany.lean",
+      "sha": "6551bb2b5b703196"
+    },
     "Kanon.Grade.followed_iff": {
       "file": "Grade.lean",
       "sha": "f4c8fc25cd845aff"
@@ -192,6 +348,38 @@
     "Kanon.Guard.shown_passes": {
       "file": "Guard.lean",
       "sha": "968a0cff52215c40"
+    },
+    "Kanon.Harvest.bigger_loss_saves_more": {
+      "file": "Harvest.lean",
+      "sha": "16d20b7074657b42"
+    },
+    "Kanon.Harvest.gain_never_listed": {
+      "file": "Harvest.lean",
+      "sha": "37e7ee6e103c5648"
+    },
+    "Kanon.Harvest.gain_saves_nothing": {
+      "file": "Harvest.lean",
+      "sha": "a71aeea8137ecc5e"
+    },
+    "Kanon.Harvest.nothing_to_save": {
+      "file": "Harvest.lean",
+      "sha": "a29238648d8c7655"
+    },
+    "Kanon.Harvest.saving_le_tax": {
+      "file": "Harvest.lean",
+      "sha": "b53cdbf13f49f962"
+    },
+    "Kanon.Harvest.saving_nonneg": {
+      "file": "Harvest.lean",
+      "sha": "7d1a80badb3752aa"
+    },
+    "Kanon.Harvest.us_cap": {
+      "file": "Harvest.lean",
+      "sha": "a907692fb3c0093e"
+    },
+    "Kanon.Harvest.us_whole_loss_under_cap": {
+      "file": "Harvest.lean",
+      "sha": "c2a0a1525737e909"
     },
     "Kanon.Hold.atLeast_len": {
       "file": "HoldCheck.lean",
@@ -320,6 +508,42 @@
     "Kanon.Matching.split_total": {
       "file": "Matching.lean",
       "sha": "308dd5c6f49eaac9"
+    },
+    "Kanon.Methods.any_order_conserves": {
+      "file": "Methods.lean",
+      "sha": "eae882635e64ee9e"
+    },
+    "Kanon.Methods.any_order_exact": {
+      "file": "Methods.lean",
+      "sha": "419c80460d59acb8"
+    },
+    "Kanon.Methods.before_any": {
+      "file": "Methods.lean",
+      "sha": "61208c9939e029a2"
+    },
+    "Kanon.Methods.exchange_from_2027": {
+      "file": "Methods.lean",
+      "sha": "52f7b65a1a2c4a20"
+    },
+    "Kanon.Methods.forward_only": {
+      "file": "Methods.lean",
+      "sha": "9add721400eadb8c"
+    },
+    "Kanon.Methods.hifo_least_gain": {
+      "file": "Methods.lean",
+      "sha": "ff9403643c63b670"
+    },
+    "Kanon.Methods.hifo_most_cost": {
+      "file": "Methods.lean",
+      "sha": "7d063d8cb5446ddc"
+    },
+    "Kanon.Methods.own_wallet_uses_order": {
+      "file": "Methods.lean",
+      "sha": "f906a0701fee3438"
+    },
+    "Kanon.Methods.uses_newest": {
+      "file": "Methods.lean",
+      "sha": "a3430e60084692e6"
     },
     "Kanon.Pay.conserved": {
       "file": "Payments.lean",

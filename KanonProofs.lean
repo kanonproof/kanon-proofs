@@ -26,3 +26,10 @@ import KanonProofs.Ranking
 import KanonProofs.StockToken
 import KanonProofs.Split
 import KanonProofs.Tightened
+import KanonProofs.Methods
+import KanonProofs.Germany
+import KanonProofs.Harvest
+import KanonProofs.Entries
+import KanonProofs.Answers
+import KanonProofs.ByBalance
+import KanonProofs.BrRuns

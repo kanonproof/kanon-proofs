@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #43)",
+  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #44)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -440,6 +440,30 @@
     "Kanon.Hold.twa_le_max": {
       "file": "HoldCheck.lean",
       "sha": "1628a78de186f4d6"
+    },
+    "Kanon.Korea.before_2027": {
+      "file": "Korea.lean",
+      "sha": "d3fec63092a92b27"
+    },
+    "Kanon.Korea.deemed_cost": {
+      "file": "Korea.lean",
+      "sha": "3212a2ce6844ee66"
+    },
+    "Kanon.Korea.from_2027": {
+      "file": "Korea.lean",
+      "sha": "647b4d8269c59b3c"
+    },
+    "Kanon.Korea.marginal": {
+      "file": "Korea.lean",
+      "sha": "71d6d43dec40513d"
+    },
+    "Kanon.Korea.monotone": {
+      "file": "Korea.lean",
+      "sha": "d107ede7b05cd8dc"
+    },
+    "Kanon.Korea.sale_tax": {
+      "file": "Korea.lean",
+      "sha": "eb8ab8aa314e0e83"
     },
     "Kanon.Ladder.never_oversells": {
       "file": "Ladder.lean",

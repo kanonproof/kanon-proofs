@@ -34,3 +34,4 @@ import KanonProofs.Answers
 import KanonProofs.ByBalance
 import KanonProofs.BrRuns
 import KanonProofs.Simulator
+import KanonProofs.GasFees

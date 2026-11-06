@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "pending named human review (drafted by the KANON build agent, 2026-10-08); #36-#42 checked by an independent AI reviewer, 2 rounds, 2026-11-03 (audit/REVIEW-2026-11-03.md); #14 checked by an independent AI reviewer, 2 rounds, 2026-11-06 (audit/REVIEW-2026-11-06.md)",
+  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #43)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -256,6 +256,42 @@
     "Kanon.Fresh.undated_is_labelled": {
       "file": "Fresh.lean",
       "sha": "d79fa95de0067ca8"
+    },
+    "Kanon.GasFees.fee_counted_once": {
+      "file": "GasFees.lean",
+      "sha": "17f9cfc2ec6ec8c6"
+    },
+    "Kanon.GasFees.lone_fee": {
+      "file": "GasFees.lean",
+      "sha": "3c99e32040af9643"
+    },
+    "Kanon.GasFees.lone_fee_elsewhere": {
+      "file": "GasFees.lean",
+      "sha": "e9231997dd2e5b1f"
+    },
+    "Kanon.GasFees.lone_fee_thailand": {
+      "file": "GasFees.lean",
+      "sha": "4ed7f5f39997f5e3"
+    },
+    "Kanon.GasFees.money_buy": {
+      "file": "GasFees.lean",
+      "sha": "4f6364060c4e8e3d"
+    },
+    "Kanon.GasFees.money_sale": {
+      "file": "GasFees.lean",
+      "sha": "df6c14b6317f0a29"
+    },
+    "Kanon.GasFees.nothing_allowed": {
+      "file": "GasFees.lean",
+      "sha": "fed97341ebcf1205"
+    },
+    "Kanon.GasFees.proceeds_nonneg": {
+      "file": "GasFees.lean",
+      "sha": "0e603d52b87cb6b8"
+    },
+    "Kanon.GasFees.split_same_total": {
+      "file": "GasFees.lean",
+      "sha": "7ee8e823846db0ab"
     },
     "Kanon.Germany.all_or_nothing": {
       "file": "Germany.lean",

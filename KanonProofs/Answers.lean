@@ -5,11 +5,13 @@ import Mathlib.Tactic
 
 KANON asks about each transfer it couldn't explain (`src/lib/money-map/map.ts`, `buildMap` and `toEvents`). Coins in:
 "I paid for it" (what and when), "Came back from an account of mine", "Income or reward". Coins out: "Still mine: an
-account I haven't added" or "Sold or spent". Proved here:
+account I haven't added" or "Sold or spent". And coins in can be "Spam or worthless: leave it out". Proved here:
 
 * **An answer is used only where it fits.** An answer about coins in is never applied to coins out, nor the other way.
   "Paid for it" is used only with a day on or before the coins arrived; "Sold" only for a coin with a price (what it
   sold for must be known).
+* **"Spam" is only for coins in, and (in the model of the step that books coins in) the only answer that books no lot
+  for them; a later sale of those coins has no cost.**
 * **Coins that left with no answer are not a sale.** They leave the wallet but are not reported (only sales, `s`, are);
   "Sold or spent" makes them a sale.
 * **"Paid for it" keeps the day it was bought.** The lot is dated to the day the person gives, which is never after the
@@ -28,6 +30,7 @@ inductive Answer
   | back
   | mine
   | sold
+  | spam
 
 /-- Whether an answer is used for a transfer: coins in (`incoming`), arriving on `arrival`, with or without a price. -/
 def used (incoming : Bool) (arrival : ℕ) (priced : Bool) : Answer → Bool
@@ -36,12 +39,13 @@ def used (incoming : Bool) (arrival : ℕ) (priced : Bool) : Answer → Bool
   | .back => incoming
   | .mine => !incoming
   | .sold => !incoming && priced
+  | .spam => incoming
 
 /-- **#40** An answer about coins in is never used for coins out, and one about coins out never for coins in. -/
 theorem fits_direction (arrival : ℕ) (priced : Bool) :
     (∀ d, used false arrival priced (.paid d) = false) ∧ used false arrival priced .income = false ∧
       used false arrival priced .back = false ∧ used true arrival priced .mine = false ∧
-      used true arrival priced .sold = false := by
+      used true arrival priced .sold = false ∧ used false arrival priced .spam = false := by
   simp [used]
 
 /-- **#40** "Paid for it" is used only with a day on or before the coins arrived. -/
@@ -51,6 +55,18 @@ theorem paid_not_after (d arrival : ℕ) (priced : Bool) (h : used true arrival 
 /-- **#40** "Sold or spent" is used only for a coin with a price. -/
 theorem sold_needs_price (arrival : ℕ) (incoming : Bool) (h : used incoming arrival false .sold = true) : False := by
   simp [used] at h
+
+/-- Whether coins in become a lot in the ledger: every answer but "spam" (and no answer) does. -/
+def makesLot : Option Answer → Bool
+  | some .spam => false
+  | _ => true
+
+/-- **#40** The model of the one step in `toEvents` (map.ts) that books coins in: "spam" is the answer that books no lot
+for them, and no other answer does. A later sale of those coins then has no cost (0, the most the tax could be). -/
+theorem spam_no_lot (a : Option Answer) : makesLot a = false ↔ a = some .spam := by
+  match a with
+  | some .spam => simp [makesLot]
+  | some (.paid _) | some .income | some .back | some .mine | some .sold | none => simp [makesLot]
 
 /-- What the ledger does with coins out: `sale` (`s`, reported) or `left` (`x`, out of the wallet, not reported), or
 `away` (moved to the person's account elsewhere, keeping date and cost). -/

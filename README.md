@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Matches N official examples" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 38 of the 42 planned checks done
+## Status: 39 of the 42 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -52,12 +52,13 @@ here; the production code (TypeScript) is tested against the same cases.
 | 28 | **Freshness:** a hand-checked number (rate, fee, tax rule) older than its limit is never shown without a "stale" label; a number with no readable date is always stale; the label never changes the number; the agent is only given numbers within their limit; once stale, a number stays stale until re-checked. | `KanonProofs/Fresh.lean` |
 | 31 | **A swap is a sale, and the new coins cost what came in:** the old coins' sale price and the new coins' cost both add up exactly to the value received, split by value with the last coin taking what's left, so nothing is lost or invented between the old cost and the new one; no part exceeds the whole. | `KanonProofs/Rotation.lean` |
 | 32 | **Brazil's monthly planner:** spreading a sale over months, this month only up to what's left of the R$35,000 limit after what's already been sold, then up to the limit each month: the months add up to exactly the amount, every month stays within the limit (this month counting what was already sold), no month sells nothing, and no plan within the limit finishes sooner (whatever it sells this month, it needs at least as many later months). | `KanonProofs/Spread.lean` |
+| 14 | **Simulator odds:** for paths drawn independently (ideal random draws), each reaching the goal or not with the same chance, the share of paths reaching it is 1 point (0.01) or more away from that chance with probability at most 2·e^(−2·n·0.01²) (Hoeffding's inequality, from Mathlib); with the simulator's 20,000 paths that is under 5%: each chance computed is within ±1 percentage point of the model's own at 95% confidence (each number on its own, not all six on the screen at once; before rounding to the whole percent shown, so within 1.5 points as shown). Not covered: the app uses a fixed seed (the same inputs always give the same odds), not ideal random draws, and whether the past is a good model of the future. | `KanonProofs/Simulator.lean` |
 | 29 | **Stock Token value:** a balance valued at the token's own price equals tokens × share price × shares per token; when a dividend raises the shares per token, the value added is exactly the extra shares at the share price, nothing when it doesn't change, and the token count never moves. | `KanonProofs/StockToken.lean` |
 | 13 | **Splitting a sale across pools:** the app compares selling everything into each of a token's deepest pools with a split in proportion to each pool's coins, and shows the one that loses least. The split's parts add up to exactly the amount sold (the last pool takes what's left), what's shown is one of the candidates, and it never loses more than selling everything into any one of the pools. | `KanonProofs/Split.lean` |
 | 30 | **Cash-out ranking:** routes are ranked by what they cost on your amount; a route that costs less is never ranked below one that costs more, and the ranking holds the same routes, each once (nothing dropped or added). | `KanonProofs/Ranking.lean` |
 
-Planned next (not proven yet, so not claimed): simulator error bounds (14), alert timing (16),
-cohort privacy (19) and fixed definitions in the take-profit report (26).
+Planned next (not proven yet, so not claimed): alert timing (16), cohort privacy (19) and fixed definitions in the
+take-profit report (26), each with its feature (none of the three is in the app yet).
 
 ## Audited by Aristotle
 

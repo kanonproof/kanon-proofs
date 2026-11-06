@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "pending named human review (drafted by the KANON build agent, 2026-10-08); #36-#42 checked by an independent AI reviewer, 2 rounds, 2026-11-03 (audit/REVIEW-2026-11-03.md)",
+  "reviewedBy": "pending named human review (drafted by the KANON build agent, 2026-10-08); #36-#42 checked by an independent AI reviewer, 2 rounds, 2026-11-03 (audit/REVIEW-2026-11-03.md); #14 checked by an independent AI reviewer, 2 rounds, 2026-11-06 (audit/REVIEW-2026-11-06.md)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -692,6 +692,22 @@
     "Kanon.Rounding.up_never_under": {
       "file": "Rounding.lean",
       "sha": "cb995af36b6e36e3"
+    },
+    "Kanon.Simulator.odds_within_one_point": {
+      "file": "Simulator.lean",
+      "sha": "9a3702277b89afdd"
+    },
+    "Kanon.Simulator.one_side": {
+      "file": "Simulator.lean",
+      "sha": "41dbed8f1836f716"
+    },
+    "Kanon.Simulator.paths_enough": {
+      "file": "Simulator.lean",
+      "sha": "501857e12dd05d98"
+    },
+    "Kanon.Simulator.share_close": {
+      "file": "Simulator.lean",
+      "sha": "8dab25846aefb9b7"
     },
     "Kanon.Split.never_worse_than_one_pool": {
       "file": "Split.lean",

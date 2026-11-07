@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #46 and #47)",
+  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #48 and #49)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -489,6 +489,22 @@
       "file": "HoldCheck.lean",
       "sha": "1628a78de186f4d6"
     },
+    "Kanon.India.at_least_net": {
+      "file": "India.lean",
+      "sha": "2433314ed53d27e8"
+    },
+    "Kanon.India.no_set_off": {
+      "file": "India.lean",
+      "sha": "f0e3ba4d01fa0d2e"
+    },
+    "Kanon.India.row_income": {
+      "file": "India.lean",
+      "sha": "98b76773f3565c8f"
+    },
+    "Kanon.India.tax_rate": {
+      "file": "India.lean",
+      "sha": "ddb9292594de5c5f"
+    },
     "Kanon.Korea.before_2027": {
       "file": "Korea.lean",
       "sha": "d3fec63092a92b27"
@@ -652,6 +668,14 @@
     "Kanon.Methods.uses_newest": {
       "file": "Methods.lean",
       "sha": "a3430e60084692e6"
+    },
+    "Kanon.NgYears.run_conserves": {
+      "file": "NgYears.lean",
+      "sha": "280049b1ad944a7e"
+    },
+    "Kanon.NgYears.year_rule": {
+      "file": "NgYears.lean",
+      "sha": "6f123d90fa4f2ef0"
     },
     "Kanon.Pay.conserved": {
       "file": "Payments.lean",

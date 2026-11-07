@@ -39,3 +39,5 @@ import KanonProofs.Korea
 import KanonProofs.Carry
 import KanonProofs.BrAbroad
 import KanonProofs.DeLosses
+import KanonProofs.India
+import KanonProofs.NgYears

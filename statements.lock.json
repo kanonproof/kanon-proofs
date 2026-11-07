@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 3 rounds (audit/REVIEW-2026-11-07.md, #40)",
+  "reviewedBy": "independent AI reviewer, 3 rounds (audit/REVIEW-2026-11-07b.md, #50)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -680,6 +680,22 @@
     "Kanon.Methods.uses_newest": {
       "file": "Methods.lean",
       "sha": "a3430e60084692e6"
+    },
+    "Kanon.Negligible.claim_empty": {
+      "file": "Negligible.lean",
+      "sha": "71d04c93f85ee6a8"
+    },
+    "Kanon.Negligible.claim_moves_loss": {
+      "file": "Negligible.lean",
+      "sha": "dfd433c3d9b1c5d6"
+    },
+    "Kanon.Negligible.claim_then_sell_all": {
+      "file": "Negligible.lean",
+      "sha": "8684a609510e69e0"
+    },
+    "Kanon.Negligible.claim_whole_pool": {
+      "file": "Negligible.lean",
+      "sha": "d26c9ae5767e547a"
     },
     "Kanon.NgYears.run_conserves": {
       "file": "NgYears.lean",

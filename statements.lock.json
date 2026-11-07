@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #48 and #49)",
+  "reviewedBy": "independent AI reviewer, 3 rounds (audit/REVIEW-2026-11-07.md, #40)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -7,7 +7,7 @@
     },
     "Kanon.Answers.fits_direction": {
       "file": "Answers.lean",
-      "sha": "b578fe7c4a7e6ec1"
+      "sha": "85710b439277b7a7"
     },
     "Kanon.Answers.lot_cost": {
       "file": "Answers.lean",
@@ -25,13 +25,25 @@
       "file": "Answers.lean",
       "sha": "a5bc08199991d158"
     },
+    "Kanon.Answers.sale_amount": {
+      "file": "Answers.lean",
+      "sha": "d37c9e9fecf267bf"
+    },
     "Kanon.Answers.sale_only_if_sold": {
       "file": "Answers.lean",
-      "sha": "aec6eebdd3789fa5"
+      "sha": "f62e88203bd8b012"
+    },
+    "Kanon.Answers.sale_proceeds": {
+      "file": "Answers.lean",
+      "sha": "5e4347e540469826"
+    },
+    "Kanon.Answers.sold_has_amount": {
+      "file": "Answers.lean",
+      "sha": "cf352ea33788d683"
     },
     "Kanon.Answers.sold_needs_price": {
       "file": "Answers.lean",
-      "sha": "083e19ed9097c515"
+      "sha": "93f097bfa425865d"
     },
     "Kanon.Answers.spam_no_lot": {
       "file": "Answers.lean",

@@ -8,8 +8,10 @@ KANON asks about each transfer it couldn't explain (`src/lib/money-map/map.ts`, 
 account I haven't added" or "Sold or spent". And coins in can be "Spam or worthless: leave it out". Proved here:
 
 * **An answer is used only where it fits.** An answer about coins in is never applied to coins out, nor the other way.
-  "Paid for it" is used only with a day on or before the coins arrived; "Sold" only for a coin with a price (what it
-  sold for must be known).
+  "Paid for it" is used only with a day on or before the coins arrived; "Sold" only where what it sold for is known:
+  the coin has a price, or the person says what they got ("Sold: I'll write what I got").
+* **A sale is for what the person says they got, else the coin's value that day.** Every sale that is used has a
+  known amount.
 * **"Spam" is only for coins in, and (in the model of the step that books coins in) the only answer that books no lot
   for them; a later sale of those coins has no cost.**
 * **Coins that left with no answer are not a sale.** They leave the wallet but are not reported (only sales, `s`, are);
@@ -29,7 +31,7 @@ inductive Answer
   | income
   | back
   | mine
-  | sold
+  | sold (got : Option ℚ)
   | spam
 
 /-- Whether an answer is used for a transfer: coins in (`incoming`), arriving on `arrival`, with or without a price. -/
@@ -38,23 +40,37 @@ def used (incoming : Bool) (arrival : ℕ) (priced : Bool) : Answer → Bool
   | .income => incoming
   | .back => incoming
   | .mine => !incoming
-  | .sold => !incoming && priced
+  | .sold g => !incoming && (priced || g.isSome)
   | .spam => incoming
 
 /-- **#40** An answer about coins in is never used for coins out, and one about coins out never for coins in. -/
 theorem fits_direction (arrival : ℕ) (priced : Bool) :
     (∀ d, used false arrival priced (.paid d) = false) ∧ used false arrival priced .income = false ∧
       used false arrival priced .back = false ∧ used true arrival priced .mine = false ∧
-      used true arrival priced .sold = false ∧ used false arrival priced .spam = false := by
+      (∀ g, used true arrival priced (.sold g) = false) ∧ used false arrival priced .spam = false := by
   simp [used]
 
 /-- **#40** "Paid for it" is used only with a day on or before the coins arrived. -/
 theorem paid_not_after (d arrival : ℕ) (priced : Bool) (h : used true arrival priced (.paid d) = true) : d ≤ arrival := by
   simpa [used] using h
 
-/-- **#40** "Sold or spent" is used only for a coin with a price. -/
-theorem sold_needs_price (arrival : ℕ) (incoming : Bool) (h : used incoming arrival false .sold = true) : False := by
+/-- **#40** "Sold or spent" with nothing typed is used only for a coin with a price. -/
+theorem sold_needs_price (arrival : ℕ) (incoming : Bool) (h : used incoming arrival false (.sold none) = true) : False := by
   simp [used] at h
+
+/-- What a sale is for: what the person says they got (`got`), else the coin's value that day (`value`, none for a coin
+with no price). The rule as the code states it; `sale_amount` below ties it to the sale the ledger records. -/
+def saleProceeds (got value : Option ℚ) : Option ℚ := got.orElse fun _ => value
+
+/-- **#40** A sale is for what the person says they got when they give it, else the coin's value that day. -/
+theorem sale_proceeds (g : ℚ) (value : Option ℚ) : saleProceeds (some g) value = some g ∧ saleProceeds none value = value :=
+  ⟨rfl, rfl⟩
+
+/-- **#40** Every "Sold or spent" that is used has a known amount: the coin's value when it has a price (`priced` is
+whether `value` is known), else what the person typed. -/
+theorem sold_has_amount (arrival : ℕ) (incoming : Bool) (g value : Option ℚ)
+    (h : used incoming arrival value.isSome (.sold g) = true) : (saleProceeds g value).isSome := by
+  cases g <;> cases value <;> simp_all [used, saleProceeds]
 
 /-- Whether coins in become a lot in the ledger: every answer but "spam" (and no answer) does. -/
 def makesLot : Option Answer → Bool
@@ -66,7 +82,7 @@ for them, and no other answer does. A later sale of those coins then has no cost
 theorem spam_no_lot (a : Option Answer) : makesLot a = false ↔ a = some .spam := by
   match a with
   | some .spam => simp [makesLot]
-  | some (.paid _) | some .income | some .back | some .mine | some .sold | none => simp [makesLot]
+  | some (.paid _) | some .income | some .back | some .mine | some (.sold _) | none => simp [makesLot]
 
 /-- What the ledger does with coins out: `sale` (`s`, reported) or `left` (`x`, out of the wallet, not reported), or
 `away` (moved to the person's account elsewhere, keeping date and cost). -/
@@ -76,15 +92,30 @@ inductive Out | sale | left | away
 def outEvent (a : Option Answer) : Out :=
   match a with
   | some .mine => .away
-  | some .sold => .sale
+  | some (.sold _) => .sale
   | _ => .left
 
 /-- **#40** Coins out with no answer are never reported as a sale; only "Sold or spent" makes them one. -/
 theorem unanswered_not_sale : outEvent none = .left := rfl
 
-theorem sale_only_if_sold (a : Option Answer) (h : outEvent a = .sale) : a = some .sold := by
+theorem sale_only_if_sold (a : Option Answer) (h : outEvent a = .sale) : ∃ g, a = some (.sold g) := by
   match a, h with
-  | some .sold, _ => rfl
+  | some (.sold g), _ => exact ⟨g, rfl⟩
+
+/-- The amount the ledger puts on coins out (`toEvents`, map.ts: `proceeds: sold?.got ?? value(h.m) ?? 0`, here `none`
+for a coin with no price): with "Sold or spent", `saleProceeds`; otherwise their value that day. -/
+def outProceeds (a : Option Answer) (value : Option ℚ) : Option ℚ :=
+  match a with
+  | some (.sold g) => saleProceeds g value
+  | _ => value
+
+/-- **#40** Every sale of coins out is for what the person said they got when they gave it, else the coins' value that
+day; and a sale that was used always has an amount (`sold_has_amount`). (The page sends only amounts above 0.) -/
+theorem sale_amount (a : Option Answer) (value : Option ℚ) (h : outEvent a = .sale) :
+    ∃ g, a = some (.sold g) ∧ outProceeds a value = saleProceeds g value ∧
+      ∀ x, g = some x → outProceeds a value = some x := by
+  obtain ⟨g, rfl⟩ := sale_only_if_sold a h
+  exact ⟨g, rfl, rfl, fun x hx => by subst hx; rfl⟩
 
 /-- The lot's day for holding periods (`runLedger`: the day bought if before the day the coins arrived). -/
 def lotDay (arrival : ℕ) (bought : Option ℕ) : ℕ :=

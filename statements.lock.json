@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 3 rounds (audit/REVIEW-2026-11-06.md, #45 and #40)",
+  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-06.md, #46 and #47)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -40,6 +40,14 @@
     "Kanon.Answers.unanswered_not_sale": {
       "file": "Answers.lean",
       "sha": "b3487ec9d5a4438d"
+    },
+    "Kanon.BrAbroad.run_conserves": {
+      "file": "BrAbroad.lean",
+      "sha": "088eafdee6e90bfe"
+    },
+    "Kanon.BrAbroad.year_rule": {
+      "file": "BrAbroad.lean",
+      "sha": "b4dcffaa751db66e"
     },
     "Kanon.BrRuns.joins_open": {
       "file": "BrRuns.lean",
@@ -180,6 +188,26 @@
     "Kanon.Complete.shares_exact": {
       "file": "Completeness.lean",
       "sha": "5098e93f4293647a"
+    },
+    "Kanon.DeLosses.conserves": {
+      "file": "DeLosses.lean",
+      "sha": "0682482cf0e09174"
+    },
+    "Kanon.DeLosses.loss_year": {
+      "file": "DeLosses.lean",
+      "sha": "917cd725f7cee6f7"
+    },
+    "Kanon.DeLosses.over_limit": {
+      "file": "DeLosses.lean",
+      "sha": "06a76485e0b198e2"
+    },
+    "Kanon.DeLosses.run_conserves": {
+      "file": "DeLosses.lean",
+      "sha": "5976a3300e912e30"
+    },
+    "Kanon.DeLosses.under_limit": {
+      "file": "DeLosses.lean",
+      "sha": "ff6076d11acf3360"
     },
     "Kanon.Entries.buy_rows": {
       "file": "Entries.lean",

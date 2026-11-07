@@ -37,3 +37,5 @@ import KanonProofs.Simulator
 import KanonProofs.GasFees
 import KanonProofs.Korea
 import KanonProofs.Carry
+import KanonProofs.BrAbroad
+import KanonProofs.DeLosses

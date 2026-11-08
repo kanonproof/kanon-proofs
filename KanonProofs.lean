@@ -46,3 +46,4 @@ import KanonProofs.ZaTrader
 import KanonProofs.UkRateChange
 import KanonProofs.Unconfirmed
 import KanonProofs.PoolCost
+import KanonProofs.MoveUnits

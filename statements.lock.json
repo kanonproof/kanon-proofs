@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 3 rounds (audit/REVIEW-2026-11-07b.md, #50)",
+  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-08.md, #51)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -1268,6 +1268,14 @@
     "Kanon.Years.past_unchanged": {
       "file": "Years.lean",
       "sha": "5b9e83cfcfc14a04"
+    },
+    "Kanon.ZaTrader.investor_figure": {
+      "file": "ZaTrader.lean",
+      "sha": "303ec53605be399a"
+    },
+    "Kanon.ZaTrader.trader_not_below_investor": {
+      "file": "ZaTrader.lean",
+      "sha": "be6aa9f452da3b2f"
     }
   }
 }

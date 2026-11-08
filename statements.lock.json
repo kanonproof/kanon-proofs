@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer (audit/REVIEW-2026-11-08c.md, #53)",
+  "reviewedBy": "independent AI reviewer (audit/REVIEW-2026-11-08d.md, #54)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -712,6 +712,22 @@
     "Kanon.Pay.costs_bounded": {
       "file": "Payments.lean",
       "sha": "c30be7d241cccc9f"
+    },
+    "Kanon.PoolCost.basis_additive": {
+      "file": "PoolCost.lean",
+      "sha": "34e17cdc4a0a8788"
+    },
+    "Kanon.PoolCost.basis_bounds": {
+      "file": "PoolCost.lean",
+      "sha": "3a67d46e1c5b8a3a"
+    },
+    "Kanon.PoolCost.lots_add_up": {
+      "file": "PoolCost.lean",
+      "sha": "ec0ed35945a03a8a"
+    },
+    "Kanon.PoolCost.same_per_coin": {
+      "file": "PoolCost.lean",
+      "sha": "67984c9b476c13fc"
     },
     "Kanon.PoolMove.average_kept": {
       "file": "PoolMove.lean",

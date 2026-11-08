@@ -43,3 +43,4 @@ import KanonProofs.India
 import KanonProofs.NgYears
 import KanonProofs.Negligible
 import KanonProofs.ZaTrader
+import KanonProofs.UkRateChange

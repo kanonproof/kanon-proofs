@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-08.md, #51)",
+  "reviewedBy": "independent AI reviewer (audit/REVIEW-2026-11-08b.md, #52)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -1256,6 +1256,14 @@
     "Kanon.UkMatch.within_limits": {
       "file": "UkMatch.lean",
       "sha": "00117346ad89915c"
+    },
+    "Kanon.UkRateChange.hmrc_least": {
+      "file": "UkRateChange.lean",
+      "sha": "9c168120b83097e8"
+    },
+    "Kanon.UkRateChange.split_adds_up": {
+      "file": "UkRateChange.lean",
+      "sha": "1b68eb784fc09a42"
     },
     "Kanon.Years.only_through_carry": {
       "file": "Years.lean",

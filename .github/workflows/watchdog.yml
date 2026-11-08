@@ -1,0 +1,38 @@
+name: KANON watchdog
+# Task 15 (Matt, 8 Nov 2026): every 10 minutes, ask KANON whether it is well. Its phone alerts cover problems while the
+# site runs; this covers the site not answering at all. A problem opens one issue here (GitHub emails Matt); further
+# checks while it lasts add nothing; when KANON is well again the issue is closed.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+permissions:
+  issues: write
+concurrency: watchdog
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask KANON
+        id: ask
+        run: |
+          code=$(curl -s -o body.json -w "%{http_code}" --max-time 30 --retry 2 --retry-delay 20 https://www.kanon.solutions/api/ops/health || echo 000)
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "body=$(head -c 300 body.json 2>/dev/null | tr -d '\n')" >> "$GITHUB_OUTPUT"
+      - name: Open or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.ask.outputs.code }}
+          BODY: ${{ steps.ask.outputs.body }}
+        run: |
+          open=$(gh issue list -R "$GITHUB_REPOSITORY" --label watchdog --state open --json number -q '.[0].number')
+          if [ "$CODE" = "200" ]; then
+            if [ -n "$open" ]; then gh issue close "$open" -R "$GITHUB_REPOSITORY" -c "KANON is well again ($(date -u +%H:%M) UTC)."; fi
+            exit 0
+          fi
+          if [ -z "$open" ]; then
+            gh label create watchdog -R "$GITHUB_REPOSITORY" --color B60205 --description "KANON isn't well" 2>/dev/null || true
+            gh issue create -R "$GITHUB_REPOSITORY" --label watchdog --title "KANON isn't well ($(date -u +%Y-%m-%d\ %H:%M) UTC)" \
+              --body "The health check answered HTTP $CODE: $BODY. Phone alerts can't arrive if the site is down. This issue closes by itself when KANON is well again."
+          fi

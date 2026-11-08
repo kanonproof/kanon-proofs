@@ -17,7 +17,10 @@ jobs:
       - name: Ask KANON
         id: ask
         run: |
-          code=$(curl -s -o body.json -w "%{http_code}" --max-time 30 --retry 2 --retry-delay 20 https://www.kanon.solutions/api/ops/health || echo 000)
+          ask() { curl -s -o body.json -w "%{http_code}" --max-time 30 https://www.kanon.solutions/api/ops/health || true; }
+          code=$(ask); [ -n "$code" ] || code=000
+          # One look again a minute later before calling it a problem (a passing hiccup isn't one).
+          if [ "$code" != "200" ]; then sleep 60; code=$(ask); [ -n "$code" ] || code=000; fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "body=$(head -c 300 body.json 2>/dev/null | tr -d '\n')" >> "$GITHUB_OUTPUT"
       - name: Open or close the issue

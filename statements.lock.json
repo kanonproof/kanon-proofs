@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer (audit/REVIEW-2026-11-08e.md, #55)",
+  "reviewedBy": "independent AI reviewer, 2 rounds, 11 Nov 2026 (audit/REVIEW-2026-11-11.md)",
   "theorems": {
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
@@ -200,6 +200,18 @@
     "Kanon.Complete.shares_exact": {
       "file": "Completeness.lean",
       "sha": "5098e93f4293647a"
+    },
+    "Kanon.DaAdjust.codeB_unique": {
+      "file": "DaAdjust.lean",
+      "sha": "fcea0af343c8c745"
+    },
+    "Kanon.DaAdjust.colH_codeB": {
+      "file": "DaAdjust.lean",
+      "sha": "5ca4d573a987c35e"
+    },
+    "Kanon.DaAdjust.colH_unreported": {
+      "file": "DaAdjust.lean",
+      "sha": "ab0cc12bcfff8e70"
     },
     "Kanon.DeLosses.conserves": {
       "file": "DeLosses.lean",

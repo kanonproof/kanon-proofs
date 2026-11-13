@@ -13,7 +13,7 @@ It does **not** mean the rule was read correctly from the law; that's what each 
 "Matches N official examples" badge and its worked examples are for. Each engine has a reference model
 here; the production code (TypeScript) is tested against the same cases.
 
-## Status: 46 of the 49 planned checks done
+## Status: 54 of the 56 planned checks done
 
 | # | What is proven, in plain words | File |
 |---|---|---|
@@ -67,12 +67,13 @@ here; the production code (TypeScript) is tested against the same cases.
 | 54 | **The cost of what's held, by the country's own method (plan task 28):** for the UK's section 104 pool, Brazil's average cost and Japan's averages, the coins held in every wallet are costed from the pool, shared over the larger of the pool's coins and the coins held: together never more than the pool and exactly the pool when every coin is accounted for; every coin costs the same; any wallet's share stays between nothing and the pool. A pooled sale of x of Q coins costs x/Q of the pool, and selling in parts costs the same as at once. | `KanonProofs/PoolCost.lean` |
 | 55 | **Coins that arrive as another coin (a vault's shares), counted in that coin:** `t` coins in become `a` shares carrying their cost `c`; selling `k` of the `a` costs `c·k/a` (nothing for none, all of `c` for all, never more), selling in two parts from what is left costs the same as at once, and scaling each lot's quantity by `a/t` gives exactly the `a` shares. Rounding is handled in the app (the last lot takes what is left) and by tests, not here. | `KanonProofs/MoveUnits.lean` |
 | 56 | **A Form 1099-DA whose reported basis is wrong (US, Form 8949 code B):** column (h) is (d) − (e) + (g). With the basis reported to the IRS (box G or J), the form's basis in (e) and (g) = (e) − the right basis give exactly proceeds less the right basis, whatever the form reported, and that is the only (g) that does (zero exactly when the form is right); with a wrong basis shown but not reported (box H or K), the right basis in (e) and 0 in (g) give the same. Which box, and proceeds that differ, are the app's (`src/lib/report/da.ts`) and its tests'. | `KanonProofs/DaAdjust.lean` |
+| 16 | **Alert timing (take-profit alerts with KANON closed):** a step's alert is sent only in a round that saw the coin's price, in the step's currency, at or above the target while the step was waiting, and the first such round sends it; rounds that were missed, saw a lower price or failed to send change nothing, and a failed send is tried again by the next round that sees the price there. A step is never sent again after a send the push service took or one cut off after marking: a second send only ever follows a failed one, at most one ever reaches the push service, and a step once reached or removed never waits again. Prices are read only when a round runs (about every 5 minutes, sometimes later), so a rise and fall between rounds sends nothing; a round cut off after marking a step never sends it again, even if it didn't go out (at most once, not exactly once). Rounds are modelled one at a time: the app's mark doesn't check an earlier mark, so two rounds that overlap, or a round and the open page, can send a step twice (`mark_does_not_recheck`). | `KanonProofs/Alerts.lean` |
 | 29 | **Stock Token value:** a balance valued at the token's own price equals tokens × share price × shares per token; when a dividend raises the shares per token, the value added is exactly the extra shares at the share price, nothing when it doesn't change, and the token count never moves. | `KanonProofs/StockToken.lean` |
 | 13 | **Splitting a sale across pools:** the app compares selling everything into each of a token's deepest pools with a split in proportion to each pool's coins, and shows the one that loses least. The split's parts add up to exactly the amount sold (the last pool takes what's left), what's shown is one of the candidates, and it never loses more than selling everything into any one of the pools. | `KanonProofs/Split.lean` |
 | 30 | **Cash-out ranking:** routes are ranked by what they cost on your amount; a route that costs less is never ranked below one that costs more, and the ranking holds the same routes, each once (nothing dropped or added). | `KanonProofs/Ranking.lean` |
 
-Planned next (not proven yet, so not claimed): alert timing (16), cohort privacy (19) and fixed definitions in the
-take-profit report (26), each with its feature (none of the three is in the app yet).
+Planned next (not proven yet, so not claimed): cohort privacy (19) and fixed definitions in the take-profit report
+(26), each with its feature (neither is in the app yet).
 
 ## Audited by Aristotle
 

@@ -49,3 +49,4 @@ import KanonProofs.PoolCost
 import KanonProofs.MoveUnits
 import KanonProofs.DaAdjust
 import KanonProofs.Alerts
+import KanonProofs.France

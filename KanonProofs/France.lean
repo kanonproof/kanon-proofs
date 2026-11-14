@@ -4,13 +4,13 @@ import Mathlib.Tactic
 # France: crypto gains of a private person, art. 150 VH bis CGI (form 2086, 2042-C)
 
 The app's engine `src/lib/engine/fr.ts` (`frRun`, `frYear`, `frYearTax`, `frDeadlines`), the classifier in
-`src/lib/report/fr.ts` (`frBook`), the 3916-bis note in `src/app/money/ReportPdf.tsx` (`frNotes`) and the next filing
-date in `src/lib/findings/upcoming.ts`. Sources: art. 150 VH bis CGI; BOFiP BOI-RPPM-PVBMC-30-20-20190902 (base) and
-BOI-RPPM-PVBMC-30-30-20240423 (taxation, filing); the 2086 notice (revenus 2025); art. 200 C CGI (12.8%); LFSS 2026
-(loi n° 2025-1403 art. 12: CSG on capital income 10.6%, levies 18.6% from 2025's income); art. 1657 CGI (whole euros);
-art. 1736 X CGI (3916-bis); Service-public.fr A15597 (filing dates, revenus 2025).
+`src/lib/report/fr.ts` (`frBook`) and the next filing date in `src/lib/findings/upcoming.ts`. Sources: art. 150 VH bis
+CGI; BOFiP BOI-RPPM-PVBMC-30-20-20190902 (base, worked examples §§ 110 and 120) and BOI-RPPM-PVBMC-30-30-20240423
+(taxation, filing); the 2086 notice (revenus 2025, 16043*07, worked example under lines 221, 261 and 321); art. 200 C
+CGI (12.8%); LFSS 2026 (loi n° 2025-1403 art. 12: CSG on capital income 10.6%, levies 18.6% from 2025's income);
+art. 1657 CGI (whole euros); Service-public.fr A15597 (filing dates, revenus 2025).
 
-The model follows the code line for line, in exact fractions:
+`frRun` and `frYear` are modelled line for line, in exact fractions:
 
 * a cession (l.213 price, l.214 fees, l.216 soulte, l.212 portfolio value) gives l.217 = l.213 + l.216 and
   l.218 = l.213 − l.214 + l.216; with l.223 = max(l.220 − l.221 − l.222, 0) the acquisition price left, the part of it
@@ -18,13 +18,21 @@ The model follows the code line for line, in exact fractions:
 * the portfolio value is usable only when known, above 0 and not below l.217; from the first one that is not, every
   later line has no l.220-l.224 and the cost left is unknown;
 * an exchange with a soulte (`cryptoIn`) then adds l.213 plus any soulte received to l.220, and that soulte to l.222;
-* the year: l.51 = Σ l.218, l.52 = Σ l.224 (unknown if any is), exempt when l.51 ≤ 305; else the net gain in whole
-  euros (half away from zero, Decimal's ROUND_HALF_UP) goes to 3AN, a net loss to 3BN, and the tax is 12.8% plus the
-  year's social rate of the positive part, each rounded up to the cent.
+* the year: l.51 = Σ l.218, l.52 = Σ l.224 (unknown if any is); when a sale's price couldn't be known (`unpriced`,
+  counted as 0 in l.51) and l.51 ≤ 305, nothing is settled (not exempt, no l.52, no box, no tax); else exempt when
+  l.51 ≤ 305; else the net gain in whole euros (half away from zero, Decimal's ROUND_HALF_UP) goes to 3AN, a net loss
+  to 3BN, and the tax is 12.8% plus the year's social rate of the positive part, each rounded up to the cent.
 
-Out of scope (the app's and its tests'): the time order of operations (the model takes them in the engine's order),
-building the portfolio value from prices (`frHeld`, `frPortfolio`), coins held on 1 January 2019, the Paris day of a
-sale, and the conversion to euros. Dates are modelled as the number yyyymmdd, which orders like the app's ISO strings.
+`frBook` is modelled for swaps and fees only (its other happenings, the exchanges seen for 3916-bis and the price carried
+in from 2018 are not), and the `frDeadlines` dates with the choice `upcoming.ts` makes among them. The 3916-bis note
+(`frNotes` in `ReportPdf.tsx`) is not modelled: it is text, checked against art. 1736 X CGI by review, not a theorem.
+
+Out of scope (the app's and its tests'): how `frReport` turns `frBook`'s drafts and acquisitions into `frRun`'s
+operations, the time order of operations (the model takes them in the engine's order), building the portfolio value
+from prices (`frHeld`, `frPortfolio`), coins held on 1 January 2019, the Paris day of a sale, the conversion to euros,
+and decimal.js itself: the app computes with decimal.js at 40 significant digits (`Decimal.set({ precision: 40 })` in
+`money.ts`), so a division such as l.223 × l.217 ÷ l.212 is rounded there, while the model uses exact fractions. Dates
+are modelled as the number yyyymmdd, which orders like the app's ISO strings.
 -/
 
 namespace Kanon.France
@@ -248,23 +256,334 @@ theorem never_clipped (carried : ℚ) (hc : 0 ≤ carried) (ops : List Op) (ho :
     intro h ho
     exact ih _ (inv_step s op h (ho op (by simp))) (fun o ho' => ho o (by simp [ho']))
 
-/-- What the classifier (`frBook`) sees: crypto for crypto with no money (sursis), a purchase, or a cession. -/
-inductive Happening
-  | cryptoSwap
-  | buy (paid : ℚ)
-  | sell (c : Cession)
+/-! ### The official worked examples -/
 
-/-- `frBook`: a crypto-for-crypto swap with no money gives no operation at all (art. 150 VH bis II-A). -/
-def classify : Happening → List Op
-  | .cryptoSwap => []
-  | .buy paid => [.acquire paid]
-  | .sell c => [.cession c]
+/-- **FR-2** BOFiP BOI-RPPM-PVBMC-30-20-20190902 § 110, and the same example in the 2086 notice (revenus 2025, under
+lines 221, 261 and 321): nothing held, 1,000 € of crypto bought; in March, portfolio 1,200 €, a cession for 450 €:
+450 − (1000 × 450 / 1200) = 75 €; in August, portfolio 1,300 €, everything sold for 1,300 €:
+1300 − [(1000 − 375) × 1300 / 1300] = 675 €. The model's l.224 are 75 and 675, its l.223 1,000 then 625, and its
+fractions 375 then 625. -/
+theorem bofip_110 :
+    (run (start 0) [.acquire 1000, .cession { price := 450, portfolio := some 1200 },
+        .cession { price := 1300, portfolio := some 1300 }]).1 =
+      [⟨450, some 1000, some 75, some 375⟩, ⟨1300, some 625, some 675, some 625⟩] := by
+  simp [run, step, start, usable, l217, l218, fraction, gain, net, exchangeIn]; norm_num
 
-/-- **FR-2** A crypto-for-crypto swap without a soulte, anywhere in the history, changes no line and not the
-acquisition price left. -/
-theorem swap_changes_nothing (s : State) (a b : List Happening) :
-    run s ((a ++ Happening.cryptoSwap :: b).flatMap classify) = run s ((a ++ b).flatMap classify) := by
-  simp [List.flatMap_append, classify]
+/-- **FR-2** BOFiP BOI-RPPM-PVBMC-30-20-20190902 § 120: nothing held, 500 € of crypto bought; in March, portfolio
+750 €, the crypto exchanged for other crypto worth 600 € plus a soulte of 150 € received in money:
+(600 + 150) − [500 × (600 + 150) / 750] = 250 €; in October, portfolio 800 € (the crypto received), everything sold for
+800 €: 800 − [((500 + 750) − 500 − 150) × 800 / 800] = 200 €. The model's l.224 are 250 and 200, and after the
+exchange its l.220 is 500 + 750, l.221 500 and l.222 150, as in the source. -/
+theorem bofip_120 :
+    (run (start 0) [.acquire 500,
+        .cession { price := 600, soulte := 150, portfolio := some 750, cryptoIn := true },
+        .cession { price := 800, portfolio := some 800 }]).1 =
+      [⟨750, some 500, some 250, some 500⟩, ⟨800, some 600, some 200, some 600⟩] ∧
+    (run (start 0) [.acquire 500,
+        .cession { price := 600, soulte := 150, portfolio := some 750, cryptoIn := true }]).2 =
+      ⟨500 + 750, 500, 150, true⟩ := by
+  constructor <;> simp [run, step, start, usable, l217, l218, fraction, gain, net, exchangeIn] <;> norm_num
+
+/-! ### The classifier `frBook`, for swaps and fees (art. 150 VH bis II-A; 2086 notice, lines 213-218) -/
+
+/-- A movement as `frBook` sees it: money (`fiat`) or crypto, and its value in euros (none: no price). -/
+structure Move where
+  fiat : Bool
+  value : Option ℚ
+
+/-- `sum`: the movements' total value, none when any has no price. -/
+def total : List Move → Option ℚ
+  | [] => some 0
+  | m :: ms =>
+    match m.value, total ms with
+    | some v, some t => some (v + t)
+    | _, _ => none
+
+inductive How
+  | sale
+  | exchange
+  | fees
+  deriving DecidableEq
+
+/-- `FrDraft`: a cession before its portfolio value is known (the day is the Paris day, yyyymmdd). -/
+structure Draft where
+  how : How
+  day : ℕ
+  price : ℚ
+  fees : ℚ := 0
+  soulte : ℚ := 0
+  cryptoIn : Bool := false
+  unpriced : Bool := false
+
+/-- A swap happening: its transaction, day, what went out and what came in. -/
+structure Swap where
+  tx : ℕ
+  day : ℕ
+  out : List Move
+  inn : List Move
+  keepsCost : Bool := false
+
+/-- A fee happening: its transaction, day and the movement paid (`rebate`: an amount not below 0, received). -/
+structure Fee where
+  tx : ℕ
+  day : ℕ
+  fee : Move
+  rebate : Bool := false
+
+inductive Event
+  | swap (h : Swap)
+  | fee (h : Fee)
+
+/-- `frBook`'s state: the drafts, the acquisitions' prices paid, and its maps `byTx` (a transaction's cession),
+`buyTx` (a transaction's purchase) and `feeDay` (a day's fees cession), each to an index. -/
+structure Book where
+  drafts : List Draft
+  acquisitions : List ℚ
+  byTx : ℕ → Option ℕ
+  buyTx : ℕ → Option ℕ
+  feeDay : ℕ → Option ℕ
+
+/-- Changing the `i`-th element in place (the app mutates the draft object it holds). -/
+def modifyAt {α : Type} (f : α → α) : ℕ → List α → List α
+  | _, [] => []
+  | 0, x :: xs => f x :: xs
+  | n + 1, x :: xs => x :: modifyAt f n xs
+
+/-- The regime's start: 1 January 2019. -/
+def startDay : ℕ := 20190101
+
+/-- `addFee`: coins paid as a fee are a cession for a service, one line per day: added to that day's fees line, or
+a new one. -/
+def addFee (b : Book) (day : ℕ) (v : ℚ) : Book :=
+  match b.feeDay day with
+  | some i => { b with drafts := modifyAt (fun d => { d with price := d.price + v }) i b.drafts }
+  | none =>
+    { b with drafts := b.drafts ++ [{ how := .fees, day := day, price := v }],
+             feeDay := fun d => if d = day then some b.drafts.length else b.feeDay d }
+
+/-- `frBook` on a swap: before 2019 or `keepsCost`, nothing; no crypto out: a purchase when crypto came in for money;
+no money either side: nothing (sursis); crypto for money: a sale (money paid out is its fee); crypto for crypto with
+money: an exchange, the money its soulte. -/
+def bookSwap (b : Book) (h : Swap) : Book :=
+  if h.day < startDay ∨ h.keepsCost = true then b else
+  let fiatOut := h.out.filter (·.fiat)
+  let fiatIn := h.inn.filter (·.fiat)
+  let cryptoOut := h.out.filter (fun m => !m.fiat)
+  let cryptoIn := h.inn.filter (fun m => !m.fiat)
+  if cryptoOut = [] then
+    if cryptoIn ≠ [] ∧ fiatOut ≠ [] then
+      { b with acquisitions := b.acquisitions ++ [((total fiatOut).orElse (fun _ => total cryptoIn)).getD 0],
+               buyTx := fun t => if t = h.tx then some b.acquisitions.length else b.buyTx t }
+    else b
+  else if fiatOut = [] ∧ fiatIn = [] then b
+  else
+    let d : Draft :=
+      if cryptoIn = [] then
+        let got := total fiatIn
+        let paid := if fiatOut = [] then some 0 else total fiatOut
+        { how := .sale, day := h.day, price := (got.orElse (fun _ => total cryptoOut)).getD 0, fees := paid.getD 0,
+          unpriced := got.isNone || paid.isNone }
+      else
+        let value := total cryptoIn
+        let soulte := if fiatIn = [] then (total fiatOut).map Neg.neg else total fiatIn
+        { how := .exchange, day := h.day, price := value.getD 0, soulte := soulte.getD 0, cryptoIn := true,
+          unpriced := value.isNone || soulte.isNone }
+    { b with drafts := b.drafts ++ [d], byTx := fun t => if t = h.tx then some b.drafts.length else b.byTx t }
+
+/-- `frBook` on a fee: a rebate or before 2019, nothing; on a cession's transaction, off its price (l.214); on a
+purchase's, money adds to what was paid; money elsewhere, nothing; coins worth above 0 elsewhere, `addFee`. -/
+def bookFee (b : Book) (h : Fee) : Book :=
+  if h.day < startDay ∨ h.rebate = true then b else
+  match b.byTx h.tx with
+  | some i =>
+    { b with drafts := modifyAt (fun d => { d with fees := d.fees + h.fee.value.getD 0,
+                                                    unpriced := d.unpriced || h.fee.value.isNone }) i b.drafts }
+  | none =>
+    match b.buyTx h.tx with
+    | some j =>
+      match h.fee.fiat, h.fee.value with
+      | true, some v => { b with acquisitions := modifyAt (· + v) j b.acquisitions }
+      | _, _ => b
+    | none =>
+      match h.fee.fiat, h.fee.value with
+      | false, some v => if 0 < v then addFee b h.day v else b
+      | _, _ => b
+
+def bookStep (b : Book) : Event → Book
+  | .swap h => bookSwap b h
+  | .fee h => bookFee b h
+
+/-- The empty book. -/
+def Book.empty : Book := ⟨[], [], fun _ => none, fun _ => none, fun _ => none⟩
+
+/-- `frBook` over the happenings, in order. -/
+def book (hs : List Event) : Book := hs.foldl bookStep Book.empty
+
+/-- A crypto-for-crypto swap: no money on either side. -/
+def Swap.noMoney (h : Swap) : Prop := ∀ m ∈ h.out ++ h.inn, m.fiat = false
+
+/-- **FR-2** The swap itself, crypto for crypto with no money either side, gives no cession and no acquisition:
+`frBook` leaves its book exactly as it was (sursis, art. 150 VH bis II-A). -/
+theorem swap_no_line (b : Book) (h : Swap) (hn : h.noMoney) : bookStep b (.swap h) = b := by
+  have hfo : h.out.filter (·.fiat) = [] :=
+    List.filter_eq_nil_iff.mpr (fun m hm => by simp [hn m (List.mem_append_left _ hm)])
+  have hfi : h.inn.filter (·.fiat) = [] :=
+    List.filter_eq_nil_iff.mpr (fun m hm => by simp [hn m (List.mem_append_right _ hm)])
+  simp only [bookStep, bookSwap, hfo, hfi]
+  split_ifs <;> simp_all
+
+/-- **FR-2** So removing such a swap from anywhere in the history gives the same book: no line, no acquisition, and
+every later happening (a fee on it among them) classified exactly as without it. -/
+theorem swap_changes_nothing (a rest : List Event) (h : Swap) (hn : h.noMoney) :
+    book (a ++ .swap h :: rest) = book (a ++ rest) := by
+  simp [book, List.foldl_append, List.foldl_cons, swap_no_line _ h hn]
+
+/-- **FR-2** A fee paid in crypto on that swap is a separate cession: with no cession or purchase recorded for its
+transaction, a fee in coins worth `v > 0` (from 2019) goes to `addFee`, a cession of those coins for a service. -/
+theorem swap_fee_is_cession (b : Book) (h : Swap) (f : Fee) (v : ℚ) (hn : h.noMoney) (htx : f.tx = h.tx)
+    (hb : b.byTx h.tx = none) (hu : b.buyTx h.tx = none) (hd : ¬ f.day < startDay) (hr : f.rebate = false)
+    (hc : f.fee.fiat = false) (hv : f.fee.value = some v) (hp : 0 < v) :
+    bookStep (bookStep b (.swap h)) (.fee f) = addFee b f.day v := by
+  rw [swap_no_line b h hn]
+  simp [bookStep, bookFee, hd, hr, htx, hb, hu, hc, hv, hp]
+
+/-! #### `addFee` keeps one fees line per day -/
+
+theorem modifyAt_length {α : Type} (f : α → α) (i : ℕ) (l : List α) : (modifyAt f i l).length = l.length := by
+  induction l generalizing i with
+  | nil => simp [modifyAt]
+  | cons x xs ih => cases i <;> simp [modifyAt, ih]
+
+theorem modifyAt_get {α : Type} (f : α → α) (i j : ℕ) (l : List α) :
+    (modifyAt f i l)[j]? = if j = i then (l[j]?).map f else l[j]? := by
+  induction l generalizing i j with
+  | nil => simp [modifyAt]
+  | cons x xs ih =>
+    cases i <;> cases j <;> simp [modifyAt, ih]
+
+theorem modifyAt_sum (g : Draft → ℚ) (f : Draft → Draft) (c : ℚ) (hf : ∀ d, g (f d) = g d + c) (i : ℕ)
+    (l : List Draft) (hi : i < l.length) : ((modifyAt f i l).map g).sum = (l.map g).sum + c := by
+  induction l generalizing i with
+  | nil => simp at hi
+  | cons x xs ih =>
+    cases i with
+    | zero => simp [modifyAt, hf]; ring
+    | succ n => simp [modifyAt, ih n (by simpa using hi)]; ring
+
+/-- What `frBook` keeps true: each day's fees line is a fees draft of that day, and each recorded index is a draft or
+an acquisition. -/
+def Book.Ok (b : Book) : Prop :=
+  (∀ d i, b.feeDay d = some i → ∃ x, b.drafts[i]? = some x ∧ x.how = .fees ∧ x.day = d) ∧
+    (∀ t i, b.byTx t = some i → i < b.drafts.length) ∧ (∀ t j, b.buyTx t = some j → j < b.acquisitions.length)
+
+theorem ok_modify (b : Book) (f : Draft → Draft) (i : ℕ) (hf : ∀ d, (f d).how = d.how ∧ (f d).day = d.day)
+    (ho : b.Ok) : { b with drafts := modifyAt f i b.drafts }.Ok := by
+  obtain ⟨h1, h2, h3⟩ := ho
+  refine ⟨fun d k hk => ?_, fun t k hk => ?_, h3⟩
+  · obtain ⟨x, hx, hh, hdd⟩ := h1 d k hk
+    simp only [modifyAt_get, hx]
+    split_ifs
+    · exact ⟨f x, rfl, (hf x).1.trans hh, (hf x).2.trans hdd⟩
+    · exact ⟨x, rfl, hh, hdd⟩
+  · simp only [modifyAt_length]; exact h2 t k hk
+
+theorem ok_push (b : Book) (x : Draft) (ho : b.Ok) : (∀ d i, b.feeDay d = some i → ∃ y,
+    (b.drafts ++ [x])[i]? = some y ∧ y.how = .fees ∧ y.day = d) ∧
+    (∀ t i, b.byTx t = some i → i < (b.drafts ++ [x]).length) := by
+  obtain ⟨h1, h2, _⟩ := ho
+  refine ⟨fun d i hi => ?_, fun t i hi => by simp; have := h2 t i hi; omega⟩
+  obtain ⟨y, hy, hh, hd⟩ := h1 d i hi
+  have hl : i < b.drafts.length := by
+    rcases Nat.lt_or_ge i b.drafts.length with h | h
+    · exact h
+    · simp [List.getElem?_eq_none h] at hy
+  exact ⟨y, by rw [List.getElem?_append_left hl]; exact hy, hh, hd⟩
+
+theorem ok_addFee (b : Book) (day : ℕ) (v : ℚ) (ho : b.Ok) : (addFee b day v).Ok := by
+  unfold addFee
+  split
+  · exact ok_modify b _ _ (fun _ => ⟨rfl, rfl⟩) ho
+  · obtain ⟨p1, p2⟩ := ok_push b { how := .fees, day := day, price := v } ho
+    refine ⟨fun d i hi => ?_, p2, ho.2.2⟩
+    simp only at hi
+    split_ifs at hi with hd
+    · cases hi; exact ⟨_, List.getElem?_concat_length .., rfl, hd.symm⟩
+    · exact p1 d i hi
+
+theorem ok_pushTx (b : Book) (x : Draft) (tx : ℕ) (ho : b.Ok) :
+    { b with drafts := b.drafts ++ [x], byTx := fun t => if t = tx then some b.drafts.length else b.byTx t }.Ok := by
+  obtain ⟨p1, p2⟩ := ok_push b x ho
+  refine ⟨p1, fun t i hi => ?_, ho.2.2⟩
+  simp only at hi
+  split_ifs at hi
+  · cases hi; simp
+  · exact p2 t i hi
+
+theorem ok_buy (b : Book) (x : ℚ) (tx : ℕ) (ho : b.Ok) :
+    { b with acquisitions := b.acquisitions ++ [x],
+             buyTx := fun t => if t = tx then some b.acquisitions.length else b.buyTx t }.Ok := by
+  refine ⟨ho.1, ho.2.1, fun t j hj => ?_⟩
+  simp only at hj
+  split_ifs at hj
+  · cases hj; simp
+  · have := ho.2.2 t j hj; simp; omega
+
+theorem ok_step (b : Book) (e : Event) (ho : b.Ok) : (bookStep b e).Ok := by
+  cases e with
+  | swap h =>
+    simp only [bookStep, bookSwap]
+    split_ifs <;> first | exact ho | exact ok_buy b _ _ ho | exact ok_pushTx b _ _ ho
+  | fee h =>
+    simp only [bookStep, bookFee]
+    split_ifs
+    · exact ho
+    · split
+      · exact ok_modify b _ _ (fun _ => ⟨rfl, rfl⟩) ho
+      · split
+        · split
+          · refine ⟨ho.1, ho.2.1, fun t j hj => ?_⟩
+            simp only [modifyAt_length]; exact ho.2.2 t j hj
+          · exact ho
+        · split
+          · split_ifs
+            · exact ok_addFee b _ _ ho
+            · exact ho
+          · exact ho
+
+theorem ok_book (hs : List Event) : (book hs).Ok := by
+  suffices ∀ b, b.Ok → (hs.foldl bookStep b).Ok from this _ ⟨by simp [Book.empty], by simp [Book.empty],
+    by simp [Book.empty]⟩
+  induction hs with
+  | nil => intro b hb; exact hb
+  | cons e es ih => intro b hb; exact ih _ (ok_step b e hb)
+
+/-- **FR-2** `addFee` on a book `frBook` built: the drafts' prices rise by exactly the fee's value `v`, the
+acquisitions don't change, and that day has one fees line (a fees draft of that day). -/
+theorem addFee_spec (hs : List Event) (day : ℕ) (v : ℚ) :
+    (((addFee (book hs) day v).drafts.map Draft.price).sum = ((book hs).drafts.map Draft.price).sum + v) ∧
+      (addFee (book hs) day v).acquisitions = (book hs).acquisitions ∧
+      ∃ i x, (addFee (book hs) day v).feeDay day = some i ∧ (addFee (book hs) day v).drafts[i]? = some x ∧
+        x.how = .fees ∧ x.day = day := by
+  have ho := ok_book hs
+  have hok := (ok_addFee _ day v ho).1
+  refine ⟨?_, by unfold addFee; split <;> rfl, ?_⟩
+  · unfold addFee
+    split
+    · next i hi =>
+      obtain ⟨x, hx, _⟩ := ho.1 day i hi
+      have hl : i < (book hs).drafts.length := by
+        rcases Nat.lt_or_ge i (book hs).drafts.length with h | h
+        · exact h
+        · simp [List.getElem?_eq_none h] at hx
+      exact modifyAt_sum Draft.price _ v (fun _ => rfl) i _ hl
+    · simp
+  · have : ∃ i, (addFee (book hs) day v).feeDay day = some i := by
+      unfold addFee; split
+      · next i hi => exact ⟨i, hi⟩
+      · exact ⟨(book hs).drafts.length, by simp⟩
+    obtain ⟨i, hi⟩ := this
+    obtain ⟨x, hx, hh, hd⟩ := hok day i hi
+    exact ⟨i, x, hi, hx, hh, hd⟩
 
 /-! ### Rule 3: an unknown portfolio value is never counted as 0 -/
 
@@ -340,21 +659,25 @@ inductive Box
 /-- `frYear`'s figures. -/
 structure Year where
   l51 : ℚ
+  exempt : Bool
   l52 : Option ℚ
   box : Option (Box × ℤ)
   incomeTax : Option ℚ
   social : Option ℚ
   tax : Option ℚ
 
-/-- `frYear`: exempt at €305 or less; else unknown if l.52 is; else the net result in whole euros to 3AN or 3BN and
-12.8% plus the year's levies on its positive part, each rounded up to the cent. -/
-def yearOf (year : ℕ) (ls : List Line) : Year :=
-  if l51 ls ≤ threshold then ⟨l51 ls, l52 ls, none, some 0, some 0, some 0⟩
+/-- `frYear`: with a sale whose price couldn't be known (`unpriced`, counted as 0 in l.51) and l.51 at €305 or less,
+nothing is settled: not exempt, no l.52, box or tax; else exempt at €305 or less; else unknown if l.52 is; else the
+net result in whole euros to 3AN or 3BN and 12.8% plus the year's levies on its positive part, each rounded up to the
+cent. -/
+def yearOf (year : ℕ) (ls : List Line) (unpriced : Bool) : Year :=
+  if unpriced = true ∧ l51 ls ≤ threshold then ⟨l51 ls, false, none, none, none, none, none⟩
+  else if l51 ls ≤ threshold then ⟨l51 ls, true, l52 ls, none, some 0, some 0, some 0⟩
   else
     match l52 ls with
-    | none => ⟨l51 ls, none, none, none, none, none⟩
+    | none => ⟨l51 ls, false, none, none, none, none, none⟩
     | some n =>
-      ⟨l51 ls, some n,
+      ⟨l51 ls, false, some n,
         (if 0 < euros n then some (.AN, euros n) else if euros n < 0 then some (.BN, -euros n) else none),
         some (centsUp (max (euros n : ℚ) 0 * incomeRate)),
         some (centsUp (max (euros n : ℚ) 0 * socialRate year)),
@@ -377,21 +700,34 @@ theorem l52_none_iff (ls : List Line) : l52 ls = none ↔ ∃ L ∈ ls, L.l224 =
     cases h1 : L.l224 <;> cases h2 : l52 ls <;> simp_all
 
 /-- **FR-3** Over the limit with an unknown l.52: the tax, the parts and the box are unknown, never 0. -/
-theorem year_unknown (year : ℕ) (ls : List Line) (hs : threshold < l51 ls) (h : l52 ls = none) :
-    (yearOf year ls).tax = none ∧ (yearOf year ls).incomeTax = none ∧ (yearOf year ls).social = none ∧
-      (yearOf year ls).box = none := by
+theorem year_unknown (year : ℕ) (ls : List Line) (u : Bool) (hs : threshold < l51 ls) (h : l52 ls = none) :
+    (yearOf year ls u).tax = none ∧ (yearOf year ls u).incomeTax = none ∧ (yearOf year ls u).social = none ∧
+      (yearOf year ls u).box = none := by
   simp [yearOf, not_le.mpr hs, h]
 
 /-! #### Rule 4: the €305 limit (art. 150 VH bis II-B) -/
 
-/-- **FR-4** At or under €305 of sale prices (l.51): nothing is taxed and no box is filled. -/
-theorem exempt_untaxed (year : ℕ) (ls : List Line) (h : l51 ls ≤ threshold) :
-    (yearOf year ls).tax = some 0 ∧ (yearOf year ls).box = none := by
-  simp [yearOf, h]
+/-- **FR-4** At or under €305 of sale prices (l.51), every sale's price known: exempt, nothing is taxed and no box is
+filled. -/
+theorem exempt_untaxed (year : ℕ) (ls : List Line) (u : Bool) (hu : u = false) (h : l51 ls ≤ threshold) :
+    (yearOf year ls u).exempt = true ∧ (yearOf year ls u).tax = some 0 ∧ (yearOf year ls u).box = none := by
+  simp [yearOf, h, hu]
+
+/-- **FR-4** A sale whose price couldn't be known (counted as 0 in l.51) with l.51 at or under €305: the year is not
+shown exempt, and no l.52, tax, box, income tax or levies is given (neither exemption nor a tax is claimed). -/
+theorem unpriced_unsettled (year : ℕ) (ls : List Line) (u : Bool) (hu : u = true) (h : l51 ls ≤ threshold) :
+    (yearOf year ls u).exempt = false ∧ (yearOf year ls u).l52 = none ∧ (yearOf year ls u).tax = none ∧
+      (yearOf year ls u).box = none ∧ (yearOf year ls u).incomeTax = none ∧ (yearOf year ls u).social = none := by
+  simp [yearOf, h, hu]
+
+/-- **FR-4** Over €305 the unpriced flag changes nothing: the year is the same with it or without it. -/
+theorem unpriced_over_limit (year : ℕ) (ls : List Line) (hs : threshold < l51 ls) :
+    yearOf year ls true = yearOf year ls false := by
+  simp [yearOf, not_le.mpr hs]
 
 /-- **FR-4** Over €305: the whole net gain in euros is taxed, not only the part above €305. -/
-theorem over_limit_whole_gain (year : ℕ) (ls : List Line) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n) :
-    (yearOf year ls).tax = some (centsUp (max (euros n : ℚ) 0 * incomeRate)
+theorem over_limit_whole_gain (year : ℕ) (ls : List Line) (u : Bool) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n) :
+    (yearOf year ls u).tax = some (centsUp (max (euros n : ℚ) 0 * incomeRate)
       + centsUp (max (euros n : ℚ) 0 * socialRate year)) := by
   simp [yearOf, not_le.mpr hs, h]
 
@@ -408,9 +744,10 @@ theorem l52_sum (ls : List Line) (gs : List ℚ) (h : ls.map Line.l224 = gs.map 
       simp only [List.map_cons, List.cons.injEq] at h
       simp [l52, h.1, ih gs h.2]
 
-/-- **FR-5** A net loss (or nothing) is not taxed. -/
-theorem loss_untaxed (year : ℕ) (ls : List Line) (n : ℚ) (h : l52 ls = some n) (hn : n ≤ 0) :
-    (yearOf year ls).tax = some 0 := by
+/-- **FR-5** A net loss (or nothing) is not taxed (unless the year is left unsettled by an unpriced sale). -/
+theorem loss_untaxed (year : ℕ) (ls : List Line) (u : Bool) (n : ℚ) (h : l52 ls = some n) (hn : n ≤ 0)
+    (hu : u = false ∨ threshold < l51 ls) :
+    (yearOf year ls u).tax = some 0 := by
   have he : euros n ≤ 0 := by
     unfold euros; split_ifs with h0
     · have : n = 0 := le_antisymm hn h0
@@ -418,7 +755,10 @@ theorem loss_untaxed (year : ℕ) (ls : List Line) (n : ℚ) (h : l52 ls = some 
     · have : (0 : ℤ) ≤ ⌊-n + 1 / 2⌋ := Int.floor_nonneg.mpr (by linarith)
       linarith
   unfold yearOf
-  split_ifs
+  split_ifs with h1 h2
+  · exfalso; rcases hu with hu | hu
+    · simp [hu] at h1
+    · linarith [h1.2]
   · rfl
   · have he' : max (euros n : ℚ) 0 = 0 := max_eq_right (by exact_mod_cast he)
     simp [h, he', centsUp]
@@ -428,9 +768,9 @@ def linesOf (y : ℕ) (ls : List (ℕ × Line)) : List Line := (ls.filter (fun e
 
 /-- **FR-5** A year's figures depend on its own lines only: lines of other years (a loss among them) added before
 or after change nothing, so a net loss is never carried to another year. -/
-theorem no_carry (y : ℕ) (ls other : List (ℕ × Line)) (h : ∀ e ∈ other, e.1 ≠ y) :
-    yearOf y (linesOf y (other ++ ls)) = yearOf y (linesOf y ls) ∧
-      yearOf y (linesOf y (ls ++ other)) = yearOf y (linesOf y ls) := by
+theorem no_carry (y : ℕ) (u : Bool) (ls other : List (ℕ × Line)) (h : ∀ e ∈ other, e.1 ≠ y) :
+    yearOf y (linesOf y (other ++ ls)) u = yearOf y (linesOf y ls) u ∧
+      yearOf y (linesOf y (ls ++ other)) u = yearOf y (linesOf y ls) u := by
   have : other.filter (fun e => e.1 = y) = [] := List.filter_eq_nil_iff.mpr (by simpa using h)
   simp [linesOf, List.filter_append, this]
 
@@ -445,12 +785,13 @@ theorem rates (year : ℕ) :
   · simp [incomeRate, socialRate, not_le.mpr h]; norm_num
 
 /-- **FR-6** The tax is exactly income tax + levies, all three known or all three unknown. -/
-theorem tax_is_sum (year : ℕ) (ls : List Line) :
-    ((yearOf year ls).tax = none ∧ (yearOf year ls).incomeTax = none ∧ (yearOf year ls).social = none) ∨
-      ∃ i s, (yearOf year ls).incomeTax = some i ∧ (yearOf year ls).social = some s ∧
-        (yearOf year ls).tax = some (i + s) := by
+theorem tax_is_sum (year : ℕ) (ls : List Line) (u : Bool) :
+    ((yearOf year ls u).tax = none ∧ (yearOf year ls u).incomeTax = none ∧ (yearOf year ls u).social = none) ∨
+      ∃ i s, (yearOf year ls u).incomeTax = some i ∧ (yearOf year ls u).social = some s ∧
+        (yearOf year ls u).tax = some (i + s) := by
   unfold yearOf
   split_ifs
+  · left; exact ⟨rfl, rfl, rfl⟩
   · right; exact ⟨0, 0, rfl, rfl, by simp⟩
   · split
     · left; exact ⟨rfl, rfl, rfl⟩
@@ -484,11 +825,11 @@ theorem euros_bounds (x : ℚ) : |(euros x : ℚ) - x| ≤ 1 / 2 ∧ euros (-x) 
 
 /-- **FR-6** Over the limit with a known l.52, the tax is never below 12.8% + the levies of the taxed whole euros,
 and less than 2 cents above (each part rounded up to the cent). -/
-theorem tax_bounds (year : ℕ) (ls : List Line) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n) :
-    ∃ t, (yearOf year ls).tax = some t ∧
+theorem tax_bounds (year : ℕ) (ls : List Line) (u : Bool) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n) :
+    ∃ t, (yearOf year ls u).tax = some t ∧
       max (euros n : ℚ) 0 * (incomeRate + socialRate year) ≤ t ∧
       t < max (euros n : ℚ) 0 * (incomeRate + socialRate year) + 2 / 100 := by
-  refine ⟨_, over_limit_whole_gain year ls n hs h, ?_, ?_⟩ <;>
+  refine ⟨_, over_limit_whole_gain year ls u n hs h, ?_, ?_⟩ <;>
   · have a := centsUp_bounds (max (euros n : ℚ) 0 * incomeRate)
     have b := centsUp_bounds (max (euros n : ℚ) 0 * socialRate year)
     linarith
@@ -496,25 +837,25 @@ theorem tax_bounds (year : ℕ) (ls : List Line) (n : ℚ) (hs : threshold < l51
 /-! #### Rules 7-8: boxes 3AN and 3BN -/
 
 /-- **FR-7** Over the limit, a net gain (in whole euros) goes to 3AN. -/
-theorem gain_to_3AN (year : ℕ) (ls : List Line) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n)
-    (hg : 0 < euros n) : (yearOf year ls).box = some (.AN, euros n) := by
+theorem gain_to_3AN (year : ℕ) (ls : List Line) (u : Bool) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n)
+    (hg : 0 < euros n) : (yearOf year ls u).box = some (.AN, euros n) := by
   simp [yearOf, not_le.mpr hs, h, hg]
 
 /-- **FR-7** Over the limit, a net loss (in whole euros) goes to 3BN, as a positive amount. -/
-theorem loss_to_3BN (year : ℕ) (ls : List Line) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n)
-    (hl : euros n < 0) : (yearOf year ls).box = some (.BN, -euros n) := by
+theorem loss_to_3BN (year : ℕ) (ls : List Line) (u : Bool) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n)
+    (hl : euros n < 0) : (yearOf year ls u).box = some (.BN, -euros n) := by
   simp [yearOf, not_le.mpr hs, h, hl, not_lt.mpr hl.le]
 
 /-- **FR-8** Never both boxes: at least one of 3AN and 3BN is 0, and a filled box is above 0. -/
-theorem one_box (year : ℕ) (ls : List Line) :
-    (an (yearOf year ls) = 0 ∨ bn (yearOf year ls) = 0) ∧
-      ∀ b a, (yearOf year ls).box = some (b, a) → 0 < a := by
+theorem one_box (year : ℕ) (ls : List Line) (u : Bool) :
+    (an (yearOf year ls u) = 0 ∨ bn (yearOf year ls u) = 0) ∧
+      ∀ b a, (yearOf year ls u).box = some (b, a) → 0 < a := by
   constructor
   · unfold an bn
-    rcases (yearOf year ls).box with _ | ⟨_ | _, a⟩ <;> simp
+    rcases (yearOf year ls u).box with _ | ⟨_ | _, a⟩ <;> simp
   · intro b a hb
     unfold yearOf at hb
-    split_ifs at hb with h0
+    split_ifs at hb with h0 h0'
     cases hl : l52 ls with
     | none => simp [hl] at hb
     | some n =>
@@ -524,28 +865,20 @@ theorem one_box (year : ℕ) (ls : List Line) :
       · omega
 
 /-- **FR-8** The boxes agree with the year: 3AN − 3BN = l.52 in whole euros, and the tax is worked out on 3AN. -/
-theorem boxes_agree (year : ℕ) (ls : List Line) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n) :
-    an (yearOf year ls) - bn (yearOf year ls) = euros n ∧
-      (yearOf year ls).tax = some (centsUp ((an (yearOf year ls) : ℚ) * incomeRate)
-        + centsUp ((an (yearOf year ls) : ℚ) * socialRate year)) := by
-  have key : an (yearOf year ls) = max (euros n) 0 ∧ bn (yearOf year ls) = max (-euros n) 0 := by
+theorem boxes_agree (year : ℕ) (ls : List Line) (u : Bool) (n : ℚ) (hs : threshold < l51 ls) (h : l52 ls = some n) :
+    an (yearOf year ls u) - bn (yearOf year ls u) = euros n ∧
+      (yearOf year ls u).tax = some (centsUp ((an (yearOf year ls u) : ℚ) * incomeRate)
+        + centsUp ((an (yearOf year ls u) : ℚ) * socialRate year)) := by
+  have key : an (yearOf year ls u) = max (euros n) 0 ∧ bn (yearOf year ls u) = max (-euros n) 0 := by
     rcases lt_trichotomy (euros n) 0 with hl | he | hg
-    · simp [an, bn, loss_to_3BN year ls n hs h hl, hl.le]; try omega
-    · have hb : (yearOf year ls).box = none := by simp [yearOf, not_le.mpr hs, h, he]
+    · simp [an, bn, loss_to_3BN year ls u n hs h hl, hl.le]; try omega
+    · have hb : (yearOf year ls u).box = none := by simp [yearOf, not_le.mpr hs, h, he]
       simp [an, bn, hb, he]
-    · simp [an, bn, gain_to_3AN year ls n hs h hg, hg.le]
+    · simp [an, bn, gain_to_3AN year ls u n hs h hg, hg.le]
   refine ⟨by rw [key.1, key.2]; omega, ?_⟩
-  rw [key.1]; push_cast; exact over_limit_whole_gain year ls n hs h
+  rw [key.1]; push_cast; exact over_limit_whole_gain year ls u n hs h
 
-/-! ## Rule 9: the 3916-bis penalty in the app's note (art. 1736 X CGI) -/
-
-/-- The note's amount for an undeclared account: €750, or €1,500 when the account was worth over €50,000. -/
-def penalty (over50k : Bool) : ℕ := if over50k then 1500 else 750
-
-/-- **FR-9** The note's amounts: 750 € per account, 1,500 € when worth over €50,000. -/
-theorem penalty_amounts : penalty false = 750 ∧ penalty true = 1500 := ⟨rfl, rfl⟩
-
-/-! ## Rule 10: filing dates (Service-public.fr A15597, revenus 2025) -/
+/-! ## Rule 9: filing dates (Service-public.fr A15597, revenus 2025) -/
 
 /-- Paper return, revenus 2025: 19 May 2026. -/
 def paper2025 : ℕ := 20260519
@@ -562,12 +895,12 @@ def candidates (paper : ℕ) (online : List ℕ) : List ℕ := paper :: online.t
 /-- The next date shown: the first in the list on or after today. -/
 def next (today : ℕ) (l : List ℕ) : Option ℕ := l.find? (fun d => decide (today ≤ d))
 
-/-- **FR-10** The encoded dates for revenus 2025. -/
+/-- **FR-9** The encoded dates for revenus 2025. -/
 theorem deadlines_2025 :
     deadlines 2025 = some (20260519, [20260521, 20260528, 20260604, 20260430]) ∧ ∀ y, y ≠ 2025 → deadlines y = none := by
   refine ⟨rfl, fun y hy => by simp [deadlines, hy]⟩
 
-/-- **FR-10** In a list in date order, the date shown is in the list, on or after today, and the earliest such; when
+/-- **FR-9** In a list in date order, the date shown is in the list, on or after today, and the earliest such; when
 none is shown, every date is past. -/
 theorem next_spec (today : ℕ) (l : List ℕ) (hs : l.Pairwise (· ≤ ·)) :
     (∀ d, next today l = some d → d ∈ l ∧ today ≤ d ∧ ∀ x ∈ l, today ≤ x → d ≤ x) ∧
@@ -597,8 +930,10 @@ theorem next_spec (today : ℕ) (l : List ℕ) (hs : l.Pairwise (· ≤ ·)) :
         · omega
         · exact ih2 hd x hx
 
-/-- **FR-10** For revenus 2025: the date shown is one of the paper and first three online dates, never before today,
-and the earliest of them on or after today; none is shown once all four are past. -/
+/-- **FR-9** For revenus 2025: the date chosen is one of the paper and first three online dates, never before today,
+and the earliest of them on or after today; none is chosen once all four are past. `upcoming.ts` only shows the chosen
+date when the year is one of the person's years with a French sale (`frYears`) and the date is within its horizon
+(120 days); the Saint-Pierre-et-Miquelon dates (online 30 April, paper 31 March) are named in the line, not chosen. -/
 theorem next_2025 (today : ℕ) :
     (∀ d, next today (candidates paper2025 online2025) = some d →
       d ∈ candidates paper2025 online2025 ∧ today ≤ d ∧

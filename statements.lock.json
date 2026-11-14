@@ -1,6 +1,42 @@
 {
-  "reviewedBy": "independent AI reviewer, 2 rounds, 11 Nov 2026 (audit/REVIEW-2026-11-11.md)",
+  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-14.md)",
   "theorems": {
+    "Kanon.Alerts.atLeast_iff": {
+      "file": "Alerts.lean",
+      "sha": "2006cbb3d27112eb"
+    },
+    "Kanon.Alerts.no_resend_after_rearm": {
+      "file": "Alerts.lean",
+      "sha": "475d68543322414a"
+    },
+    "Kanon.Alerts.no_try_after_sent": {
+      "file": "Alerts.lean",
+      "sha": "0b6eb8354f5807bb"
+    },
+    "Kanon.Alerts.no_try_after_sent_record": {
+      "file": "Alerts.lean",
+      "sha": "12a5018ff3f1fcaf"
+    },
+    "Kanon.Alerts.resent_after_crash": {
+      "file": "Alerts.lean",
+      "sha": "846674dc9fb97084"
+    },
+    "Kanon.Alerts.resent_after_lost_write": {
+      "file": "Alerts.lean",
+      "sha": "00da26755152f19a"
+    },
+    "Kanon.Alerts.sent_at_most_once": {
+      "file": "Alerts.lean",
+      "sha": "2ba5709d773b5c8f"
+    },
+    "Kanon.Alerts.sent_eventually": {
+      "file": "Alerts.lean",
+      "sha": "dcff56d6896434a3"
+    },
+    "Kanon.Alerts.tries_only_at_or_above": {
+      "file": "Alerts.lean",
+      "sha": "8ed7f595bf84141b"
+    },
     "Kanon.Answers.away_and_back": {
       "file": "Answers.lean",
       "sha": "5091ddabd6eeff36"

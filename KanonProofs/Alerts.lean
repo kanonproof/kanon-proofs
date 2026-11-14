@@ -14,7 +14,11 @@ record (355-358). A mark or "sending" record left by a round that ended early is
 2. Rounds at the same time, every interleaving (`sent_at_most_once`, `no_try_after_sent`,
    `resent_after_lost_write`): with every round's work inside 60 seconds of its start (a hypothesis), a second try
    only ever follows a send whose "sent" write never happened, and more than 10 minutes after the first round
-   started; after a "sent" write nobody tries again. The exception is real (the code says so, lines 314-316).
+   started; after a "sent" write nobody tries again. The exception is real (the code says so, lines 314-316). A
+   second way in: a send the push service took but whose answer timed out (push.ts, 5 seconds) or errored counts as
+   `failed` (alerts.ts, `.catch(() => "failed")`), so the step is unmarked, the record deleted and a later round sends
+   again; to the model that is a failed send, so the theorems hold but "once" is only once per send the round saw
+   succeed.
 3. Rounds one after another, every store write able to fail (`tries_only_at_or_above`, `sent_eventually`,
    `no_try_after_sent_record`, `no_resend_after_rearm`, `resent_after_crash`).
 
@@ -327,7 +331,10 @@ def claim (r : Rec) (tok now : ℕ) : Claim × Rec :=
     else if since + takeoverMs < now then (.mine, .sending now tok) else (.busy, r)
   | .sent k => if k = some tok then (.mine, r) else (.sent, r)
 
-/-- What the push service answered (`deps.send`, alerts.ts:345; a send that threw counts as `failed`). -/
+/-- What the push service answered (`deps.send`, alerts.ts:345; a send that threw counts as `failed`). `failed` also
+covers a send the push service took but whose answer timed out (push.ts, 5 seconds) or came back as an error: the round
+can't tell it from one that never went out, unmarks the step and deletes the record, so a later round sends it again.
+That is a second way to send twice, next to a lost "sent" write; the model can't tell either from a real failure. -/
 inductive Send
   | ok
   | failed
@@ -366,7 +373,8 @@ inductive Act
   | send (a : ℕ) (r : Send)
   /-- Round `a` writes "sent" over the record if it still has `a`'s token (alerts.ts:348). -/
   | sentWrite (a : ℕ)
-  /-- Round `a` deletes the record after a send that failed or found the address gone (alerts.ts:354, 356). -/
+  /-- Round `a` deletes the record after a send that failed or found the address gone (alerts.ts:354, 356). A delete
+  that doesn't land (`store.del` never throws, store.ts:73) is this event not happening. -/
   | del (a : ℕ)
   /-- The record is deleted from outside a round: the step removed on the page, alerts turned off
   (`api/alerts/route.ts`:59-66, 77-84), or the yearly sweep (`sweepSent`, `SENT_DAYS`). -/
@@ -1046,7 +1054,10 @@ structure Luck where
   unmark : Write
   sentW : Write
   fileW : Write
+  /-- The record's delete. `store.del` never throws (store.ts:73, `del(path).catch(() => {})`): it lands or not and
+  the round goes on either way, so only `landed` matters here (`landedErr` is a delete that landed). -/
   delRec : Write
+  /-- The address file's delete: like `delRec`, it lands or not and never throws. -/
   delFile : Write
 
 /-- Every store write of the round lands without an error. -/
@@ -1058,7 +1069,9 @@ def maxFails : ℕ := 20
 
 /-- One round, for one step: the state after it, and what the push service answered if it tried to send
 (`none`: it didn't try). `now` is the round's time, `tok` its code, `atOrAbove` whether its price is at or above the
-step. Follows alerts.ts:321-359 line by line. -/
+step. Follows alerts.ts:321-359 line by line. A delete never throws (store.ts:73), so after a send that failed or
+found the address gone the round goes on whether or not the record's delete landed: it can end with the file deleted
+(or unmarked) and the record still "sending", which a later round takes over after `TAKEOVER_MS`. -/
 def roundR (now tok : ℕ) (atOrAbove : Bool) (l : Luck) (s : RS) : RS × Option Send :=
   match s.file with
   | none => (s, none)
@@ -1081,19 +1094,15 @@ def roundR (now tok : ℕ) (atOrAbove : Bool) (l : Luck) (s : RS) : RS × Option
                 (if (claim s.record tok now).2.tok = some tok then .sent (some tok) else (claim s.record tok now).2)⟩,
               some .ok)
           | .gone =>
-            if l.delRec.thrown then
-              (⟨some (f.markBy now tok), wr l.delRec (claim s.record tok now).2 .absent⟩, some .gone)
-            else (⟨wr l.delFile (some (f.markBy now tok)) none, .absent⟩, some .gone)
+            (⟨wr l.delFile (some (f.markBy now tok)) none, wr l.delRec (claim s.record tok now).2 .absent⟩, some .gone)
           | .failed =>
             if l.fileW.thrown then
               (⟨some (wr l.fileW (f.markBy now tok)
                 { (f.markBy now tok).unmark tok with fails := f.fails + 1 }), (claim s.record tok now).2⟩, some .failed)
-            else if l.delRec.thrown then
-              (⟨some { (f.markBy now tok).unmark tok with fails := f.fails + 1 },
-                wr l.delRec (claim s.record tok now).2 .absent⟩, some .failed)
             else
               (⟨if maxFails ≤ f.fails + 1 then wr l.delFile (some { (f.markBy now tok).unmark tok with fails := f.fails + 1 }) none
-                else some { (f.markBy now tok).unmark tok with fails := f.fails + 1 }, .absent⟩, some .failed)
+                else some { (f.markBy now tok).unmark tok with fails := f.fails + 1 },
+                wr l.delRec (claim s.record tok now).2 .absent⟩, some .failed)
     else (s, none)
 
 /-- What happens between two rounds. `quiet`: nothing. `saw t`: the open page saw the step reached and showed its own notice, then saved
@@ -1282,35 +1291,18 @@ lemma ready_round (Tn now tok : ℕ) (b : Bool) (l : Luck) (s : RS) (hs : Ready 
           · exact hmu
           · exact hm
         rw [if_neg hft]
-        by_cases hdt : l.delRec.thrown = true
-        · rw [if_pos hdt]
-          refine ⟨?_, ?_⟩
-          · intro f' h'; simp only [Option.some.injEq] at h'; subst h'; exact hmu
-          · unfold wr; split_ifs
-            · exact Or.inl rfl
-            · exact hca
-        rw [if_neg hdt]
-        refine ⟨?_, Or.inl rfl⟩
-        intro f' h'
-        split_ifs at h'
-        · unfold wr at h'
-          split_ifs at h'
-          simp only [Option.some.injEq] at h'; subst h'; exact hmu
-        · simp only [Option.some.injEq] at h'; subst h'; exact hmu
-      · simp only
-        by_cases hdt : l.delRec.thrown = true
-        · rw [if_pos hdt]
-          refine ⟨?_, ?_⟩
-          · intro f' h'; simp only [Option.some.injEq] at h'; subst h'; exact hm
-          · unfold wr; split_ifs
-            · exact Or.inl rfl
-            · exact hca
-        rw [if_neg hdt]
-        refine ⟨?_, Or.inl rfl⟩
-        intro f' h'
-        unfold wr at h'
-        split_ifs at h'
-        simp only [Option.some.injEq] at h'; subst h'; exact hm
+        dsimp only
+        refine ⟨?_, ?_⟩
+        · intro f' h'
+          unfold wr at h'
+          split_ifs at h' <;> simp only [Option.some.injEq] at h' <;> (subst h'; exact hmu)
+        · unfold wr; split_ifs <;> first | exact Or.inl rfl | exact hca
+      · dsimp only
+        refine ⟨?_, ?_⟩
+        · intro f' h'
+          unfold wr at h'
+          split_ifs at h' <;> simp only [Option.some.injEq] at h' <;> (subst h'; exact hm)
+        · unfold wr; split_ifs <;> first | exact Or.inl rfl | exact hca
     · refine ⟨?_, hr⟩
       intro f' h'; simp only [Option.some.injEq] at h'; subst h'
       unfold wr; split_ifs <;> assumption
@@ -1470,7 +1462,7 @@ lemma round_ok_record (now tok : ℕ) (b : Bool) (l : Luck) (s : RS) (h : (round
     rcases hsd : l.send with _ | _ | _
     · simp [wr, hw, claim_mine_tok _ _ _ hcl]
     · simp only [hsd] at h; split_ifs at h <;> simp at h
-    · simp only [hsd] at h; split_ifs at h <;> simp at h
+    · simp only [hsd] at h; simp at h
   · simp only [hcl] at h; simp at h
   · simp only [hcl] at h; simp at h
 

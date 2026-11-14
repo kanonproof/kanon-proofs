@@ -19,7 +19,7 @@ art. 1657 CGI (whole euros); Service-public.fr A15597 (filing dates, revenus 202
   later line has no l.220-l.224 and the cost left is unknown;
 * an exchange with a soulte (`cryptoIn`) then adds l.213 plus any soulte received to l.220, and that soulte to l.222;
 * the year: l.51 = Σ l.218, l.52 = Σ l.224 (unknown if any is); when a sale's price couldn't be known (`unpriced`,
-  counted as 0 in l.51) and l.51 ≤ 305, nothing is settled (not exempt, no l.52, no box, no tax); else exempt when
+  estimated, or 0, in l.51) and l.51 ≤ 305, nothing is settled (not exempt, no l.52, no box, no tax); else exempt when
   l.51 ≤ 305; else the net gain in whole euros (half away from zero, Decimal's ROUND_HALF_UP) goes to 3AN, a net loss
   to 3BN, and the tax is 12.8% plus the year's social rate of the positive part, each rounded up to the cent.
 
@@ -447,7 +447,7 @@ theorem swap_fee_is_cession (b : Book) (h : Swap) (f : Fee) (v : ℚ) (hn : h.no
   rw [swap_no_line b h hn]
   simp [bookStep, bookFee, hd, hr, htx, hb, hu, hc, hv, hp]
 
-/-! #### `addFee` keeps one fees line per day -/
+/-! #### `addFee` puts a coin fee on that day's fees line -/
 
 theorem modifyAt_length {α : Type} (f : α → α) (i : ℕ) (l : List α) : (modifyAt f i l).length = l.length := by
   induction l generalizing i with
@@ -558,7 +558,7 @@ theorem ok_book (hs : List Event) : (book hs).Ok := by
   | cons e es ih => intro b hb; exact ih _ (ok_step b e hb)
 
 /-- **FR-2** `addFee` on a book `frBook` built: the drafts' prices rise by exactly the fee's value `v`, the
-acquisitions don't change, and that day has one fees line (a fees draft of that day). -/
+acquisitions don't change, and that day's fees line is a fees draft of that day. -/
 theorem addFee_spec (hs : List Event) (day : ℕ) (v : ℚ) :
     (((addFee (book hs) day v).drafts.map Draft.price).sum = ((book hs).drafts.map Draft.price).sum + v) ∧
       (addFee (book hs) day v).acquisitions = (book hs).acquisitions ∧
@@ -666,7 +666,7 @@ structure Year where
   social : Option ℚ
   tax : Option ℚ
 
-/-- `frYear`: with a sale whose price couldn't be known (`unpriced`, counted as 0 in l.51) and l.51 at €305 or less,
+/-- `frYear`: with a sale whose price couldn't be known (`unpriced`, estimated, or 0, in l.51) and l.51 at €305 or less,
 nothing is settled: not exempt, no l.52, box or tax; else exempt at €305 or less; else unknown if l.52 is; else the
 net result in whole euros to 3AN or 3BN and 12.8% plus the year's levies on its positive part, each rounded up to the
 cent. -/
@@ -713,7 +713,7 @@ theorem exempt_untaxed (year : ℕ) (ls : List Line) (u : Bool) (hu : u = false)
     (yearOf year ls u).exempt = true ∧ (yearOf year ls u).tax = some 0 ∧ (yearOf year ls u).box = none := by
   simp [yearOf, h, hu]
 
-/-- **FR-4** A sale whose price couldn't be known (counted as 0 in l.51) with l.51 at or under €305: the year is not
+/-- **FR-4** A sale whose price couldn't be known (estimated, or 0, in l.51) with l.51 at or under €305: the year is not
 shown exempt, and no l.52, tax, box, income tax or levies is given (neither exemption nor a tax is claimed). -/
 theorem unpriced_unsettled (year : ℕ) (ls : List Line) (u : Bool) (hu : u = true) (h : l51 ls ≤ threshold) :
     (yearOf year ls u).exempt = false ∧ (yearOf year ls u).l52 = none ∧ (yearOf year ls u).tax = none ∧

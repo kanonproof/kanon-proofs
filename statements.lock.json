@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent AI reviewer, 2 rounds (audit/REVIEW-2026-11-14.md)",
+  "reviewedBy": "independent reviewer (Claude agent a0108848, rounds 1-2, 14 Nov 2026)",
   "theorems": {
     "Kanon.Alerts.atLeast_iff": {
       "file": "Alerts.lean",
@@ -344,6 +344,214 @@
     "Kanon.Fees.supply_falls": {
       "file": "FeeSplit.lean",
       "sha": "a1631d21956fb013"
+    },
+    "Kanon.France.addFee_spec": {
+      "file": "France.lean",
+      "sha": "1fafdde78621443f"
+    },
+    "Kanon.France.bofip_110": {
+      "file": "France.lean",
+      "sha": "ca5ca96180803599"
+    },
+    "Kanon.France.bofip_120": {
+      "file": "France.lean",
+      "sha": "77cb9a05fdd811da"
+    },
+    "Kanon.France.boxes_agree": {
+      "file": "France.lean",
+      "sha": "ee20c9523525bfca"
+    },
+    "Kanon.France.centsUp_bounds": {
+      "file": "France.lean",
+      "sha": "e5450f368322da97"
+    },
+    "Kanon.France.cession_line": {
+      "file": "France.lean",
+      "sha": "6dcc7c9fdef7fab0"
+    },
+    "Kanon.France.cost_falls": {
+      "file": "France.lean",
+      "sha": "95af1fb832886f43"
+    },
+    "Kanon.France.deadlines_2025": {
+      "file": "France.lean",
+      "sha": "203ef8ced1ab005b"
+    },
+    "Kanon.France.euros_bounds": {
+      "file": "France.lean",
+      "sha": "6bc10ff520d6ba82"
+    },
+    "Kanon.France.exchange_cost": {
+      "file": "France.lean",
+      "sha": "8740bf5841249831"
+    },
+    "Kanon.France.exempt_untaxed": {
+      "file": "France.lean",
+      "sha": "9051c5bce052c961"
+    },
+    "Kanon.France.fraction_bounds": {
+      "file": "France.lean",
+      "sha": "9c387fdaed1377aa"
+    },
+    "Kanon.France.gain_formula": {
+      "file": "France.lean",
+      "sha": "30a8d60169ba11b3"
+    },
+    "Kanon.France.gain_le_price": {
+      "file": "France.lean",
+      "sha": "88e656d5113c9e73"
+    },
+    "Kanon.France.gain_plain": {
+      "file": "France.lean",
+      "sha": "b3dc6ea1c7ad3a4a"
+    },
+    "Kanon.France.gain_plain_zero_iff": {
+      "file": "France.lean",
+      "sha": "87580cc8ac9f9ad7"
+    },
+    "Kanon.France.gain_to_3AN": {
+      "file": "France.lean",
+      "sha": "f1748c4e90828854"
+    },
+    "Kanon.France.gain_zero_iff": {
+      "file": "France.lean",
+      "sha": "52f6c379c653a931"
+    },
+    "Kanon.France.inv_step": {
+      "file": "France.lean",
+      "sha": "8285488c92a50e92"
+    },
+    "Kanon.France.l52_none_iff": {
+      "file": "France.lean",
+      "sha": "a1317ea6c13abdd2"
+    },
+    "Kanon.France.l52_sum": {
+      "file": "France.lean",
+      "sha": "156a855e2cb0c40f"
+    },
+    "Kanon.France.loss_to_3BN": {
+      "file": "France.lean",
+      "sha": "68b449e787f06b79"
+    },
+    "Kanon.France.loss_untaxed": {
+      "file": "France.lean",
+      "sha": "aea7512b8df4a67f"
+    },
+    "Kanon.France.modifyAt_get": {
+      "file": "France.lean",
+      "sha": "48e4eb4b9445c3b9"
+    },
+    "Kanon.France.modifyAt_length": {
+      "file": "France.lean",
+      "sha": "f2658f2ff39db877"
+    },
+    "Kanon.France.modifyAt_sum": {
+      "file": "France.lean",
+      "sha": "ba4fc3cd7982e21f"
+    },
+    "Kanon.France.net_nonneg": {
+      "file": "France.lean",
+      "sha": "93adaa0f656504a4"
+    },
+    "Kanon.France.never_clipped": {
+      "file": "France.lean",
+      "sha": "d0ba2632d9f60a2c"
+    },
+    "Kanon.France.next_2025": {
+      "file": "France.lean",
+      "sha": "5a1b1557b3617057"
+    },
+    "Kanon.France.next_spec": {
+      "file": "France.lean",
+      "sha": "58eab99ea3789afd"
+    },
+    "Kanon.France.no_carry": {
+      "file": "France.lean",
+      "sha": "4863bd2bd5c818e8"
+    },
+    "Kanon.France.ok_addFee": {
+      "file": "France.lean",
+      "sha": "602983af33fb17cd"
+    },
+    "Kanon.France.ok_book": {
+      "file": "France.lean",
+      "sha": "73107d3ac9b6bee2"
+    },
+    "Kanon.France.ok_buy": {
+      "file": "France.lean",
+      "sha": "e8c2bc1513abe6d2"
+    },
+    "Kanon.France.ok_modify": {
+      "file": "France.lean",
+      "sha": "0aaef742e06e2968"
+    },
+    "Kanon.France.ok_push": {
+      "file": "France.lean",
+      "sha": "c12e47e7eb53134c"
+    },
+    "Kanon.France.ok_pushTx": {
+      "file": "France.lean",
+      "sha": "c4cbbf044c48a53f"
+    },
+    "Kanon.France.ok_step": {
+      "file": "France.lean",
+      "sha": "8294e35061e61b49"
+    },
+    "Kanon.France.one_box": {
+      "file": "France.lean",
+      "sha": "c9f6b37148b4f70c"
+    },
+    "Kanon.France.over_limit_whole_gain": {
+      "file": "France.lean",
+      "sha": "27b976ade1dff08b"
+    },
+    "Kanon.France.rates": {
+      "file": "France.lean",
+      "sha": "52187752f35cf1c1"
+    },
+    "Kanon.France.swap_changes_nothing": {
+      "file": "France.lean",
+      "sha": "db98da9ed4dc0799"
+    },
+    "Kanon.France.swap_fee_is_cession": {
+      "file": "France.lean",
+      "sha": "2dd3912403974d62"
+    },
+    "Kanon.France.swap_no_line": {
+      "file": "France.lean",
+      "sha": "1e8c9e4bd06740d9"
+    },
+    "Kanon.France.tax_bounds": {
+      "file": "France.lean",
+      "sha": "664fa5f339921349"
+    },
+    "Kanon.France.tax_is_sum": {
+      "file": "France.lean",
+      "sha": "41bdb0194a70016c"
+    },
+    "Kanon.France.unknown_line": {
+      "file": "France.lean",
+      "sha": "e406c7dafbe9c8c7"
+    },
+    "Kanon.France.unknown_sticks": {
+      "file": "France.lean",
+      "sha": "0b3de0038fda7b8d"
+    },
+    "Kanon.France.unpriced_over_limit": {
+      "file": "France.lean",
+      "sha": "407fbe7c2fa75903"
+    },
+    "Kanon.France.unpriced_unsettled": {
+      "file": "France.lean",
+      "sha": "dfbe031e22a91a22"
+    },
+    "Kanon.France.unusable_iff": {
+      "file": "France.lean",
+      "sha": "fe12d11902a0ce36"
+    },
+    "Kanon.France.year_unknown": {
+      "file": "France.lean",
+      "sha": "cd8fa97761cd0511"
     },
     "Kanon.Fresh.agent_never_gets_stale": {
       "file": "Fresh.lean",

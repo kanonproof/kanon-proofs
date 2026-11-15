@@ -839,7 +839,7 @@ def wrapSlices : List Pick → ℕ → Option ℚ → ℚ → ℕ → List Lot
     { p.lot with wallet := dest, qty := scaled tq all p.take, cost := p.basis, seq := (p.lot.seq.1, c) } ::
       wrapSlices ps dest tq all (c + 1)
 
-/-- The arriving coin's pool `T` after a wrap of `q` coins from the pool `L` (kanon-app 3ed8522): the slices of the
+/-- The arriving coin's pool `T` after a wrap of `q` coins from the pool `L` (kanon-app a4a0731): the slices of the
 pool's lots with their new steps from `c0`, then, for coins missing, the unknown-cost slice, which keeps its own new
 root `s`; all scaled to what arrives. -/
 def wrapIn (T L : List Lot) (q : ℚ) (id w date s dest : ℕ) (tq : Option ℚ) (c0 : ℕ) : List Lot :=

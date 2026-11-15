@@ -26,7 +26,7 @@ Modelled line for line, in exact fractions:
 * ES-4: the released-loss lines: 1804 = 1806 − v ≥ 0, 1807 = 1808 = v, and 1808 ≤ 1807 on any entry; one key's
   entries depend only on that key's lines.
 * ES-5: `esSavings`, art. 49: phase 1 (the year's negative saldo of one kind against the other, within the year's
-  limit), phase 2 (ahead losses, own kind first then the other within the room left, oldest first), gone after
+  limit), phase 2 (earlier losses, own kind first then the other within the room left, oldest first), gone after
   four years, and a loss left waiting only when nothing more could be taken (art. 49.2, "cuantía máxima");
   conservation for one year and over many.
 * ES-6: the scale: tax ≥ 0 and never falls as the base rises; the AEAT's figures 2,800 → 532, 130,000 → 28,780,
@@ -55,10 +55,10 @@ the CSV and PDF output and the screens.
 Found in review and fixed in kanon-app 268c7fa: `Book.add` used to put a lot moved between own wallets after the other
 lots bought the same day, so a later FIFO sale picked a different same-day lot. Each lot now has its arrival order
 (`rank`, here `seq`) and `byFifo` sorts by day, then arrival; `transfer_same_sale` proves a move no longer changes a
-later sale, and `same_day_move` checks the case found (two lots of one day at 100 and 200: the sale costs 100 before
-and after the move). `transfer_same_sale` starts from a pool where no two lots share a day and arrival order, as
-after purchases. Not covered: a second move from a pool where an earlier move took part of a lot, since that lot's
-remainder and moved slice share one place (as in the code).
+later sale, from any pool the ledger can reach (`Reach`: purchases, sales, moves, also after a move of part of a lot,
+whose remainder and moved slice share one place, as in the code); `same_day_move` and `two_moves` check the case
+found (two lots of one day at 100 and 200: a sale of one coin costs 100 before a move, after it, and after two moves
+that each take half of the first lot).
 -/
 
 namespace Kanon.Spain
@@ -90,11 +90,8 @@ def bookKey : Scope → ℕ → ℕ → ℕ × Option ℕ
 one pool. -/
 theorem universal_one_pool (asset w w' : ℕ) : bookKey .universal asset w = bookKey .universal asset w' := rfl
 
-/-- `byFifo(a, b) ≤ 0`: `a` was bought on an ahead day, or the same day and arrived no later. -/
+/-- `byFifo(a, b) ≤ 0`: `a` was bought on an earlier day, or the same day and arrived no later. -/
 abbrev before (a b : Lot) : Prop := a.acquired < b.acquired ∨ (a.acquired = b.acquired ∧ a.seq ≤ b.seq)
-
-/-- Strictly before: an ahead day, or the same day and arrived ahead. -/
-abbrev ahead (a b : Lot) : Prop := a.acquired < b.acquired ∨ (a.acquired = b.acquired ∧ a.seq < b.seq)
 
 /-- `Book.add`: a lot goes after every lot `byFifo` puts no later than it (the code's push, or its binary search for
 the first lot that sorts after it). -/
@@ -372,21 +369,6 @@ theorem basisAt_cons (k : ℕ × ℕ × ℕ) (p : Pick) (ps : List Pick) :
     basisAt k (p :: ps) = (if key p.lot = k then p.basis else 0) + basisAt k ps := by
   unfold basisAt; rw [List.filter_cons]; split_ifs <;> simp_all
 
-/-- Two pools hold the same lots in the same order, except that a lot may be split into two slices of the same place
-whose coins and cost add up to it, at the same cost per coin. -/
-inductive Ref : List Lot → List Lot → Prop
-  | nil : Ref [] []
-  | same (x y : Lot) (xs ys : List Lot) : key y = key x → y.qty = x.qty → y.cost = x.cost → Ref xs ys →
-      Ref (x :: xs) (y :: ys)
-  | split (x a b : Lot) (xs ys : List Lot) : key a = key x → key b = key x → 0 < a.qty → 0 < b.qty →
-      a.qty + b.qty = x.qty → a.cost * x.qty = x.cost * a.qty → a.cost + b.cost = x.cost → Ref xs ys →
-      Ref (x :: xs) (a :: b :: ys)
-
-theorem ref_refl (ls : List Lot) : Ref ls ls := by
-  induction ls with
-  | nil => exact Ref.nil
-  | cons l ls ih => exact Ref.same l l ls ls rfl rfl rfl ih
-
 theorem sell_le (l : Lot) (ls : List Lot) (q : ℚ) (h : q ≤ 0) : sell (l :: ls) q = ([], l :: ls) := by
   simp [sell, h]
 
@@ -399,179 +381,458 @@ theorem sell_ge (l : Lot) (ls : List Lot) (q : ℚ) (h0 : ¬ q ≤ 0) (h : ¬ q 
     sell (l :: ls) q = ((⟨l, l.qty, l.cost * l.qty / l.qty⟩ :: (sell ls (q - l.qty)).1), (sell ls (q - l.qty)).2) := by
   simp [sell, h0, h]
 
-/-- A sale from two such pools takes the same coins from each place, at the same cost. -/
-theorem sell_ref {L M : List Lot} (h : Ref L M) (r : ℚ) :
-    ((sell M r).1.map Pick.basis).sum = ((sell L r).1.map Pick.basis).sum ∧
-      ∀ k, takeAt k (sell M r).1 = takeAt k (sell L r).1 ∧ basisAt k (sell M r).1 = basisAt k (sell L r).1 := by
-  induction h generalizing r with
-  | nil => simp [sell]
-  | same x y xs ys hk hq hc _ ih =>
-    by_cases r0 : r ≤ 0
-    · rw [sell_le _ _ _ r0, sell_le _ _ _ r0]; simp
-    by_cases r1 : r < x.qty
-    · rw [sell_lt _ _ _ r0 r1, sell_lt _ _ _ r0 (by rwa [hq])]
-      refine ⟨by simp [hq, hc], fun k => ?_⟩
-      simp only [takeAt_cons, basisAt_cons, hk, hq, hc]; constructor <;> first | trivial | rfl
-    · rw [sell_ge _ _ _ r0 r1, sell_ge _ _ _ r0 (by rwa [hq])]
-      obtain ⟨i1, i2⟩ := ih (r - x.qty)
-      refine ⟨by simp [hq, hc, i1], fun k => ?_⟩
-      simp only [takeAt_cons, basisAt_cons, hk, hq, hc, (i2 k).1, (i2 k).2]; constructor <;> first | trivial | rfl
-  | split x a b xs ys hka hkb ha hb hq hc hs _ ih =>
-    have hx : 0 < x.qty := by linarith
-    have ea : a.cost = x.cost * a.qty / x.qty := by rw [eq_div_iff hx.ne']; linarith
-    have eb : b.cost = x.cost * b.qty / x.qty := by
-      rw [eq_div_iff hx.ne', show b.qty = x.qty - a.qty by linarith, show b.cost = x.cost - a.cost by linarith]
-      linear_combination -hc
-    have fa : a.cost * a.qty / a.qty = a.cost := by field_simp
-    have fb : b.cost * b.qty / b.qty = b.cost := by field_simp
-    have fx : x.cost * x.qty / x.qty = x.cost := by field_simp
-    by_cases r0 : r ≤ 0
-    · rw [sell_le _ _ _ r0, sell_le _ _ _ r0]; simp
-    by_cases r1 : r < a.qty
-    · have r2 : r < x.qty := by linarith
-      rw [sell_lt _ _ _ r0 r1, sell_lt _ _ _ r0 r2]
-      have e : a.cost * r / a.qty = x.cost * r / x.qty := by rw [ea]; field_simp
-      refine ⟨by simp [e], fun k => ?_⟩
-      simp only [takeAt_cons, basisAt_cons, hka, e]; constructor <;> first | trivial | rfl
-    rw [sell_ge _ _ _ r0 r1]
-    by_cases r3 : r - a.qty ≤ 0
-    · have r2 : r < x.qty := by linarith
-      have ra : r = a.qty := by linarith
-      rw [sell_lt _ _ _ r0 r2, sell_le _ _ _ r3]
-      have e : x.cost * r / x.qty = a.cost := by rw [ea, ra]
-      refine ⟨by simp [fa, e], fun k => ?_⟩
-      simp only [takeAt_cons, basisAt_cons, hka, fa, ra, ← ea]; simp [takeAt, basisAt]
-    by_cases r2 : r < x.qty
-    · have r4 : r - a.qty < b.qty := by linarith
-      rw [sell_lt _ _ _ r0 r2, sell_lt _ _ _ r3 r4]
-      have e : a.cost + b.cost * (r - a.qty) / b.qty = x.cost * r / x.qty := by
-        rw [ea, eb]; field_simp; ring
-      refine ⟨by simp [fa]; linarith, fun k => ?_⟩
-      simp only [takeAt_cons, basisAt_cons, hka, hkb, fa]
-      constructor
-      · split_ifs <;> simp [takeAt]
-      · split_ifs <;> simp [basisAt, ← e]
-    · have r4 : ¬ r - a.qty < b.qty := by linarith
-      have e : r - a.qty - b.qty = r - x.qty := by linarith
-      rw [sell_ge _ _ _ r0 r2, sell_ge _ _ _ r3 r4, e]
-      obtain ⟨i1, i2⟩ := ih (r - x.qty)
-      refine ⟨by simp [fa, fb, fx, i1]; linarith, fun k => ?_⟩
-      simp only [takeAt_cons, basisAt_cons, hka, hkb, fa, fb, fx, (i2 k).1, (i2 k).2]
-      constructor
-      · split_ifs <;> linarith
-      · split_ifs <;> linarith
+/-- Two pools a later sale cannot tell apart: a sale of any amount takes the same total cost from each, and the same
+coins and cost from each lot place. -/
+def Out (L M : List Lot) : Prop :=
+  ∀ r, ((sell L r).1.map Pick.basis).sum = ((sell M r).1.map Pick.basis).sum ∧
+    ∀ k, takeAt k (sell L r).1 = takeAt k (sell M r).1 ∧ basisAt k (sell L r).1 = basisAt k (sell M r).1
 
-/-- Every lot in its own place: the day, then the order the lots arrived, with no two lots sharing both. -/
-def StrictSorted (ls : List Lot) : Prop := ls.Pairwise ahead
+theorem out_refl (L : List Lot) : Out L L := fun _ => ⟨rfl, fun _ => ⟨rfl, rfl⟩⟩
 
-/-- The lots a sale leaves were all in the pool before, with the same day and arrival. -/
-theorem sell_left_keys (ls : List Lot) (q : ℚ) :
-    ∀ x ∈ (sell ls q).2, ∃ y ∈ ls, y.acquired = x.acquired ∧ y.seq = x.seq := by
-  induction ls generalizing q with
-  | nil => simp [sell]
-  | cons l ls ih =>
-    unfold sell; split_ifs
-    · intro x hx; exact ⟨x, hx, rfl, rfl⟩
-    · intro x hx
-      rcases List.mem_cons.mp hx with rfl | hx
-      · exact ⟨l, by simp, rfl, rfl⟩
-      · exact ⟨x, by simp [hx], rfl, rfl⟩
-    · intro x hx
-      obtain ⟨y, hy, e⟩ := ih (q - l.qty) x hx
-      exact ⟨y, by simp [hy], e⟩
+theorem out_symm {L M : List Lot} (h : Out L M) : Out M L := fun r =>
+  ⟨(h r).1.symm, fun k => ⟨((h r).2 k).1.symm, ((h r).2 k).2.symm⟩⟩
 
-/-- `Book.add` puts a lot after the lots no later than it and before the lots strictly after it. -/
-theorem add_pre (pre ys : List Lot) (l : Lot) (h1 : ∀ x ∈ pre, before x l) (h2 : ∀ y ∈ ys, ahead l y) :
-    add l (pre ++ ys) = pre ++ l :: ys := by
-  induction pre with
-  | nil =>
-    cases ys with
-    | nil => simp [add]
-    | cons y ys =>
-      have := h2 y (by simp)
-      simp only [List.nil_append]; unfold add; rw [if_neg (by unfold before ahead at *; omega)]
-  | cons x xs ih =>
-    simp only [List.cons_append]; unfold add
-    rw [if_pos (h1 x (by simp)), ih (fun z hz => h1 z (by simp [hz]))]
+theorem out_trans {L M N : List Lot} (h1 : Out L M) (h2 : Out M N) : Out L N := fun r =>
+  ⟨(h1 r).1.trans (h2 r).1, fun k => ⟨((h1 r).2 k).1.trans ((h2 r).2 k).1, ((h1 r).2 k).2.trans ((h2 r).2 k).2⟩⟩
 
-theorem transfer_gen (dest : ℕ) (ls : List Lot) (q : ℚ) (pre : List Lot) (hq : ∀ l ∈ ls, 0 < l.qty)
-    (h : StrictSorted ls) (hp : ∀ x ∈ pre, ∀ y ∈ ls, ahead x y) :
-    ∃ M, Ref ls M ∧ (sell ls q).1.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b)
-      (pre ++ (sell ls q).2) = pre ++ M := by
-  induction ls generalizing q pre with
-  | nil => exact ⟨[], Ref.nil, by simp [sell]⟩
-  | cons l ls ih =>
-    unfold StrictSorted at h; rw [List.pairwise_cons] at h
+/-- The same first lot (in any wallet) in front of two such pools. -/
+theorem out_cons (x y : Lot) (L M : List Lot) (hk : key y = key x) (hq : y.qty = x.qty) (hc : y.cost = x.cost)
+    (h : Out L M) : Out (x :: L) (y :: M) := by
+  intro r
+  by_cases r0 : r ≤ 0
+  · rw [sell_le _ _ _ r0, sell_le _ _ _ r0]; simp
+  by_cases r1 : r < x.qty
+  · rw [sell_lt _ _ _ r0 r1, sell_lt _ _ _ r0 (by rwa [hq])]
+    refine ⟨by simp [hq, hc], fun k => ?_⟩
+    simp only [takeAt_cons, basisAt_cons, hk, hq, hc]; constructor <;> first | trivial | rfl
+  · rw [sell_ge _ _ _ r0 r1, sell_ge _ _ _ r0 (by rwa [hq])]
+    obtain ⟨i1, i2⟩ := h (r - x.qty)
+    refine ⟨by simp [hq, hc, i1], fun k => ?_⟩
+    simp only [takeAt_cons, basisAt_cons, hk, hq, hc, (i2 k).1, (i2 k).2]; constructor <;> first | trivial | rfl
+
+/-- A first lot split into two slices of its place, whose coins and cost add up to it, at its cost per coin. -/
+theorem out_split (x a b : Lot) (L M : List Lot) (hka : key a = key x) (hkb : key b = key x) (ha : 0 < a.qty)
+    (hb : 0 < b.qty) (hq : a.qty + b.qty = x.qty) (hc : a.cost * x.qty = x.cost * a.qty)
+    (hs : a.cost + b.cost = x.cost) (h : Out L M) : Out (x :: L) (a :: b :: M) := by
+  intro r
+  have hx : 0 < x.qty := by linarith
+  have ea : a.cost = x.cost * a.qty / x.qty := by rw [eq_div_iff hx.ne']; linarith
+  have eb : b.cost = x.cost * b.qty / x.qty := by
+    rw [eq_div_iff hx.ne', show b.qty = x.qty - a.qty by linarith, show b.cost = x.cost - a.cost by linarith]
+    linear_combination -hc
+  have fa : a.cost * a.qty / a.qty = a.cost := by field_simp
+  have fb : b.cost * b.qty / b.qty = b.cost := by field_simp
+  have fx : x.cost * x.qty / x.qty = x.cost := by field_simp
+  by_cases r0 : r ≤ 0
+  · rw [sell_le _ _ _ r0, sell_le _ _ _ r0]; simp
+  by_cases r1 : r < a.qty
+  · have r2 : r < x.qty := by linarith
+    rw [sell_lt _ _ _ r0 r2, sell_lt _ _ _ r0 r1]
+    have e : x.cost * r / x.qty = a.cost * r / a.qty := by rw [ea]; field_simp
+    refine ⟨by simp [e], fun k => ?_⟩
+    simp only [takeAt_cons, basisAt_cons, hka, e]; constructor <;> first | trivial | rfl
+  rw [sell_ge _ _ _ r0 r1]
+  by_cases r3 : r - a.qty ≤ 0
+  · have r2 : r < x.qty := by linarith
+    have ra : r = a.qty := by linarith
+    rw [sell_lt _ _ _ r0 r2, sell_le _ _ _ r3]
+    have e : x.cost * r / x.qty = a.cost := by rw [ea, ra]
+    refine ⟨by simp [fa, e], fun k => ?_⟩
+    simp only [takeAt_cons, basisAt_cons, hka, fa, e]; simp [takeAt, basisAt, ra]
+  by_cases r2 : r < x.qty
+  · have r4 : r - a.qty < b.qty := by linarith
+    rw [sell_lt _ _ _ r0 r2, sell_lt _ _ _ r3 r4]
+    have e : a.cost + b.cost * (r - a.qty) / b.qty = x.cost * r / x.qty := by
+      rw [ea, eb]; field_simp; ring
+    refine ⟨by simp [fa]; linarith, fun k => ?_⟩
+    simp only [takeAt_cons, basisAt_cons, hka, hkb, fa]
+    constructor
+    · split_ifs <;> simp [takeAt]
+    · split_ifs <;> simp [basisAt, ← e]
+  · have r4 : ¬ r - a.qty < b.qty := by linarith
+    have e : r - a.qty - b.qty = r - x.qty := by linarith
+    rw [sell_ge _ _ _ r0 r2, sell_ge _ _ _ r3 r4, e]
+    obtain ⟨i1, i2⟩ := h (r - x.qty)
+    refine ⟨by simp [fa, fb, fx]; linarith, fun k => ?_⟩
+    simp only [takeAt_cons, basisAt_cons, hka, hkb, fa, fb, fx, (i2 k).1, (i2 k).2]
+    constructor
+    · split_ifs <;> linarith
+    · split_ifs <;> linarith
+
+/-- The coins and the cost the pool holds at place `k`. -/
+def heldAt (k : ℕ × ℕ × ℕ) (L : List Lot) : ℚ := ((L.filter (fun l => key l = k)).map Lot.qty).sum
+def costAt (k : ℕ × ℕ × ℕ) (L : List Lot) : ℚ := ((L.filter (fun l => key l = k)).map Lot.cost).sum
+
+theorem heldAt_cons (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+    heldAt k (l :: L) = (if key l = k then l.qty else 0) + heldAt k L := by
+  unfold heldAt; rw [List.filter_cons]; split_ifs <;> simp_all
+
+theorem costAt_cons (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+    costAt k (l :: L) = (if key l = k then l.cost else 0) + costAt k L := by
+  unfold costAt; rw [List.filter_cons]; split_ifs <;> simp_all
+
+theorem heldAt_add (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+    heldAt k (add l L) = (if key l = k then l.qty else 0) + heldAt k L := by
+  rw [← heldAt_cons]; unfold heldAt; exact (((add_perm l L).filter _).map _).sum_eq
+
+theorem costAt_add (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+    costAt k (add l L) = (if key l = k then l.cost else 0) + costAt k L := by
+  rw [← costAt_cons]; unfold costAt; exact (((add_perm l L).filter _).map _).sum_eq
+
+theorem heldAt_nonneg (k : ℕ × ℕ × ℕ) (L : List Lot) (hq : ∀ x ∈ L, 0 < x.qty) : 0 ≤ heldAt k L := by
+  induction L with
+  | nil => simp [heldAt]
+  | cons l L ih =>
+    have := ih (fun x hx => hq x (by simp [hx])); have := hq l (by simp)
+    rw [heldAt_cons]; split_ifs <;> linarith
+
+theorem heldAt_pos (L : List Lot) (hq : ∀ x ∈ L, 0 < x.qty) {x : Lot} (hx : x ∈ L) : 0 < heldAt (key x) L := by
+  induction L with
+  | nil => simp at hx
+  | cons l L ih =>
+    have h1 := heldAt_nonneg (key x) L (fun y hy => hq y (by simp [hy]))
+    rw [heldAt_cons]
+    rcases List.mem_cons.mp hx with rfl | hx
+    · rw [if_pos rfl]; linarith [hq x (by simp)]
+    · have := ih (fun y hy => hq y (by simp [hy])) hx
+      split_ifs <;> linarith [hq l (by simp)]
+
+theorem heldAt_exists {k : ℕ × ℕ × ℕ} {L : List Lot} (h : 0 < heldAt k L) : ∃ y ∈ L, key y = k := by
+  induction L with
+  | nil => simp [heldAt] at h
+  | cons l L ih =>
+    by_cases e : key l = k
+    · exact ⟨l, by simp, e⟩
+    · rw [heldAt_cons, if_neg e, zero_add] at h
+      obtain ⟨y, hy, e⟩ := ih h; exact ⟨y, by simp [hy], e⟩
+
+/-- A place's cost is its coins at the cost per coin of any of its lots. -/
+theorem costAt_unit (l : Lot) (L : List Lot)
+    (h : ∀ a ∈ L, a.acquired = l.acquired → a.seq = l.seq → a.cost * l.qty = l.cost * a.qty) :
+    costAt (key l) L * l.qty = l.cost * heldAt (key l) L := by
+  induction L with
+  | nil => simp [costAt, heldAt]
+  | cons a L ih =>
+    have ih' := ih (fun b hb => h b (by simp [hb]))
+    rw [costAt_cons, heldAt_cons]
+    split_ifs with e
+    · simp only [key, Prod.mk.injEq] at e
+      linear_combination h a (by simp) e.2.1 e.2.2 + ih'
+    · simpa using ih'
+
+/-- A pool as the ledger keeps it: oldest first, every lot holding coins, and lots sharing a day and arrival order
+are slices of one lot (the same id and the same cost per coin). -/
+def Kept (L : List Lot) : Prop :=
+  Sorted L ∧ (∀ x ∈ L, 0 < x.qty) ∧
+    ∀ a ∈ L, ∀ b ∈ L, a.acquired = b.acquired → a.seq = b.seq → a.id = b.id ∧ a.cost * b.qty = b.cost * a.qty
+
+/-- `x` is a slice of a lot of `L`: the same id, day and arrival order, at the same cost per coin. -/
+def Like (L : List Lot) (x : Lot) : Prop :=
+  ∃ y ∈ L, y.id = x.id ∧ y.acquired = x.acquired ∧ y.seq = x.seq ∧ x.cost * y.qty = y.cost * x.qty
+
+theorem like_self {L : List Lot} {x : Lot} (hx : x ∈ L) : Like L x := ⟨x, hx, rfl, rfl, rfl, rfl⟩
+
+theorem like_good {L M : List Lot} (hL : Kept L) (hs : Sorted M) (hq : ∀ x ∈ M, 0 < x.qty)
+    (hl : ∀ x ∈ M, Like L x) : Kept M := by
+  refine ⟨hs, hq, fun a ha b hb e1 e2 => ?_⟩
+  obtain ⟨ya, hya, i1, a1, s1, c1⟩ := hl a ha
+  obtain ⟨yb, hyb, i2, a2, s2, c2⟩ := hl b hb
+  obtain ⟨hi, hc⟩ := hL.2.2 ya hya yb hyb (by rw [a1, a2, e1]) (by rw [s1, s2, e2])
+  refine ⟨by rw [← i1, ← i2, hi], ?_⟩
+  have pa := hL.2.1 ya hya
+  have pb := hL.2.1 yb hyb
+  have : (a.cost * b.qty - b.cost * a.qty) * (ya.qty * yb.qty) = 0 := by
+    linear_combination (b.qty * yb.qty) * c1 - (a.qty * ya.qty) * c2 + (a.qty * b.qty) * hc
+  rcases mul_eq_zero.mp this with h | h
+  · linarith
+  · nlinarith [mul_pos pa pb]
+
+theorem good_tail {l : Lot} {L : List Lot} (h : Kept (l :: L)) : Kept L := by
+  obtain ⟨h1, h2, h3⟩ := h
+  unfold Sorted at h1; rw [List.pairwise_cons] at h1
+  exact ⟨h1.2, fun x hx => h2 x (by simp [hx]), fun a ha b hb => h3 a (by simp [ha]) b (by simp [hb])⟩
+
+theorem head_before {m y : Lot} {M : List Lot} (h : Sorted (m :: M)) (hy : y ∈ m :: M) : before m y := by
+  unfold Sorted at h; rw [List.pairwise_cons] at h
+  rcases List.mem_cons.mp hy with rfl | hy
+  · right; exact ⟨rfl, le_refl _⟩
+  · exact h.1 y hy
+
+/-- The first `q` coins of a lot, and the rest of it, at its cost per coin. -/
+def cutOf (m : Lot) (q : ℚ) : Lot := { m with qty := q, cost := m.cost * q / m.qty }
+def leftOf (m : Lot) (q : ℚ) : Lot := { m with qty := m.qty - q, cost := m.cost - m.cost * q / m.qty }
+
+theorem data_step (l m : Lot) (L M : List Lot)
+    (IH : ∀ L2 M2 : List Lot, L2.length + M2.length ≤ L.length + M.length + 1 → Kept L2 → Kept M2 →
+      (∀ k, heldAt k L2 = heldAt k M2) → (∀ k, costAt k L2 = costAt k M2) → Out L2 M2)
+    (hL : Kept (l :: L)) (hM : Kept (m :: M)) (hh : ∀ k, heldAt k (l :: L) = heldAt k (m :: M))
+    (hc : ∀ k, costAt k (l :: L) = costAt k (m :: M)) (hk : key m = key l)
+    (hu : l.cost * m.qty = m.cost * l.qty) (hlt : l.qty < m.qty) : Out (l :: L) (m :: M) := by
+  have hl := hL.2.1 l (by simp)
+  have hm := hM.2.1 m (by simp)
+  have hcl : m.cost * l.qty / m.qty = l.cost := by rw [div_eq_iff hm.ne']; linarith
+  have h1 : Out (m :: M) (cutOf m l.qty :: leftOf m l.qty :: M) :=
+    out_split m _ _ M M rfl rfl hl (by simp only [leftOf]; linarith) (by simp only [cutOf, leftOf]; ring)
+      (by simp only [cutOf]; field_simp) (by simp only [cutOf, leftOf]; ring) (out_refl M)
+  have g2 : Kept (leftOf m l.qty :: M) := by
+    have s := hM.1; unfold Sorted at s; rw [List.pairwise_cons] at s
+    refine like_good hM ?_ ?_ ?_
+    · unfold Sorted; rw [List.pairwise_cons]; exact ⟨fun y hy => s.1 y hy, s.2⟩
+    · intro x hx; rcases List.mem_cons.mp hx with rfl | hx
+      · simp only [leftOf]; linarith
+      · exact hM.2.1 x (by simp [hx])
+    · intro x hx; rcases List.mem_cons.mp hx with rfl | hx
+      · exact ⟨m, by simp, rfl, rfl, rfl, by simp only [leftOf]; rw [hcl]; field_simp; linarith⟩
+      · exact like_self (by simp [hx])
+  have ek : key (leftOf m l.qty) = key l := hk
+  have h2 : Out (l :: L) (cutOf m l.qty :: leftOf m l.qty :: M) := by
+    refine out_cons l _ L _ hk rfl (by simp only [cutOf]; exact hcl) (IH L _ (by simp only [List.length_cons]; omega) (good_tail hL) g2 ?_ ?_)
+    · intro k; have := hh k; rw [heldAt_cons, heldAt_cons, hk] at this; rw [heldAt_cons, ek]
+      simp only [leftOf]; split_ifs at this ⊢ <;> linarith
+    · intro k; have := hc k; rw [costAt_cons, costAt_cons, hk] at this; rw [costAt_cons, ek]
+      simp only [leftOf]; rw [hcl]; split_ifs at this ⊢ <;> linarith
+  exact out_trans h2 (out_symm h1)
+
+/-- Two pools as the ledger keeps them, holding at each place the same coins at the same cost, cannot be told apart
+by a later sale. -/
+theorem data_out (n : ℕ) : ∀ L M : List Lot, L.length + M.length ≤ n → Kept L → Kept M →
+    (∀ k, heldAt k L = heldAt k M) → (∀ k, costAt k L = costAt k M) → Out L M := by
+  induction n with
+  | zero =>
+    intro L M hn _ _ _ _
+    rw [List.eq_nil_of_length_eq_zero (by omega : L.length = 0),
+      List.eq_nil_of_length_eq_zero (by omega : M.length = 0)]
+    exact out_refl _
+  | succ n ih =>
+    intro L M hn hL hM hh hc
+    rcases L with _ | ⟨l, L⟩ <;> rcases M with _ | ⟨m, M⟩
+    · exact out_refl _
+    · have := hh (key m); rw [show heldAt (key m) [] = 0 by simp [heldAt]] at this
+      linarith [heldAt_pos _ hM.2.1 (show m ∈ m :: M by simp)]
+    · have := hh (key l); rw [show heldAt (key l) [] = 0 by simp [heldAt]] at this
+      linarith [heldAt_pos _ hL.2.1 (show l ∈ l :: L by simp)]
+    · have hl := hL.2.1 l (by simp)
+      have hm := hM.2.1 m (by simp)
+      have pl : 0 < heldAt (key l) (m :: M) := by rw [← hh]; exact heldAt_pos _ hL.2.1 (by simp)
+      have pm : 0 < heldAt (key m) (l :: L) := by rw [hh]; exact heldAt_pos _ hM.2.1 (by simp)
+      obtain ⟨y, hy, ey⟩ := heldAt_exists pl
+      obtain ⟨z, hz, ez⟩ := heldAt_exists pm
+      have b1 := head_before hM.1 hy
+      have b2 := head_before hL.1 hz
+      simp only [key, Prod.mk.injEq] at ey ez
+      obtain ⟨ey1, ey2, ey3⟩ := ey
+      obtain ⟨ez1, ez2, ez3⟩ := ez
+      have ea : m.acquired = l.acquired := by unfold before at b1 b2; omega
+      have es : m.seq = l.seq := by unfold before at b1 b2; omega
+      have hk : key m = key l := by
+        have := (hM.2.2 m (by simp) y hy (by omega) (by omega)).1
+        simp only [key, Prod.mk.injEq]; exact ⟨by rw [this, ey1], ea, es⟩
+      have u1 := costAt_unit l (l :: L) (fun a ha e1 e2 => (hL.2.2 a ha l (by simp) e1 e2).2)
+      have u2 := costAt_unit m (m :: M) (fun a ha e1 e2 => (hM.2.2 a ha m (by simp) e1 e2).2)
+      rw [hk, ← hh, ← hc] at u2
+      have hu : l.cost * m.qty = m.cost * l.qty := by
+        have hH := heldAt_pos _ hL.2.1 (show l ∈ l :: L by simp)
+        have : (l.cost * m.qty - m.cost * l.qty) * heldAt (key l) (l :: L) = 0 := by
+          linear_combination (-m.qty) * u1 + l.qty * u2
+        rcases mul_eq_zero.mp this with h | h
+        · linarith
+        · linarith
+      simp only [List.length_cons] at hn
+      rcases lt_trichotomy l.qty m.qty with h | h | h
+      · exact data_step l m L M (fun L2 M2 h2 => ih L2 M2 (by omega)) hL hM hh hc hk hu h
+      · have hcm : m.cost = l.cost := by
+          have := hu; rw [h] at this; exact (mul_right_cancel₀ hm.ne' this).symm
+        refine out_cons l m L M hk h.symm hcm (ih L M (by omega) (good_tail hL) (good_tail hM) ?_ ?_)
+        · intro k; have := hh k; rw [heldAt_cons, heldAt_cons, hk, h] at this; linarith
+        · intro k; have := hc k; rw [costAt_cons, costAt_cons, hk, hcm] at this; linarith
+      · exact out_symm (data_step m l M L (fun L2 M2 h2 => ih L2 M2 (by omega)) hM hL (fun k => (hh k).symm)
+          (fun k => (hc k).symm) hk.symm hu.symm h)
+
+/-- What a sale takes from each place and what it leaves there add up to what the place held. -/
+theorem sell_at (L : List Lot) (r : ℚ) (k : ℕ × ℕ × ℕ) (hq : ∀ l ∈ L, 0 < l.qty) :
+    takeAt k (sell L r).1 + heldAt k (sell L r).2 = heldAt k L ∧
+      basisAt k (sell L r).1 + costAt k (sell L r).2 = costAt k L := by
+  have t0 : takeAt k [] = 0 := by simp [takeAt]
+  have b0 : basisAt k [] = 0 := by simp [basisAt]
+  induction L generalizing r with
+  | nil => simp [sell, t0, b0, heldAt, costAt]
+  | cons l L ih =>
     have hl := hq l (by simp)
-    have hpl : ∀ x ∈ pre, before x l := fun x hx => by have := hp x hx l (by simp); unfold before ahead at *; omega
-    by_cases r0 : q ≤ 0
-    · rw [sell_le _ _ _ r0]; exact ⟨l :: ls, ref_refl _, by simp⟩
-    by_cases r1 : q < l.qty
+    by_cases r0 : r ≤ 0
+    · rw [sell_le _ _ _ r0]; simp [t0, b0]
+    by_cases r1 : r < l.qty
     · rw [sell_lt _ _ _ r0 r1]
-      refine ⟨{ l with qty := l.qty - q, cost := l.cost - l.cost * q / l.qty } ::
-        { l with wallet := dest, qty := q, cost := l.cost * q / l.qty } :: ls, ?_, ?_⟩
-      · refine Ref.split _ _ _ _ _ rfl rfl (by dsimp only; linarith) (by dsimp only; linarith) (by dsimp only; ring)
-          (by dsimp only; field_simp) (by dsimp only; ring) (ref_refl ls)
-      · simp only [List.foldl_cons, List.foldl_nil]
-        rw [show pre ++ { l with qty := l.qty - q, cost := l.cost - l.cost * q / l.qty } :: ls =
-          (pre ++ [{ l with qty := l.qty - q, cost := l.cost - l.cost * q / l.qty }]) ++ ls by simp, add_pre]
-        · simp
-        · intro x hx
-          rcases List.mem_append.mp hx with hx | hx
-          · have := hpl x hx; unfold before at *; exact this
-          · simp at hx; subst hx; unfold before; right; exact ⟨rfl, le_refl _⟩
-        · intro y hy; exact h.1 y hy
+      have e : key { l with qty := l.qty - r, cost := l.cost - l.cost * r / l.qty } = key l := rfl
+      simp only [takeAt_cons, basisAt_cons, heldAt_cons, costAt_cons, e, t0, b0]
+      constructor <;> split_ifs <;> ring
     · rw [sell_ge _ _ _ r0 r1]
-      simp only [List.foldl_cons]
-      have hrest : ∀ y ∈ (sell ls (q - l.qty)).2,
-          ahead { l with wallet := dest, qty := l.qty, cost := l.cost * l.qty / l.qty } y := by
-        intro y hy
-        obtain ⟨z, hz, e1, e2⟩ := sell_left_keys ls (q - l.qty) y hy
-        have := h.1 z hz; unfold ahead at *; rw [← e1, ← e2]; exact this
-      rw [add_pre pre (sell ls (q - l.qty)).2 { l with wallet := dest, qty := l.qty, cost := l.cost * l.qty / l.qty } hpl hrest]
-      obtain ⟨M, hM, e⟩ := ih (q - l.qty) (pre ++ [{ l with wallet := dest, qty := l.qty, cost := l.cost * l.qty / l.qty }])
-        (fun x hx => hq x (by simp [hx])) h.2 (by
-          intro x hx y hy
-          rcases List.mem_append.mp hx with hx | hx
-          · have h1 := hp x hx l (by simp); have h2 := h.1 y hy; unfold ahead at *; omega
-          · simp at hx; subst hx; exact h.1 y hy)
-      rw [show pre ++ { l with wallet := dest, qty := l.qty, cost := l.cost * l.qty / l.qty } :: (sell ls (q - l.qty)).2 =
-        (pre ++ [{ l with wallet := dest, qty := l.qty, cost := l.cost * l.qty / l.qty }]) ++ (sell ls (q - l.qty)).2
-        by simp, e]
-      exact ⟨{ l with wallet := dest, qty := l.qty, cost := l.cost * l.qty / l.qty } :: M,
-        Ref.same _ _ _ _ rfl rfl (by dsimp only; field_simp) hM, by simp⟩
+      obtain ⟨i1, i2⟩ := ih (r - l.qty) (fun x hx => hq x (by simp [hx]))
+      have fl : l.cost * l.qty / l.qty = l.cost := by field_simp
+      simp only [takeAt_cons, basisAt_cons, heldAt_cons, costAt_cons, fl]
+      constructor <;> split_ifs <;> linarith
 
-/-- A move between the person's own wallets leaves the pool holding the same lots in the same places: each lot moved
-whole keeps its place, and a lot moved in part becomes its remainder followed by the moved slice (they share the
-lot's `seq`, as in the code). -/
-theorem transfer_ref (ls : List Lot) (q : ℚ) (dest : ℕ) (hq : ∀ l ∈ ls, 0 < l.qty) (h : StrictSorted ls) :
-    Ref ls (transfer ls q dest) := by
-  obtain ⟨M, hM, e⟩ := transfer_gen dest ls q [] hq h (by simp)
-  simp only [List.nil_append] at e
-  unfold transfer; rw [e]; exact hM
+/-- The lots a sale leaves hold coins and are slices of lots of the pool. -/
+theorem sell_left_like (L : List Lot) (r : ℚ) (hq : ∀ l ∈ L, 0 < l.qty) :
+    ∀ x ∈ (sell L r).2, Like L x ∧ 0 < x.qty := by
+  induction L generalizing r with
+  | nil => simp [sell]
+  | cons l L ih =>
+    have hl := hq l (by simp)
+    by_cases r0 : r ≤ 0
+    · rw [sell_le _ _ _ r0]; intro x hx; exact ⟨like_self hx, hq x hx⟩
+    by_cases r1 : r < l.qty
+    · rw [sell_lt _ _ _ r0 r1]; intro x hx
+      rcases List.mem_cons.mp hx with rfl | hx
+      · exact ⟨⟨l, by simp, rfl, rfl, rfl, by dsimp only; rw [sub_mul, div_mul_cancel₀ _ hl.ne']; ring⟩,
+          by dsimp only; linarith⟩
+      · exact ⟨like_self (by simp [hx]), hq x (by simp [hx])⟩
+    · rw [sell_ge _ _ _ r0 r1]; intro x hx
+      obtain ⟨⟨y, hy, h1⟩, h2⟩ := ih (r - l.qty) (fun x hx => hq x (by simp [hx])) x hx
+      exact ⟨⟨y, by simp [hy], h1⟩, h2⟩
 
-/-- **ES-1** A move between the person's own wallets does not change a later sale: from a pool where each lot has
-its own place (day and arrival order, as the code's `rank` gives every purchase), a sale of any amount after the move
+/-- Each slice a sale takes comes from a lot of the pool, holds coins, and costs that lot's cost per coin. -/
+theorem sell_picks (L : List Lot) (r : ℚ) (hq : ∀ l ∈ L, 0 < l.qty) :
+    ∀ p ∈ (sell L r).1, p.lot ∈ L ∧ 0 < p.take ∧ p.basis = p.lot.cost * p.take / p.lot.qty := by
+  induction L generalizing r with
+  | nil => simp [sell]
+  | cons l L ih =>
+    have hl := hq l (by simp)
+    by_cases r0 : r ≤ 0
+    · rw [sell_le _ _ _ r0]; simp
+    by_cases r1 : r < l.qty
+    · rw [sell_lt _ _ _ r0 r1]; intro p hp; simp only [List.mem_singleton] at hp; subst hp
+      exact ⟨by simp, not_le.mp r0, rfl⟩
+    · rw [sell_ge _ _ _ r0 r1]; intro p hp
+      rcases List.mem_cons.mp hp with rfl | hp
+      · exact ⟨by simp, hl, rfl⟩
+      · obtain ⟨h1, h2, h3⟩ := ih (r - l.qty) (fun x hx => hq x (by simp [hx])) p hp
+        exact ⟨by simp [h1], h2, h3⟩
+
+theorem mem_foldl (dest : ℕ) (ps : List Pick) (R : List Lot) :
+    ∀ x ∈ ps.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b) R,
+      x ∈ R ∨ ∃ p ∈ ps, x = { p.lot with wallet := dest, qty := p.take, cost := p.basis } := by
+  induction ps generalizing R with
+  | nil => intro x hx; exact Or.inl hx
+  | cons p ps ih =>
+    intro x hx
+    simp only [List.foldl_cons] at hx
+    rcases ih _ x hx with h | ⟨p', hp', e⟩
+    · rcases List.mem_cons.mp ((add_perm _ _).mem_iff.mp h) with e | h
+      · exact Or.inr ⟨p, by simp, e⟩
+      · exact Or.inl h
+    · exact Or.inr ⟨p', by simp [hp'], e⟩
+
+theorem foldl_at (dest : ℕ) (ps : List Pick) (R : List Lot) (k : ℕ × ℕ × ℕ) :
+    heldAt k (ps.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b) R) =
+        heldAt k R + takeAt k ps ∧
+      costAt k (ps.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b) R) =
+        costAt k R + basisAt k ps := by
+  induction ps generalizing R with
+  | nil => simp [takeAt, basisAt]
+  | cons p ps ih =>
+    simp only [List.foldl_cons]
+    obtain ⟨i1, i2⟩ := ih (add { p.lot with wallet := dest, qty := p.take, cost := p.basis } R)
+    have e : key { p.lot with wallet := dest, qty := p.take, cost := p.basis } = key p.lot := rfl
+    rw [i1, i2, heldAt_add, costAt_add, takeAt_cons, basisAt_cons]
+    simp only [e]
+    constructor <;> ring
+
+/-- A move between the person's own wallets keeps, at every place, the coins and their cost. -/
+theorem transfer_at (L : List Lot) (q : ℚ) (dest : ℕ) (k : ℕ × ℕ × ℕ) (hq : ∀ l ∈ L, 0 < l.qty) :
+    heldAt k (transfer L q dest) = heldAt k L ∧ costAt k (transfer L q dest) = costAt k L := by
+  obtain ⟨a1, a2⟩ := foldl_at dest (sell L q).1 (sell L q).2 k
+  obtain ⟨b1, b2⟩ := sell_at L q k hq
+  unfold transfer; rw [a1, a2]; constructor <;> linarith
+
+theorem transfer_like (L : List Lot) (q : ℚ) (dest : ℕ) (hq : ∀ l ∈ L, 0 < l.qty) :
+    ∀ x ∈ transfer L q dest, Like L x ∧ 0 < x.qty := by
+  intro x hx; unfold transfer at hx
+  rcases mem_foldl dest _ _ x hx with h | ⟨p, hp, rfl⟩
+  · exact sell_left_like L q hq x h
+  · obtain ⟨h1, h2, h3⟩ := sell_picks L q hq p hp
+    have := hq _ h1
+    exact ⟨⟨p.lot, h1, rfl, rfl, rfl, by dsimp only; rw [h3, div_mul_cancel₀ _ this.ne']⟩, h2⟩
+
+theorem good_transfer {L : List Lot} (q : ℚ) (dest : ℕ) (h : Kept L) : Kept (transfer L q dest) :=
+  like_good h (transfer_keeps L q dest h.2.1 h.1).2.2 (fun x hx => (transfer_like L q dest h.2.1 x hx).2)
+    (fun x hx => (transfer_like L q dest h.2.1 x hx).1)
+
+theorem good_sell {L : List Lot} (r : ℚ) (h : Kept L) : Kept (sell L r).2 :=
+  like_good h (sell_sorted L r h.1) (fun x hx => (sell_left_like L r h.2.1 x hx).2)
+    (fun x hx => (sell_left_like L r h.2.1 x hx).1)
+
+theorem good_add {L : List Lot} {l : Lot} (h : Kept L) (hl : 0 < l.qty) (hf : ∀ x ∈ L, x.seq ≠ l.seq) :
+    Kept (add l L) := by
+  refine ⟨add_sorted l L h.1, fun x hx => ?_, fun a ha b hb e1 e2 => ?_⟩
+  · rcases List.mem_cons.mp ((add_perm l L).mem_iff.mp hx) with rfl | hx
+    · exact hl
+    · exact h.2.1 x hx
+  · rcases List.mem_cons.mp ((add_perm l L).mem_iff.mp ha) with ea | ma <;>
+      rcases List.mem_cons.mp ((add_perm l L).mem_iff.mp hb) with eb | mb
+    · subst ea eb; exact ⟨rfl, rfl⟩
+    · subst ea; exact absurd e2.symm (hf b mb)
+    · subst eb; exact absurd e2 (hf a ma)
+    · exact h.2.2 a ma b mb e1 e2
+
+/-- The pools the ledger can reach: from empty, by purchases (each with a new `seq`, larger than every one before),
+sales (with `unknownCost`), moves between the person's own wallets, and moves of more coins than held. -/
+inductive Reach : List Lot → Prop
+  | empty : Reach []
+  | bought (L : List Lot) (l : Lot) : Reach L → 0 < l.qty → (∀ x ∈ L, x.seq < l.seq) → Reach (add l L)
+  | sold (L : List Lot) (q : ℚ) (id w date seq : ℕ) : Reach L → (∀ x ∈ L, x.seq < seq) →
+      Reach (sale L q id w date seq).2
+  | transferred (L : List Lot) (q : ℚ) (dest : ℕ) : Reach L → Reach (transfer L q dest)
+  | moved (L : List Lot) (q : ℚ) (id dest date seq : ℕ) : Reach L → (∀ x ∈ L, x.seq < seq) →
+      Reach (move L q id dest date seq)
+
+/-- Every pool the ledger can reach is oldest first, its lots hold coins, and lots sharing a day and arrival order
+are slices of one lot at one cost per coin. -/
+theorem good_of_reach {L : List Lot} (h : Reach L) : Kept L := by
+  induction h with
+  | empty => exact ⟨by simp [Sorted], by simp, by simp⟩
+  | bought L l _ hl hf ih => exact good_add ih hl (fun x hx => (hf x hx).ne)
+  | sold L q id w date seq _ hf ih =>
+    unfold sale; split_ifs with hs
+    · exact good_sell q (good_add ih (show 0 < q - held L by linarith) (fun x hx => (hf x hx).ne))
+    · exact good_sell q ih
+  | transferred L q dest _ ih => exact good_transfer q dest ih
+  | moved L q id dest date seq _ hf ih =>
+    unfold move; split_ifs with hs
+    · refine good_add (good_transfer q dest ih) (show 0 < q - held L by linarith) (fun x hx => ?_)
+      obtain ⟨⟨y, hy, _, _, e, _⟩, _⟩ := transfer_like L q dest ih.2.1 x hx
+      rw [← e]; exact (hf y hy).ne
+    · exact good_transfer q dest ih
+
+/-- **ES-1** A move between the person's own wallets does not change a later sale: from any pool the ledger can
+reach (purchases, sales, moves, including after earlier moves of part of a lot), a sale of any amount after the move
 takes the same coins from the same lots, at the same cost, as it would have before the move. -/
-theorem transfer_same_sale (ls : List Lot) (q r : ℚ) (dest : ℕ) (hq : ∀ l ∈ ls, 0 < l.qty) (h : StrictSorted ls) :
+theorem transfer_same_sale (ls : List Lot) (q r : ℚ) (dest : ℕ) (h : Reach ls) :
     ((sell (transfer ls q dest) r).1.map Pick.basis).sum = ((sell ls r).1.map Pick.basis).sum ∧
       ∀ k, takeAt k (sell (transfer ls q dest) r).1 = takeAt k (sell ls r).1 ∧
-        basisAt k (sell (transfer ls q dest) r).1 = basisAt k (sell ls r).1 :=
-  sell_ref (transfer_ref ls q dest hq h) r
+        basisAt k (sell (transfer ls q dest) r).1 = basisAt k (sell ls r).1 := by
+  have g := good_of_reach h
+  exact data_out _ _ _ le_rfl (good_transfer q dest g) g (fun k => (transfer_at ls q dest k g.2.1).1)
+    (fun k => (transfer_at ls q dest k g.2.1).2) r
 
 /-- **ES-1** The same for a move of no more coins than the wallet holds, written as the code runs it. -/
-theorem move_same_sale (ls : List Lot) (q r : ℚ) (id dest date seq : ℕ) (hq : ∀ l ∈ ls, 0 < l.qty)
-    (h : StrictSorted ls) (hle : q ≤ held ls) :
+theorem move_same_sale (ls : List Lot) (q r : ℚ) (id dest date seq : ℕ) (h : Reach ls) (hle : q ≤ held ls) :
     ((sell (move ls q id dest date seq) r).1.map Pick.basis).sum = ((sell ls r).1.map Pick.basis).sum ∧
       ∀ k, takeAt k (sell (move ls q id dest date seq) r).1 = takeAt k (sell ls r).1 ∧
         basisAt k (sell (move ls q id dest date seq) r).1 = basisAt k (sell ls r).1 := by
-  unfold move; rw [if_neg (not_lt.mpr hle)]; exact transfer_same_sale ls q r dest hq h
+  unfold move; rw [if_neg (not_lt.mpr hle)]; exact transfer_same_sale ls q r dest h
 
 /-- **ES-1** The case found in review: two lots bought the same day, the first for 100, the second for 200. A sale of
 one coin costs 100, before a move of one coin between the person's own wallets and after it. -/
 theorem same_day_move :
     let L : List Lot := [⟨1, 0, 20250101, 1, 100, 1⟩, ⟨2, 0, 20250101, 1, 200, 2⟩]
     ((sell L 1).1.map Pick.basis).sum = 100 ∧ ((sell (transfer L 1 7) 1).1.map Pick.basis).sum = 100 := by
+  norm_num [sell, transfer, add, before]
+
+/-- **ES-1** Two moves: the lots of 100 and 200 bought the same day; half of the first lot moves to another wallet,
+then the other half moves to a third. A sale of one coin still takes the first lot and costs 100. -/
+theorem two_moves :
+    let L : List Lot := [⟨1, 0, 20250101, 1, 100, 1⟩, ⟨2, 0, 20250101, 1, 200, 2⟩]
+    ((sell (transfer (transfer L (1 / 2) 7) (1 / 2) 8) 1).1.map Pick.basis).sum = 100 := by
   norm_num [sell, transfer, add, before]
 
 /-! ## 2. Rounding to the cent (`cents`: Decimal's ROUND_HALF_UP, half away from zero) -/

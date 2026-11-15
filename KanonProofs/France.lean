@@ -1623,6 +1623,29 @@ theorem nft_cut_no_loss (S : NState) (keep : List (ℕ × ℚ)) (rest : List OpN
     obtain ⟨hb, hl⟩ := below_step T1 S op h0 (hr op (by simp))
     exact List.rel_append hl (ih (stepN S op).1 (fun o ho => hr o (List.mem_cons_of_mem _ ho)) _ hb)
 
+/-- **FR-13** Run from the start with every operation's amounts not below 0: no known part is ever below 0, after
+any number of operations. -/
+theorem nft_parts_run (carried : ℚ) (ops : List OpN) (ho : ∀ op ∈ ops, op.Ok) (n : ℕ) :
+    PartsOk (runN (nstart carried) (ops.take n)).2.carried := by
+  have hrun : ∀ (S : NState) (l : List OpN), PartsOk S.carried → (∀ op ∈ l, op.Ok) → PartsOk (runN S l).2.carried := by
+    intro S l hS hl
+    induction l generalizing S with
+    | nil => exact hS
+    | cons op ops ih =>
+      exact ih _ (nft_parts_nonneg S op hS (hl op (by simp))) (fun o h => hl o (List.mem_cons_of_mem _ h))
+  exact hrun _ _ (fun k a h => by simp [nstart] at h) (fun op h => ho op (List.take_subset n ops h))
+
+/-- **FR-14** So from the start: after any operations with amounts not below 0, the cut never lowers a later gain
+(`nft_cut_no_loss` with its condition on the parts met). -/
+theorem nft_cut_no_loss_run (carried : ℚ) (pre : List OpN) (keep : List (ℕ × ℚ)) (rest : List OpN)
+    (ho : ∀ op ∈ pre, op.Ok) (hr : ∀ op ∈ rest, op.isOff = false) :
+    List.Forall₂ (fun L1 L2 : Line => L1.l218 = L2.l218 ∧ ∀ g1, L1.l224 = some g1 → ∃ g2, L2.l224 = some g2 ∧ g2 ≤ g1)
+      (runN (stepN (runN (nstart carried) pre).2 (.nft (.off keep))).1 rest).1
+      (runN (runN (nstart carried) pre).2 rest).1 := by
+  have hp := nft_parts_run carried pre ho pre.length
+  rw [List.take_length] at hp
+  exact nft_cut_no_loss _ keep rest hp hr
+
 /-- Once a value is unknown, it stays unknown through every operation, the cut among them. -/
 theorem unknownN_sticks (S : NState) (ops : List OpN) (h : S.s.known = false) :
     (∀ L ∈ (runN S ops).1, L.l223 = none ∧ L.l224 = none) ∧ left (runN S ops).2.s = none := by
@@ -1901,18 +1924,117 @@ theorem nft_pass_unknown (f : ℕ → Part) (pre post : List (ℕ × Option ℚ)
   simp only [h2, if_true, h1]
   exact passDst_unknown _ _ _ _ (Or.inl hj)
 
-/-- **FR-17** So when such an NFT is held at the cut (`keep` above 0), the cut is not known, never a number, and every
-later line has no l.223 or l.224. -/
+/-- `runN` over two lists: the first's lines, then the second's from where the first left off. -/
+theorem runN_append (S : NState) (a b : List OpN) :
+    runN S (a ++ b) = ((runN S a).1 ++ (runN (runN S a).2 b).1, (runN (runN S a).2 b).2) := by
+  induction a generalizing S with
+  | nil => simp [runN]
+  | cons op ops ih => simp only [List.cons_append, runN, ih, List.append_assoc]
+
+theorem passSrc_keeps (src : List (ℕ × Option ℚ)) (acc : (ℕ → Part) × Option ℚ × Bool) (j : ℕ)
+    (h : acc.1 j = some none) : (src.foldl passSrc acc).1 j = some none := by
+  induction src generalizing acc with
+  | nil => exact h
+  | cons e es ih =>
+    apply ih
+    unfold passSrc
+    split
+    next => exact h
+    next => exact h
+    next c hc =>
+      split_ifs
+      · exact h
+      · split
+        next => exact h
+        next sh =>
+          simp only [upd_apply]
+          split_ifs with hj
+          · rw [hj] at h; rw [h] at hc; cases hc
+          · exact h
+
+theorem passDst_keeps (m : Option ℚ) (n : ℕ) (l : List ℕ) (g : ℕ → Part) (j : ℕ) (h : g j = some none) :
+    (l.foldl (passDst m n) g) j = some none := by
+  induction l generalizing g with
+  | nil => exact h
+  | cons k ks ih =>
+    apply ih
+    simp only [passDst, upd_apply]
+    split_ifs with hj
+    · subst hj; rw [h]; rfl
+    · exact h
+
+theorem doPass_keeps (f : ℕ → Part) (src : List (ℕ × Option ℚ)) (dst : List ℕ) (j : ℕ) (h : f j = some none) :
+    doPass f src dst j = some none := by
+  unfold doPass
+  split_ifs
+  · exact passDst_keeps _ _ _ _ _ (passSrc_keeps _ _ _ h)
+  · exact passSrc_keeps _ _ _ h
+
+/-- An operation that is not the cut and not a leave of all of `j` keeps `j`'s part not known. -/
+theorem unknown_step (S : NState) (op : OpN) (j : ℕ) (h : S.carried j = some none) (ho : op.isOff = false)
+    (hl : ∀ sh, op = .nft (.leave j sh) → sh < 1) : (stepN S op).1.carried j = some none := by
+  cases op with
+  | base op =>
+    cases op with
+    | acquire => exact h
+    | cession c =>
+      show carryBase S (.cession c) j = some none
+      simp only [carryBase]
+      cases (if S.s.known = true then usable c else none) with
+      | none => exact h
+      | some p => simp [scale_apply, h]
+  | nft op =>
+    cases op with
+    | paid k v =>
+      show upd S.carried k (addPart (S.carried k) v) j = some none
+      simp only [upd_apply]; split_ifs with hj
+      · subst hj; rw [h]; rfl
+      · exact h
+    | swap k v p =>
+      show upd S.carried k (addPart (S.carried k) (swapPart S.s v p)) j = some none
+      simp only [upd_apply]; split_ifs with hj
+      · subst hj; rw [h]; rfl
+      · exact h
+    | pass src dst => exact doPass_keeps _ _ _ _ h
+    | leave k sh =>
+      show upd S.carried k (leavePart sh (S.carried k)) j = some none
+      simp only [upd_apply]; split_ifs with hj
+      · subst hj
+        have := hl sh rfl
+        rw [h]; simp [leavePart, not_le.mpr this]
+      · exact h
+    | off keep => simp [OpN.isOff] at ho
+
+/-- **FR-17** An NFT's part not known stays not known through any operations with no cut and no leave of all of
+that NFT (cessions, purchases, payments, swaps, passes, part leaves of it, anything on other NFTs). -/
+theorem nft_unknown_persists (S : NState) (mid : List OpN) (j : ℕ) (h : S.carried j = some none)
+    (hm : ∀ op ∈ mid, op.isOff = false ∧ ∀ sh, op = .nft (.leave j sh) → sh < 1) :
+    (runN S mid).2.carried j = some none := by
+  induction mid generalizing S with
+  | nil => exact h
+  | cons op ops ih =>
+    show (runN (stepN S op).1 ops).2.carried j = some none
+    have h1 := hm op (by simp)
+    exact ih _ (unknown_step S op j h h1.1 h1.2) (fun o ho => hm o (List.mem_cons_of_mem _ ho))
+
+/-- **FR-17** So after such a pass, with any operations between it and the cut that are not a cut and don't take
+all of that NFT out (`nft-leave` with a share of 1 or more), when it is held at the cut (`keep` above 0) the cut is not
+known, never a number, and every line after the cut has no l.223 or l.224. -/
 theorem nft_pass_unknown_cut (S : NState) (pre post : List (ℕ × Option ℚ)) (dst : List ℕ) (k j : ℕ) (x : ℚ)
-    (keep : List (ℕ × ℚ)) (rest : List OpN) (hpre : ∀ e ∈ pre, e.1 ≠ k)
-    (hk : S.carried k = some none ∨ ∃ c, S.carried k = some (some c) ∧ c ≠ 0) (hj : j ∈ dst) (hx : 0 < x)
+    (keep : List (ℕ × ℚ)) (mid rest : List OpN) (hpre : ∀ e ∈ pre, e.1 ≠ k)
+    (hk : S.carried k = some none ∨ ∃ c, S.carried k = some (some c) ∧ c ≠ 0) (hj : j ∈ dst)
+    (hm : ∀ op ∈ mid, op.isOff = false ∧ ∀ sh, op = .nft (.leave j sh) → sh < 1) (hx : 0 < x)
     (he : (j, x) ∈ keep) :
-    (stepN (stepN S (.nft (.pass (pre ++ (k, none) :: post) dst))).1 (.nft (.off keep))).1.cut = some none ∧
-      (∀ L ∈ (runN (stepN (stepN S (.nft (.pass (pre ++ (k, none) :: post) dst))).1 (.nft (.off keep))).1 rest).1,
+    (runN S (.nft (.pass (pre ++ (k, none) :: post) dst) :: mid ++ [.nft (.off keep)])).2.cut = some none ∧
+      (∀ L ∈ (runN (runN S (.nft (.pass (pre ++ (k, none) :: post) dst) :: mid ++ [.nft (.off keep)])).2 rest).1,
         L.l223 = none ∧ L.l224 = none) := by
-  obtain ⟨h1, h2, _⟩ := nft_cut_unknown (stepN S (.nft (.pass (pre ++ (k, none) :: post) dst))).1 keep rest
-    (Or.inr ⟨(j, x), he, hx, nft_pass_unknown S.carried pre post dst k j hpre hk hj⟩)
-  exact ⟨h1, h2⟩
+  have hT : (runN S (.nft (.pass (pre ++ (k, none) :: post) dst) :: mid)).2.carried j = some none :=
+    nft_unknown_persists _ mid j (nft_pass_unknown S.carried pre post dst k j hpre hk hj) hm
+  have hr : (runN S (.nft (.pass (pre ++ (k, none) :: post) dst) :: mid ++ [.nft (.off keep)])).2 =
+      (stepN (runN S (.nft (.pass (pre ++ (k, none) :: post) dst) :: mid)).2 (.nft (.off keep))).1 := by
+    rw [runN_append]; rfl
+  obtain ⟨h1, h2, _⟩ := nft_cut_unknown _ keep rest (Or.inr ⟨(j, x), he, hx, hT⟩)
+  rw [hr]; exact ⟨h1, h2⟩
 
 /-- **FR-17** A pass whose sources all carry nothing (no entry, or a known 0), whatever their shares (not known
 among them), changes nothing. -/
@@ -2203,15 +2325,16 @@ theorem nft_given_draft (h : NSwap) (hO : h.out.filter (late h.day) ≠ []) :
   refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
     first | trivial | (cases tot (h.out.filter (fun m => !m.fiat && !late h.day m)) <;> rfl)
 
-/-- **FR-15** An NFT given from 2026 is never a draft: the swap adds a cession only when crypto was given with it
-(`nft_given_draft`: at that crypto's value), and the NFT is listed apart. -/
-theorem nft_given_no_line (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc : h.keepsCost = false)
+/-- **FR-15** An NFT given from 2026 (not kept at cost, or a crossing: for a crypto receipt) is never a draft: the
+swap adds a cession only when crypto was given with it (`nft_given_draft`: at that crypto's value), and the NFT is
+listed apart. -/
+theorem nft_given_no_line (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc : h.keepsCost = false ∨ crossing h = true)
     (hO : h.out.filter (late h.day) ≠ []) :
     (bookSwapN B h).book.drafts = B.book.drafts ++
         (if h.out.filter (fun m => !m.fiat && !late h.day m) = [] then [] else [nftDraft h]) ∧
       ∃ p, (bookSwapN B h).nfts = B.nfts ++ [⟨h.day, p⟩] := by
   have hs : ¬ (h.day < startDay ∨ (h.keepsCost = true ∧ crossing h = false)) := by
-    simp only [startDay, nftFrom] at hd ⊢; simp [hc]; omega
+    simp only [startDay, nftFrom] at hd ⊢; rcases hc with hc | hc <;> simp [hc] <;> omega
   unfold bookSwapN bookSwapNft
   rw [if_neg hs, if_pos (Or.inl hO)]
   simp only [ne_eq, hO, not_false_eq_true, if_true]
@@ -2223,7 +2346,7 @@ theorem nft_given_no_line (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc :
 
 /-- **FR-15** So an NFT given from 2026 adds nothing to l.51 (the sum of l.218 = price − fees + soulte over the
 drafts) beyond the value of crypto given with it; given alone (for money, crypto or another NFT), nothing at all. -/
-theorem nft_given_l51 (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc : h.keepsCost = false)
+theorem nft_given_l51 (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc : h.keepsCost = false ∨ crossing h = true)
     (hO : h.out.filter (late h.day) ≠ []) :
     ((bookSwapN B h).book.drafts.map (fun d => d.price - d.fees + d.soulte)).sum =
       (B.book.drafts.map (fun d => d.price - d.fees + d.soulte)).sum +
@@ -2305,6 +2428,20 @@ theorem bookSwapN_crossing (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hn 
   unfold bookSwapN
   rw [if_neg hs, if_pos hl]
 
+/-- **FR-15** A swap kept at cost that is not a crossing (a move: Rule 18) changes nothing in the book and lists
+nothing. -/
+theorem bookSwapN_kept (B : BookN) (h : NSwap) (hk : h.keepsCost = true) (hx : crossing h = false) :
+    bookSwapN B h = B := by
+  unfold bookSwapN; rw [if_pos (Or.inr ⟨hk, hx⟩)]
+
+/-- **FR-15** So from 2026, an NFT put into an app for a receipt that is itself an NFT (or taken back for one), kept
+at cost: no draft, no acquisition, nothing listed. -/
+theorem nft_kept_nft_receipt (B : BookN) (h : NSwap) (hk : h.keepsCost = true)
+    (hn : ∀ m ∈ h.out ++ h.inn, m.nft = true) : bookSwapN B h = B := by
+  have : (h.out ++ h.inn).any (fun m => !m.fiat && !m.nft) = false :=
+    List.any_eq_false.mpr (fun m hm => by simp [hn m hm])
+  exact bookSwapN_kept B h hk (by simp [crossing, this])
+
 /-- **FR-15** From 2026, an NFT put into an app for a crypto receipt (`keepsCost` or not; no crypto given with it):
 no draft, the NFT listed apart (exchanged) at what came for it (the money and the receipt's value, none when either is
 not known; none when an NFT came too), and the receipt acquired at its value (0 when not known). -/
@@ -2330,8 +2467,8 @@ theorem nft_deposit_listed (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hO 
   simp only [hO, hco, hci, ne_eq, not_true_eq_false, not_false_eq_true, if_true, if_false, false_or, true_or,
     and_self]
 
-/-- **FR-15** From 2026, a crypto receipt given back for its NFT (`keepsCost` or not; no NFT given): exactly one
-cession is added, how `.nft` (crypto given for a good, no sursis), no fees, not an exchange with crypto in, and no
+/-- **FR-15** From 2026, crypto given for an NFT, no NFT given (a purchase, or a crypto receipt given back for its
+NFT; `keepsCost` or not): exactly one cession is added, how `.nft` (crypto given for a good, no sursis), no fees, not an exchange with crypto in, and no
 acquisition; the NFT is not listed. -/
 theorem nft_redeem_cession (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hO : h.out.filter (late h.day) = [])
     (hI : h.inn.filter (late h.day) ≠ []) (hco : h.out.filter (fun m => !m.fiat && !late h.day m) ≠ []) :
@@ -2415,18 +2552,24 @@ theorem nft_move_mixed (S : NState) (f : MoveFlow) (held : ℚ) (hm : f.mixed he
     intro c; rcases c with _ | _ | _ <;> rfl
   refine ⟨ho, ?_, ?_⟩ <;> simp [ho, runN, stepN, ha]
 
-/-- **FR-18** So when that key is held at the cut (`keep` above 0), the cut is not known, never a number, and every
-later line has no l.223 or l.224. -/
-theorem nft_move_mixed_cut (S : NState) (f : MoveFlow) (held x : ℚ) (keep : List (ℕ × ℚ)) (rest : List OpN)
-    (hm : f.mixed held = true) (hx : 0 < x) (he : (f.dst, x) ∈ keep) :
-    (stepN (runN S (moveOps f held true)).2 (.nft (.off keep))).1.cut = some none ∧
-      (∀ L ∈ (runN (stepN (runN S (moveOps f held true)).2 (.nft (.off keep))).1 rest).1,
+/-- **FR-18** So with any operations between the move and the cut that are not a cut and don't take all of that
+key out (`nft-leave` with a share of 1 or more), when the key is held at the cut (`keep` above 0) the cut is not known,
+never a number, and every line after the cut has no l.223 or l.224. -/
+theorem nft_move_mixed_cut (S : NState) (f : MoveFlow) (held x : ℚ) (keep : List (ℕ × ℚ)) (mid rest : List OpN)
+    (hm : f.mixed held = true) (hmid : ∀ op ∈ mid, op.isOff = false ∧ ∀ sh, op = .nft (.leave f.dst sh) → sh < 1)
+    (hx : 0 < x) (he : (f.dst, x) ∈ keep) :
+    (runN S (moveOps f held true ++ mid ++ [.nft (.off keep)])).2.cut = some none ∧
+      (∀ L ∈ (runN (runN S (moveOps f held true ++ mid ++ [.nft (.off keep)])).2 rest).1,
         L.l223 = none ∧ L.l224 = none) := by
   have hc : (runN S (moveOps f held true)).2.carried f.dst = some none := by
     rw [(nft_move_mixed S f held hm).2.2]; simp [upd]
-  obtain ⟨h1, h2, _⟩ := nft_cut_unknown (runN S (moveOps f held true)).2 keep rest
-    (Or.inr ⟨(f.dst, x), he, hx, hc⟩)
-  exact ⟨h1, h2⟩
+  have hT : (runN S (moveOps f held true ++ mid)).2.carried f.dst = some none := by
+    rw [runN_append]; exact nft_unknown_persists _ mid f.dst hc hmid
+  have hr : (runN S (moveOps f held true ++ mid ++ [.nft (.off keep)])).2 =
+      (stepN (runN S (moveOps f held true ++ mid)).2 (.nft (.off keep))).1 := by
+    rw [runN_append (S := S) (a := moveOps f held true ++ mid)]; rfl
+  obtain ⟨h1, h2, _⟩ := nft_cut_unknown _ keep rest (Or.inr ⟨(f.dst, x), he, hx, hT⟩)
+  rw [hr]; exact ⟨h1, h2⟩
 
 /-- **FR-18** A move from 2026 gives no NFT operation (the cut is past). -/
 theorem nft_move_late (f : MoveFlow) (held : ℚ) : moveOps f held false = [] := by

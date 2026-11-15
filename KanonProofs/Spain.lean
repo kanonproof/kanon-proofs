@@ -6,8 +6,10 @@ import Mathlib.Tactic
 The app (kanon-app branch `claude/spain-32` at 9a497c3): the ledger `src/lib/engine/lots.ts` (`runLedger` with
 `"FIFO"` and scope `"universal"`, `Book.add`, `pickLots`), the Spanish engine `src/lib/engine/es.ts` (`esWash`,
 `esSavings`, `esScale`, `esSavingsTax`, `esTaxOnSale`) and the box lines in `src/lib/report/es.ts`. Sources: LIRPF
-arts. 33.5.e (loss put off while like coins bought within two months are held), 46, 48, 49 (offsets and four years'
-carry-forward, 25% cross limit from 2018, 10/15/20% in 2015-2017), 66 and 76 (savings scale, state plus regional);
+arts. 33.5.e (a loss is not counted when the same goods are bought again "dentro del año siguiente a la fecha de
+dicha transmisión", and counts when they are sold; the two-month and before-or-after rules of 33.5.f and 33.5.g are
+for valores, not crypto), 46, 48, 49 (offsets and four years' carry-forward, 25% cross limit from 2018, 10/15/20%
+in 2015-2017), 66 and 76 (savings scale, state plus regional);
 AEAT Manual Renta 2024, ch. 11-12 (boxes 1800-1814, the ch. 12 Caso práctico); the AEAT savings-scale figures.
 
 Modelled line for line, in exact fractions:
@@ -16,13 +18,17 @@ Modelled line for line, in exact fractions:
   `cost × take ÷ qty`; coins missing at a sale come in at cost 0; a move between own wallets is not a sale.
 * ES-2: each entry's part for the year = proceeds − cost + loss put off, and 1814 − 1813 is the year's saldo less
   futures.
-* ES-3: `esWash`, art. 33.5.e: each loss is matched to coins bought again within two months before or after
-  (29 February + one year = 28 February the next year), the part put off is counted later when those coins are sold;
-  put off = counted later + still waiting, and the cent counts add up to the cents of what was put off.
-* ES-4: the released-loss lines: 1804 = 1806 − v ≥ 0, 1807 = 1808 = v, and 1808 ≤ 1807 on any entry.
+* ES-3: `esWash`, art. 33.5.e: each loss is matched to coins of the same coin bought again within the year after
+  the sale (from the sale's day, after it where both places in the day are known, to the same day a year later;
+  29 February + one year = 28 February); the part put off is `loss × got ÷ qty` and is counted when those coins are
+  sold: put off = counted in its own year + counted later + still waiting, and the cent counts add up to the cents
+  of what was put off past its year.
+* ES-4: the released-loss lines: 1804 = 1806 − v ≥ 0, 1807 = 1808 = v, and 1808 ≤ 1807 on any entry; one key's
+  entries depend only on that key's lines.
 * ES-5: `esSavings`, art. 49: phase 1 (the year's negative saldo of one kind against the other, within the year's
   limit), phase 2 (earlier losses, own kind first then the other within the room left, oldest first), gone after
-  four years; conservation for one year and over many.
+  four years, and a loss left waiting only when nothing more could be taken (art. 49.2, "cuantía máxima");
+  conservation for one year and over many.
 * ES-6: the scale: tax ≥ 0 and never falls as the base rises; the AEAT's figures 2,800 → 532, 130,000 → 28,780,
   the 2025 band edges, and the ch. 12 example.
 * ES-7: `esTaxOnSale` = the year's tax with the sale less the tax without it, ≥ 0; with gains ≥ 0 and the
@@ -37,6 +43,9 @@ Where the model departs from the code:
 * loss ids are taken as distinct (the app's event ids are);
 * a sale's rows are taken summed into its line; the split of proceeds across several lots is not modelled;
 * years before 2015 (no art. 49 cross rate) let the losses waiting pass through untouched;
+* negative saldos of 2011-2014 (DT 7ª LIRPF, with their own offset rules) are treated as ordinary losses waiting;
+  this has no effect on any year after their four-year carry ended (2018 at the latest);
+* `W2` keeps the counts made in a loss's own year in a list (`same`) that the code only takes off `deferred`;
 * the pending years are integers, and `YearOut` carries three fields more than the code's (`crossGp`, `crossRcm`,
   `made`) so the sums can be stated.
 
@@ -513,6 +522,54 @@ theorem putOff_entry_part (ls : List Line) (h : ∀ l ∈ ls, 0 ≤ l.off ∧ l.
         · exact he
         · exact ihe (fun y hy => hes y (by simp [hy])) x hx
 
+theorem put_filter (es : List Entry) (ln : Line) (k : ℕ) :
+    (put es ln).filter (fun e => e.key = k) =
+      if ln.key = k then put (es.filter fun e => e.key = k) ln else es.filter fun e => e.key = k := by
+  induction es with
+  | nil => by_cases h : ln.key = k <;> simp [put, h]
+  | cons e es ih =>
+    by_cases he : e.key = ln.key
+    · have hp : put (e :: es) ln = { e with p := e.p + ln.p, c := e.c + ln.c, off := e.off + ln.off } :: es := by
+        simp [put, he]
+      rw [hp]
+      by_cases h : ln.key = k
+      · have h' : e.key = k := he.trans h
+        simp [List.filter_cons, h, h', put, he]
+      · have h' : ¬ e.key = k := fun x => h (he.symm.trans x)
+        simp [List.filter_cons, h, h']
+    · have hp : put (e :: es) ln = e :: put es ln := by simp [put, he]
+      rw [hp, List.filter_cons, ih]
+      by_cases h : e.key = k
+      · have hl : ¬ ln.key = k := fun x => he (h.trans x.symm)
+        simp only [h, decide_true, if_true, hl, if_false, List.filter_cons]
+      · by_cases hl : ln.key = k
+        · simp only [h, decide_false, hl, if_true, List.filter_cons, Bool.false_eq_true, if_false]
+        · simp only [h, decide_false, hl, if_false, List.filter_cons, Bool.false_eq_true]
+
+/-- One key's entries depend on that key's lines only: the entries of a year, kept to one key, are the entries of
+that key's lines. -/
+theorem entries_filter (ls : List Line) (k : ℕ) :
+    (entries ls).filter (fun e => e.key = k) = entries (ls.filter fun l => l.key = k) := by
+  unfold entries
+  suffices ∀ es : List Entry, (ls.foldl put es).filter (fun e => e.key = k) =
+      (ls.filter fun l => l.key = k).foldl put (es.filter fun e => e.key = k) by simpa using this []
+  induction ls with
+  | nil => simp
+  | cons l ls ih =>
+    intro es
+    rw [List.foldl_cons, ih, put_filter]
+    by_cases h : l.key = k <;> simp [h]
+
+/-- **ES-4** In a real year mixing gains and losses put off: every entry whose key's lines all have their loss put off
+between 0 and their loss (`off_within_loss`) has its part for the year at most 0, whatever the other keys' lines. -/
+theorem putOff_key (ls : List Line) (k : ℕ) (h : ∀ l ∈ ls, l.key = k → 0 ≤ l.off ∧ l.off ≤ l.c - l.p) :
+    ∀ e ∈ entries ls, e.key = k → 0 ≤ e.off ∧ e.off ≤ e.c - e.p := by
+  intro e he hk
+  have : e ∈ entries (ls.filter fun l => l.key = k) := by
+    rw [← entries_filter]; exact List.mem_filter.mpr ⟨he, by simpa using hk⟩
+  exact putOff_entry_part _ (fun l hl => by
+    obtain ⟨hl, hk'⟩ := List.mem_filter.mp hl; exact h l hl (by simpa using hk')) e this
+
 /-- The line of a loss put off in an earlier year and counted this year (`releasedOf`): from the sale at a loss (its
 1804 `sp`, 1806 `sc`, its loss `loss`) for the part `v` counted, `c = cents(sc × (v ÷ loss))` and `p = c − v`. -/
 def releasedLine (key : ℕ) (sp sc loss v : ℚ) : Entry :=
@@ -639,15 +696,20 @@ structure Later where
 def count (y : ℕ) (st : (ℕ → ℚ) × List Later) (ev : ℕ × ℕ × ℚ) : (ℕ → ℚ) × List Later :=
   if y = ev.2.1 then (Function.update st.1 ev.1 (st.1 ev.1 - ev.2.2), st.2) else (st.1, st.2 ++ [⟨ev.1, y, ev.2.2⟩])
 
+/-- The counts in the loss's own year, kept (the code only takes them off `deferred`) so they can be added up. -/
+def sameList (y : ℕ) (evs : List (ℕ × ℕ × ℚ)) : List Later :=
+  (evs.filter fun e => y = e.2.1).map fun e => ⟨e.1, y, e.2.2⟩
+
 structure W2 where
   parts : List Part
   deferred : ℕ → ℚ
   later : List Later
+  same : List Later
 
 def washSale (st : W2) (s : SaleOfLot) : W2 :=
   let r := release s.lot s.qty st.parts
   let d := r.2.foldl (count (yearOf s.date)) (st.deferred, st.later)
-  ⟨r.1, d.1, d.2⟩
+  ⟨r.1, d.1, d.2, st.same ++ sameList (yearOf s.date) r.2⟩
 
 /-- `esWash`: losses oldest first, purchases oldest first, then later sales oldest first (stable sorts, as the
 code's). `deferred` is the part of each loss put off past its own year (0 for the others), `later` the counts in later
@@ -655,7 +717,7 @@ years, and the parts' `left` what still waits. -/
 def wash (losses : List Loss) (buys : List Buy) (sales : List SaleOfLot) : W2 :=
   let w1 := (losses.mergeSort fun a b => decide (a.date ≤ b.date)).foldl washLoss
     ⟨(buys.mergeSort fun a b => decide (a.date ≤ b.date)).map fun b => (b, b.qty), fun _ => 0, []⟩
-  (sales.mergeSort fun a b => decide (a.date ≤ b.date)).foldl washSale ⟨w1.parts, w1.deferred, []⟩
+  (sales.mergeSort fun a b => decide (a.date ≤ b.date)).foldl washSale ⟨w1.parts, w1.deferred, [], []⟩
 
 /-- What of loss `L` still waits, and what of it was counted in later years. -/
 def waiting (L : ℕ) (ps : List Part) : ℚ := ((ps.filter fun p => p.loss = L).map Part.left).sum
@@ -872,7 +934,7 @@ theorem wash_conserves (losses : List Loss) (buys : List Buy) (sales : List Sale
     ⟨fun L => by simp [waiting], by simp, by simp, by simp, fun _ _ => rfl⟩
   obtain ⟨j1, j2, -, j4, -⟩ := washLosses_inv ls _ [] hnd' (by simp) i0
   set w1 := ls.foldl washLoss _
-  have k0 : Inv2 ⟨w1.parts, w1.deferred, []⟩ :=
+  have k0 : Inv2 ⟨w1.parts, w1.deferred, [], []⟩ :=
     ⟨fun L => by simp [counted, j1 L], fun p hp => (j2 p hp).1, by simp⟩
   obtain ⟨⟨k1, k2, k3⟩, k4⟩ := washSales_inv (sales.mergeSort fun a b => decide (a.date ≤ b.date)) _ k0
   refine ⟨k1, k3, fun p hp => (k2 p hp).1, fun l hl => ⟨?_, ?_⟩⟩
@@ -931,6 +993,218 @@ theorem released_counts (losses : List Loss) (buys : List Buy) (sales : List Sal
   have hs : ((releasedOf L w.later).map Prod.snd).sum = cents (counted L w.later) := by
     unfold releasedOf; rw [a, c0]; simp [counted]
   exact ⟨b, hs, fun hz => by rw [hs, h1 L, hz, add_zero]⟩
+
+/-! ### Where each part comes from, and the whole loss put off at the start -/
+
+/-- The coins bought again that carry loss `L` (what `matchLoss` took for it). -/
+def gotOf (L : ℕ) (ps : List Part) : ℚ := ((ps.filter fun p => p.loss = L).map Part.qty).sum
+
+theorem matchLoss_from (l : Loss) (need : ℚ) (fs : List (Buy × ℚ)) :
+    (∀ x ∈ (matchLoss l need fs).1, ∃ y ∈ fs, x.1 = y.1) ∧
+      ∀ x ∈ (matchLoss l need fs).2, (∃ y ∈ fs, x.1 = y.1) ∧ eligible l x.1 = true := by
+  induction fs generalizing need with
+  | nil => simp [matchLoss]
+  | cons bf rest ih =>
+    obtain ⟨b, free⟩ := bf
+    unfold matchLoss; split_ifs with h0 h1
+    · exact ⟨fun x hx => ⟨x, hx, rfl⟩, by simp⟩
+    · obtain ⟨i1, i2⟩ := ih (need - min free need)
+      refine ⟨fun x hx => ?_, fun x hx => ?_⟩
+      · rcases List.mem_cons.mp hx with rfl | hx
+        · exact ⟨(b, free), by simp, rfl⟩
+        · obtain ⟨y, hy, e⟩ := i1 x hx; exact ⟨y, by simp [hy], e⟩
+      · rcases List.mem_cons.mp hx with rfl | hx
+        · exact ⟨⟨(b, free), by simp, rfl⟩, h1.1⟩
+        · obtain ⟨⟨y, hy, e⟩, el⟩ := i2 x hx; exact ⟨⟨y, by simp [hy], e⟩, el⟩
+    · obtain ⟨i1, i2⟩ := ih need
+      refine ⟨fun x hx => ?_, fun x hx => ?_⟩
+      · rcases List.mem_cons.mp hx with rfl | hx
+        · exact ⟨(b, free), by simp, rfl⟩
+        · obtain ⟨y, hy, e⟩ := i1 x hx; exact ⟨y, by simp [hy], e⟩
+      · obtain ⟨⟨y, hy, e⟩, el⟩ := i2 x hx; exact ⟨⟨y, by simp [hy], e⟩, el⟩
+
+theorem gotOf_append (L : ℕ) (a b : List Part) : gotOf L (a ++ b) = gotOf L a + gotOf L b := by
+  simp [gotOf, List.filter_append]
+
+theorem gotOf_new (L L' y : ℕ) (xs : List (Buy × ℚ)) (off got : ℚ) :
+    gotOf L (xs.map fun x => (⟨L', y, x.1.id, off * x.2 / got, off * x.2 / got, x.2, x.2⟩ : Part)) =
+      if L = L' then (xs.map Prod.snd).sum else 0 := by
+  induction xs with
+  | nil => simp [gotOf]
+  | cons x xs ih =>
+    unfold gotOf at *
+    simp only [List.map_cons, List.filter_cons]
+    by_cases h : L' = L
+    · subst h; simp at ih ⊢; rw [ih]
+    · simp [h, Ne.symm h] at ih ⊢; exact ih
+
+theorem gotOf_none (L : ℕ) (ps : List Part) (h : ∀ p ∈ ps, p.loss ≠ L) : gotOf L ps = 0 := by
+  unfold gotOf; rw [List.filter_eq_nil_iff.mpr (fun p hp => by simpa using h p hp)]; simp
+
+/-- The first loop, more: every free purchase and every part's purchase is one of `buys`; every part belongs to a loss
+done, in that loss's year, on a purchase eligible for it; and each loss done has `loss × got ÷ qty` put off, `got`
+being the coins its parts carry. -/
+def Inv1b (buys : List Buy) (st : W1) (done : List Loss) : Prop :=
+  (∀ x ∈ st.free, x.1 ∈ buys) ∧
+    (∀ p ∈ st.parts, ∃ l ∈ done, p.loss = l.id ∧ p.year = yearOf l.date ∧
+      ∃ b ∈ buys, b.id = p.buy ∧ eligible l b = true) ∧
+    ∀ l ∈ done, st.deferred l.id = l.loss * gotOf l.id st.parts / l.qty
+
+theorem washLoss_inv1b (buys : List Buy) (st : W1) (l : Loss) (todo done : List Loss)
+    (hnd : l.id ∉ todo.map Loss.id) (hd : l.id ∉ done.map Loss.id) (h : Inv1 st (l :: todo) done)
+    (hb : Inv1b buys st done) : Inv1b buys (washLoss st l) (l :: done) := by
+  obtain ⟨-, -, h3, -, h5⟩ := h
+  obtain ⟨b1, b2, b3⟩ := hb
+  have hz : gotOf l.id st.parts = 0 := gotOf_none _ _ (fun p hp e => by have := h3 p hp; simp [e] at this)
+  have hdz : st.deferred l.id = 0 := h5 _ hd
+  have mf := matchLoss_from l l.qty st.free
+  have keep : ∀ x ∈ done, x.id ≠ l.id := fun x hx e => hd (e ▸ List.mem_map_of_mem hx)
+  unfold washLoss
+  dsimp only
+  split_ifs with ha hg
+  · refine ⟨b1, fun p hp => ?_, fun x hx => ?_⟩
+    · obtain ⟨y, hy, r⟩ := b2 p hp; exact ⟨y, by simp [hy], r⟩
+    · rcases List.mem_cons.mp hx with rfl | hx
+      · rw [hz, hdz]; simp
+      · exact b3 x hx
+  · refine ⟨fun x hx => ?_, fun p hp => ?_, fun x hx => ?_⟩
+    · obtain ⟨y, hy, e⟩ := mf.1 x hx; rw [e]; exact b1 y hy
+    · obtain ⟨y, hy, r⟩ := b2 p hp; exact ⟨y, by simp [hy], r⟩
+    · rcases List.mem_cons.mp hx with rfl | hx
+      · rw [hz, hdz]; simp
+      · exact b3 x hx
+  · refine ⟨fun x hx => ?_, fun p hp => ?_, fun x hx => ?_⟩
+    · obtain ⟨y, hy, e⟩ := mf.1 x hx; rw [e]; exact b1 y hy
+    · rcases List.mem_append.mp hp with hp | hp
+      · obtain ⟨y, hy, r⟩ := b2 p hp; exact ⟨y, by simp [hy], r⟩
+      · obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hp
+        obtain ⟨⟨y, hy, e⟩, el⟩ := mf.2 x hx
+        exact ⟨l, by simp, rfl, rfl, x.1, by rw [e]; exact b1 y hy, rfl, el⟩
+    · simp only [gotOf_append, gotOf_new]
+      rcases List.mem_cons.mp hx with rfl | hx
+      · simp [hz]
+      · have hne := keep x hx
+        rw [Function.update_of_ne hne, if_neg hne, add_zero]; exact b3 x hx
+
+theorem washLosses_inv1b (buys : List Buy) (ls : List Loss) (st : W1) (done : List Loss)
+    (hnd : (ls.map Loss.id).Nodup) (hdis : ∀ l ∈ ls, l.id ∉ done.map Loss.id) (h : Inv1 st ls done)
+    (hb : Inv1b buys st done) : Inv1b buys (ls.foldl washLoss st) (ls.reverse ++ done) := by
+  induction ls generalizing st done with
+  | nil => simpa using hb
+  | cons l ls ih =>
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    simp only [List.foldl_cons, List.reverse_cons, List.append_assoc, List.singleton_append]
+    have hd' : ∀ x ∈ ls, x.id ∉ (l :: done).map Loss.id := fun x hx => by
+      simp only [List.map_cons, List.mem_cons, not_or]
+      exact ⟨fun e => hnd.1 (e ▸ List.mem_map_of_mem hx), hdis x (by simp [hx])⟩
+    exact ih _ _ hnd.2 hd' (washLoss_inv st l ls done hnd.1 (hdis l (by simp)) h)
+      (washLoss_inv1b buys st l ls done hnd.1 (hdis l (by simp)) h hb)
+
+theorem release_from (lot : ℕ) (sold : ℚ) (ps : List Part) :
+    (∀ p ∈ (release lot sold ps).1, ∃ q ∈ ps, p.loss = q.loss ∧ p.year = q.year ∧ p.buy = q.buy) ∧
+      ∀ L, gotOf L (release lot sold ps).1 = gotOf L ps := by
+  induction ps generalizing sold with
+  | nil => simp [release]
+  | cons p ps ih =>
+    unfold release
+    split_ifs with h1 h2 h3
+    all_goals first
+      | exact ⟨fun x hx => ⟨x, hx, rfl, rfl, rfl⟩, fun _ => rfl⟩
+      | (obtain ⟨a, b⟩ := ih sold
+         refine ⟨fun x hx => ?_, fun L => ?_⟩
+         · rcases List.mem_cons.mp hx with rfl | hx
+           · exact ⟨x, by simp, rfl, rfl, rfl⟩
+           · obtain ⟨q, hq, r⟩ := a x hx; exact ⟨q, by simp [hq], r⟩
+         · have := b L; unfold gotOf at *; by_cases e : p.loss = L <;> simp [e, this])
+      | (obtain ⟨a, b⟩ := ih (sold - min sold p.qLeft)
+         refine ⟨fun x hx => ?_, fun L => ?_⟩
+         · rcases List.mem_cons.mp hx with rfl | hx
+           · exact ⟨p, by simp, rfl, rfl, rfl⟩
+           · obtain ⟨q, hq, r⟩ := a x hx; exact ⟨q, by simp [hq], r⟩
+         · have := b L; unfold gotOf at *; by_cases e : p.loss = L <;> simp [e, this])
+
+theorem count_deferred (y : ℕ) (evs : List (ℕ × ℕ × ℚ)) (st : (ℕ → ℚ) × List Later) (L : ℕ) :
+    (evs.foldl (count y) st).1 L + counted L (sameList y evs) = st.1 L := by
+  induction evs generalizing st with
+  | nil => simp [sameList, counted]
+  | cons ev evs ih =>
+    simp only [List.foldl_cons]
+    have := ih (count y st ev)
+    unfold count at this ⊢; unfold sameList counted at *
+    by_cases hy : y = ev.2.1
+    · simp only [hy, if_true, List.filter_cons, decide_true, List.map_cons, List.filter_cons] at this ⊢
+      by_cases e : ev.1 = L
+      · subst e; simp at this ⊢; linarith
+      · simp [e, Function.update_of_ne (Ne.symm e)] at this ⊢; linarith
+    · simp [hy] at this ⊢; linarith
+
+/-- The second loop keeps: the part put off at the start is what is put off now plus the counts in its own year. -/
+theorem washSales_same (ss : List SaleOfLot) (st : W2) (L : ℕ) :
+    (ss.foldl washSale st).deferred L + counted L (ss.foldl washSale st).same = st.deferred L + counted L st.same ∧
+      gotOf L (ss.foldl washSale st).parts = gotOf L st.parts ∧
+      ∀ p ∈ (ss.foldl washSale st).parts, ∃ q ∈ st.parts, p.loss = q.loss ∧ p.year = q.year ∧ p.buy = q.buy := by
+  induction ss generalizing st with
+  | nil => exact ⟨rfl, rfl, fun p hp => ⟨p, hp, rfl, rfl, rfl⟩⟩
+  | cons s ss ih =>
+    obtain ⟨i1, i2, i3⟩ := ih (washSale st s)
+    obtain ⟨r1, r2⟩ := release_from s.lot s.qty st.parts
+    have c := count_deferred (yearOf s.date) (release s.lot s.qty st.parts).2 (st.deferred, st.later) L
+    simp only [List.foldl_cons]
+    refine ⟨?_, ?_, fun p hp => ?_⟩
+    · rw [i1]; simp only [washSale, counted, List.filter_append, List.map_append, List.sum_append] at c ⊢
+      linarith
+    · rw [i2]; exact r2 L
+    · obtain ⟨q, hq, e⟩ := i3 p hp
+      obtain ⟨q', hq', e'⟩ := r1 q hq
+      exact ⟨q', hq', e.1.trans e'.1, e.2.1.trans e'.2.1, e.2.2.trans e'.2.2⟩
+
+/-- **ES-3** Art. 33.5.e in full, for sales at a loss with distinct ids. Every part of a loss put off sits on one of
+the purchases, of the same coin, made from the sale's day to the same day a year later (`eligible`), and is in the
+loss's own year. For every loss, what is put off at the start is `loss × got ÷ qty` (`got` the coins bought again
+that carry it; the code's `off`, not rounded there) and it all ends up somewhere: counted in its own year (the coins
+bought again sold that year) + counted in later years + still waiting. -/
+theorem wash_split (losses : List Loss) (buys : List Buy) (sales : List SaleOfLot)
+    (hnd : (losses.map Loss.id).Nodup) :
+    let w := wash losses buys sales
+    (∀ p ∈ w.parts, ∃ l ∈ losses, p.loss = l.id ∧ p.year = yearOf l.date ∧ ∃ b ∈ buys, b.id = p.buy ∧
+        eligible l b = true ∧ b.asset = l.asset ∧ l.date ≤ b.date ∧ b.date ≤ yearAfter l.date) ∧
+      ∀ l ∈ losses, l.loss * gotOf l.id w.parts / l.qty =
+        counted l.id w.same + counted l.id w.later + waiting l.id w.parts := by
+  intro w
+  set ls := losses.mergeSort fun a b => decide (a.date ≤ b.date)
+  have hperm : ls.Perm losses := List.mergeSort_perm _ _
+  have hnd' : (ls.map Loss.id).Nodup := (hperm.map Loss.id).nodup_iff.mpr hnd
+  set st0 : W1 := ⟨(buys.mergeSort fun a b => decide (a.date ≤ b.date)).map fun b => (b, b.qty), fun _ => 0, []⟩
+  have i0 : Inv1 st0 ls [] := ⟨fun L => by simp [st0, waiting], by simp [st0], by simp [st0], by simp, fun _ _ => rfl⟩
+  have b0 : Inv1b buys st0 [] := ⟨fun x hx => by
+      simp only [st0, List.mem_map] at hx; obtain ⟨b, hb, rfl⟩ := hx
+      exact (List.mergeSort_perm _ _).mem_iff.mp hb, by simp [st0], by simp⟩
+  obtain ⟨j1, j2, -, -, -⟩ := washLosses_inv ls st0 [] hnd' (by simp) i0
+  obtain ⟨-, m2, m3⟩ := washLosses_inv1b buys ls st0 [] hnd' (by simp) i0 b0
+  set w1 := ls.foldl washLoss st0
+  have k0 : Inv2 ⟨w1.parts, w1.deferred, [], []⟩ :=
+    ⟨fun L => by simp [counted, j1 L], fun p hp => (j2 p hp).1, by simp⟩
+  obtain ⟨⟨k1, -, -⟩, -⟩ := washSales_inv (sales.mergeSort fun a b => decide (a.date ≤ b.date)) _ k0
+  have hmem : ∀ l, l ∈ ls.reverse ++ [] ↔ l ∈ losses := fun l => by simp [hperm.mem_iff]
+  refine ⟨fun p hp => ?_, fun l hl => ?_⟩
+  · obtain ⟨-, -, s3⟩ := washSales_same (sales.mergeSort fun a b => decide (a.date ≤ b.date))
+      ⟨w1.parts, w1.deferred, [], []⟩ 0
+    obtain ⟨q, hq, e1, e2, e3⟩ := s3 p hp
+    obtain ⟨l, hl, f1, f2, b, hb, f3, f4⟩ := m2 q hq
+    have el := f4
+    simp only [eligible, Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq] at el
+    exact ⟨l, (hmem l).mp hl, e1.trans f1, e2.trans f2, b, hb, f3.trans e3.symm, f4, el.1.1.1, el.1.1.2,
+      el.1.2⟩
+  · obtain ⟨s1, s2, -⟩ := washSales_same (sales.mergeSort fun a b => decide (a.date ≤ b.date))
+      ⟨w1.parts, w1.deferred, [], []⟩ l.id
+    have e : w.deferred l.id = counted l.id w.later + waiting l.id w.parts := k1 l.id
+    have d0 := m3 l ((hmem l).mpr hl)
+    change w.deferred l.id + counted l.id w.same = w1.deferred l.id + counted l.id [] at s1
+    change gotOf l.id w.parts = gotOf l.id w1.parts at s2
+    rw [s2, ← d0]
+    simp only [counted, List.filter_nil, List.map_nil, List.sum_nil, add_zero] at s1
+    unfold counted at e ⊢
+    linarith
 
 /-! ## 5. Art. 49 LIRPF: the savings base's two saldos, their offsets and four-year carry (`esSavings`) -/
 
@@ -1508,7 +1782,9 @@ def crossRate (y : ℤ) : Option ℚ :=
   if y < 2015 then none else if y = 2015 then some (1 / 10) else if y = 2016 then some (15 / 100)
   else if y = 2017 then some (1 / 5) else some (1 / 4)
 
-/-- A year before 2015: the saldos above 0 go in, nothing is offset or carried (the losses waiting pass through). -/
+/-- A year before 2015: the saldos above 0 go in, nothing is offset or carried (the losses waiting pass through).
+Negative saldos of 2011-2014 (DT 7ª LIRPF) are then treated as ordinary losses waiting; their four-year carry ends by
+2018, so this changes no later year. -/
 def preYear (y : ℤ) (gp rcm : ℚ) : YearOut :=
   { year := y, gp := gp, rcm := rcm, rcmOffGp := 0, gpOffRcm := 0, usedGp := 0, usedRcm := 0, crossGp := 0,
     crossRcm := 0, gpBase := max gp 0, rcmBase := max rcm 0, base := max gp 0 + max rcm 0, pendingIn := 0,
@@ -1526,6 +1802,81 @@ def run (f : ℤ → ℚ × ℚ) : ℤ → ℕ → List Pending → List YearOut
 
 theorem window_all (year : ℤ) (pend : List Pending) (h : ∀ p ∈ pend, year - 4 ≤ p.yr ∧ p.yr < year) :
     window year pend = pend := List.filter_eq_self.mpr fun p hp => by simpa using h p hp
+
+/-! ### Art. 49.2, "cuantía máxima": a loss still waits only when nothing more could be taken -/
+
+theorem pass_carry (step : St → Pending → St × ℚ) (B : St → Kind → Prop)
+    (h2 : ∀ s p k, B s k → B (step s p).1 k) (hs : ∀ s p, 0 ≤ p.amount → 0 ≤ (step s p).2) (s : St)
+    (ps : List Pending) (hn : ∀ p ∈ ps, 0 ≤ p.amount) (hin : ∀ p ∈ ps, 0 < p.amount → B s p.kind) :
+    ∀ q ∈ (pass step s ps).2, 0 < q.amount → B (pass step s ps).1 q.kind := by
+  induction ps generalizing s with
+  | nil => simp [pass]
+  | cons p ps ih =>
+    intro q hq hpos
+    simp only [pass, List.mem_cons] at hq
+    rcases hq with rfl | hq
+    · have h0 := hs s p (hn p (by simp))
+      have hp : 0 < p.amount := by simp at hpos; linarith
+      exact pass_inv step (fun t => B t p.kind) _ ps (fun t x _ hb => h2 t x _ hb) (h2 s p _ (hin p (by simp) hp))
+    · exact ih (step s p).1 (fun x hx => hn x (by simp [hx]))
+        (fun x hx hx' => h2 s p _ (hin x (by simp [hx]) hx')) q hq hpos
+
+theorem pass_left (step : St → Pending → St × ℚ) (B : St → Kind → Prop)
+    (h2 : ∀ s p k, B s k → B (step s p).1 k) (h3 : ∀ s p, 0 < p.amount - (step s p).2 → B (step s p).1 p.kind)
+    (s : St) (ps : List Pending) : ∀ q ∈ (pass step s ps).2, 0 < q.amount → B (pass step s ps).1 q.kind := by
+  induction ps generalizing s with
+  | nil => simp [pass]
+  | cons p ps ih =>
+    intro q hq hpos
+    simp only [pass, List.mem_cons] at hq
+    rcases hq with rfl | hq
+    · exact pass_inv step (fun t => B t p.kind) _ ps (fun t x _ hb => h2 t x _ hb) (h3 s p hpos)
+    · exact ih _ q hq hpos
+
+theorem crossStep_keeps_own (s : St) (p : Pending) (k : Kind) (h : s.own k ≤ 0) : (crossStep s p).1.own k ≤ 0 := by
+  unfold crossStep; split_ifs with h0 h1 h2
+  · exact h
+  · push_neg at h0
+    have : 0 ≤ min (min p.amount s.gp) s.roomGp := le_min (le_min h0.le h1.2.1.le) h1.2.2.le
+    cases k <;> simp only [St.own, takeCrossRcm] at h ⊢ <;> linarith
+  · push_neg at h0
+    have : 0 ≤ min (min p.amount s.rcm) s.roomRcm := le_min (le_min h0.le h2.2.1.le) h2.2.2.le
+    cases k <;> simp only [St.own, takeCrossGp] at h ⊢ <;> linarith
+  · exact h
+
+/-- **ES-5** Art. 49.2, each earlier loss used "up to the maximum amount" (cuantía máxima): after the year's two
+passes, a loss of the four years before with something left has its own kind's saldo used up (not above 0), and its
+use against the other saldo stopped because that saldo is not above 0 or the room left in that year's limit (25%; 10,
+15, 20% in 2015-2017, net of what phase 1 already took) is used up. -/
+theorem cuantia_maxima (ρ : ℚ) (year : ℤ) (gp0 rcm0 : ℚ) (pend : List Pending) (h : ∀ p ∈ pend, 0 ≤ p.amount) :
+    let c := passes ρ year gp0 rcm0 pend
+    ∀ q ∈ c.2, 0 < q.amount → c.1.own q.kind ≤ 0 ∧ crossBlocked c.1 q.kind := by
+  intro c q hq hpos
+  set w := window year pend
+  set s0 := start ρ gp0 rcm0
+  have hw := window_nonneg year pend h
+  have hn := pass_nonneg ownStep ownStep_bounds s0 w hw
+  have A := pass_left ownStep (fun s k => s.own k ≤ 0) ownStep_oldest.2.1 ownStep_oldest.2.2 s0 w
+  refine ⟨?_, ?_⟩
+  · exact pass_carry crossStep (fun s k => s.own k ≤ 0) (fun s p k hk => crossStep_keeps_own s p k hk)
+      (fun s p hp => (crossStep_bounds s p hp).1) _ _ hn A q hq hpos
+  · exact pass_left crossStep crossBlocked crossStep_oldest.2.1 crossStep_oldest.2.2 _ _ q hq hpos
+
+/-- **ES-5** The same on the year's output: a loss still waiting after the year that is from an earlier year (not
+this year's own negative saldo) means the saldo of its own kind ended not above 0, and the other saldo ended not above
+0 or the room left in its limit is used up. -/
+theorem cuantia_maxima_year (ρ : ℚ) (year : ℤ) (gp0 rcm0 : ℚ) (pend : List Pending) (h : ∀ p ∈ pend, 0 ≤ p.amount) :
+    let c := passes ρ year gp0 rcm0 pend
+    ∀ q ∈ (yearStep ρ year gp0 rcm0 pend).pending, q.yr < year →
+      c.1.own q.kind ≤ 0 ∧ crossBlocked c.1 q.kind := by
+  intro c q hq hy
+  simp only [yearStep, List.mem_filter, decide_eq_true_eq] at hq
+  obtain ⟨hq, -⟩ := hq
+  simp only [newPending, List.mem_append, List.mem_filter, decide_eq_true_eq] at hq
+  rcases hq with (⟨hq, hpos⟩ | hq) | hq
+  · exact cuantia_maxima ρ year gp0 rcm0 pend h q hq hpos
+  · split_ifs at hq <;> simp at hq; subst hq; simp at hy
+  · split_ifs at hq <;> simp at hq; subst hq; simp at hy
 
 /-- **ES-5** Art. 49 over the years (2015 on, starting with losses of the four years before, each not below 0):
 losses waiting at the start plus every year's own losses = all used + all whose time ran out + what still waits. -/

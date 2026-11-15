@@ -75,7 +75,7 @@ by `toQty`) gave its slices their lot's `seq`, so two wraps of one lot at differ
 at different costs per coin, and a later move changed a later sale (2 coins for 200, wrapped 1 → 1 and 1 → 1/2: a
 sale of one wrapped coin after a move cost 150, not 100). A new root for each wrapped slice would put a lot wrapped
 and unwrapped the same day after the other lots of that day (A at 100 and B at 300: a sale would take B). The rule
-modelled (kanon-app `claude/wrap-rank`; its sha is to be checked when it lands) makes `seq` a root and a step, ordered
+modelled (kanon-app a4a0731, `claude/wrap-rank`, lots.ts:149-150, 201-202, 252-258) makes `seq` a root and a step, ordered
 by day, then root, then step, no step first: a plain move keeps it, a move to another coin or with a `toQty` keeps the
 root and takes a new step, in the order the slices are taken, and an unknown-cost lot gets a new root and no step;
 `Reach.wrapped` models it, `transfer_same_sale` covers pools reached through wraps, and `wrap_then_move` (100) and

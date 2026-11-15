@@ -3,46 +3,65 @@ import Mathlib.Tactic
 /-!
 # Italy: crypto gains of a private person, TUIR art. 67 c. 1 c-sexies and 68 c. 9-bis (quadro RT, quadro RW)
 
-The app's engine `src/lib/engine/it.ts` (`itRun`, `itYears`, `itYearBase`, `itYearTax`, `itTaxOnSale`, `itEuros`,
-`itIvca`, `itIvcaDue`, `itWorkingDay`, `itDeadlines`), the swap branch of the classifier `itBook` and the IVCA sum of
-`itRw` in `src/lib/report/it.ts`, at kanon-app commit 2ec8fce (branch claude/italy-32). Sources: TUIR art. 67 c. 1
-c-sexies and 68 cc. 5 and 9-bis (L. 197/2022 art. 1 c. 126); L. 207/2024 art. 1 c. 25 (no €2,000 threshold from 2025);
-Agenzia delle Entrate, Circolare 30/E of 27 October 2023 (§§ 3.2.1, 3.3-3.4, p. 51 and p. 55); DL 201/2011 art. 19
-c. 18-bis (IVCA, 0.2%); Modello Redditi PF (RT57, RT88-89, RW col. 33, RW8); DPR 435/2001 art. 17; DPR 322/1998
-art. 2; DL 70/2011 art. 7 c. 2 l; DL 16/2012 art. 3-quater.
+The app's engine `src/lib/engine/it.ts` (`itRun`, `itYears`, `itYearBase`, `itSplit`, `itYearTax`, `itTaxOnSale`,
+`itRate`, `itEuros`, `itEarlierIn`, `itEuroConfirmed`, `itIvca`, `itIvcaDue`, `itWorkingDay`, `itDeadlines`), the swap
+branch of the classifier `itBook` with `splitMixed` and `isEuroEmt`, and the IVCA sum of `itRw` in
+`src/lib/report/it.ts`, at kanon-app commit 4142c84 (branch claude/italy-32; the swap rules as at b9b8455, the reserve
+statements by day from 4142c84). Sources: TUIR art. 67 c. 1 c-sexies and 68 cc. 5 and 9-bis (L. 197/2022 art. 1
+cc. 126-127); L. 207/2024 art. 1 cc. 24-25 (33% from 2026; no €2,000 threshold from 2025); L. 199/2025 art. 1 c. 28
+(euro e-money tokens); Agenzia delle Entrate, Circolare 30/E of 27 October 2023 (§§ 3.2.1, 3.3-3.4, pp. 47-48, 51,
+55); DL 201/2011 art. 19 c. 18-bis (IVCA, 0.2%); Modello Redditi PF (RT57, RT88-89, RW col. 1-5 and 33, RW8); DPR
+435/2001 art. 17; DPR 322/1998 art. 2; DL 70/2011 art. 7 c. 2 l; DL 16/2012 art. 3-quater.
 
 Modelled, in exact fractions where the app uses decimal.js:
 
 * `itRun` (rules 1-4): `take` is its last-in-first-out `take` (the newest lot at the head of the list here, at the end
   of the app's array), `takeAll` its loop over the coins given, `step` its handling of one operation (buy, provento,
-  drop, sale or exchange, untaxed swap with the cost split by value or equally), `run` the loop. Ops are taken in the
-  order given (the app first sorts them by time and kind; that sort is not modelled).
-* `itBook` for a swap happening (`classify`, rules 2-3): bought with money, sold for money, untaxed swap of the same
-  kind, taxable exchange between kinds (crypto and e-money tokens). Its other happenings (fees merged one line a day,
-  bridges, proventi, answers, futures) are not modelled; a provento's line and lot are `step`'s.
-* `itYearBase` and `itYears` (rules 5-8): the net in whole euros, the €2,000 threshold to 2024, losses used oldest first
-  within four years (`use`), the residues kept and the losses that expire. `itYearTax` and `itTaxOnSale` (rule 15).
-  The tax of `itYears` (`yearTaxSplit`): to 2025 26% of the base; from 2026 the euro e-money token part at 26% and the
-  rest at 33% (`split`), rounded up to the cent. Years before 2023 (no rate) are not modelled.
+  drop, sale or exchange, untaxed swap with the cost split by value or equally), `run` the loop. The app sorts ops by
+  time, then kind (buy, provento, swap, sale, drop), then the order made; for the ops of one happening (one time)
+  that is `byKind`, the filters by kind put end to end. Across times the sort is not modelled.
+* `itBook` for a swap happening (`classify`, rules 2-3 and 10): bought with money, sold for money, euro e-money tokens
+  redeemed for euros from 2026, untaxed swap of one kind (coins, e-money tokens or NFTs), `splitMixed` for legs of
+  more than one kind with no money (Case A: all received of one kind; Case B: all given of one kind; both sides mixed:
+  the whole swap is taxed), and the taxable exchange (with an NFT and no money, an unpriced side is taken at the other
+  side's value). Its other happenings (fees merged one line a day, bridges, proventi, answers, futures) are not
+  modelled; a provento's line and lot are `step`'s.
+* The euro e-money token rule (`isEuro`, `euroIn`): a token of the issuers' euro set that is not pending (EURCV, EURR)
+  always counts; a pending one (`IT_EURO_PENDING`: EURC, EURI, EURQ) counts for a movement only on or after the day
+  of a reserve statement for it; EURe and any other coin never. Statements are an abstract list of (token, day), days
+  as natural numbers in calendar order (the app's Rome yyyy-mm-dd strings compare the same way); the app keeps one per
+  token, a list allows more. Whether a link or title is accepted, and the date it gets (`itEuroOne`, `itEuroLink`,
+  `itEuroKnownPage`), are not modelled.
+* `itYearBase` and `itYears` (rules 5-8): the net in whole euros, the €2,000 threshold to 2024, the losses on hand
+  sorted by year (`sortPool`, a stable sort) and used oldest first within four years (`use`), the residues kept and
+  the losses that expire; earlier losses of 2019-2022 (`earlierIn`). The tax (`itSplit`, rule 9): to 2025 26% of the
+  base; from 2026 the base shared pro rata between the euro e-money token gain (26%) and the other gain (33%), rounded
+  up to the cent. `itYearTax` and `itTaxOnSale` (rule 15). Years before 2023 (no rate) are not modelled.
 * `itEuros` (half away from zero, decimal.js ROUND_HALF_UP) and `centsUp` (rule 11).
-* `itIvca`, the per-account rounding and sum in `itRw`, and `itIvcaDue` (rule 12), with every price known (the app
-  shows no total when a price is missing).
+* `itIvca`, the per-account rounding and sum in `itRw`, and `itIvcaDue` (rule 12, RW col. 5 from cols. 1-4), with
+  every price known (the app shows no total when a price is missing).
 * The IVCA instalments (rule 13) are not computed by the app: they are only said in the report's note (`ReportPdf.tsx`,
   quadro RW). `instalments` models that sentence.
 * `itWorkingDay` and `itDeadlines` (rule 14) on day numbers (days from 1 January 1970, the proleptic Gregorian
   calendar), with the holidays as a parameter (`appHol` is the app's fixed list) and the search for a working day
   bounded by 30 days (the app's loop has no bound). The 0.4% for paying late is only said in the app's text.
 
-Out of scope: the sort of `itRun`'s ops, the euro conversion and prices, `itHoldings` (days held, start and end
-quantities), `itLotsFor`, how answers and other happenings become ops, and decimal.js precision (40 significant digits:
-a division such as cost × left ÷ qty is rounded there and exact here). Years are natural numbers.
+Departures and what is out of scope:
 
-Rules 9 and 10 (income from 2026): 33% (L. 207/2024 art. 1 c. 24), 26% for euro e-money tokens, and a euro e-money
-token turned into euros is no gain or loss (L. 199/2025 art. 1 c. 28); D.Lgs. 117/2026 re-enacts both from 2027
-(art. 304 c. 7, same text). A token is a euro e-money token when it is in the app's euro set (`Mv.euroEmt`), however the
-app recognises it. Earlier losses come off the 33% part first: a KANON choice, no source settles it (`split`). The
-"sold" answer for a euro e-money token from 2026 (also a drop in `itBook`) is not modelled.
+* Decimal.js precision (40 significant digits): a division such as cost × left ÷ qty, or `vGot ÷ vAll`, is rounded
+  there and exact here.
+* Quantities here are the amounts without their sign and values are given per leg; the app takes `|amount × f|` and
+  `usd × |amount|`. The same for quantities and values not below 0.
+* `itYears` keeps the residues in the order of the pool it was given (with the amounts the sorted copy used up); here
+  in the sorted order. The same losses and amounts; the order is the same whenever the pool is already in year order,
+  as the app's pool is (`earlierIn`, then one loss a year appended).
+* Flags, NFT and protocol-stable counts, the exchanges seen, `euroPending` and the report's text are not modelled; nor
+  the "sold" answer for a euro e-money token, the harvest finder and the exit planner, the euro conversion and prices,
+  `itHoldings`, `itLotsFor`, and how answers and other happenings become ops. Years and days are natural numbers.
+
+D.Lgs. 117/2026 re-enacts the 33% and the euro e-money token rule from 2027 (art. 304 c. 7, same text).
 -/
+
 
 namespace Kanon.Italy
 
@@ -385,27 +404,122 @@ theorem circolare_swap :
     r.2 = none ∧ r.1 1 = [⟨10, 500⟩] ∧ r.1 0 = [⟨15, 1500⟩] := by
   simp [step, push, takeAll, take, pushAll, portion, allPos, wt, Function.update]; norm_num
 
-/-! ## The classifier `itBook` for a swap happening (rules 2-3; Circolare 30/E §§ 3.3-3.4) -/
+/-! ## The classifier `itBook` for a swap happening (rules 2-3 and 10; Circolare 30/E §§ 3.3-3.4, pp. 47-48) -/
 
-/-- A crypto movement: asset, quantity, value in euros (none: no price), whether it is an e-money token (a stablecoin
-tied to one official currency, MiCA art. 3 c. 1 n. 7) and whether it is in the app's euro e-money token set (however
-the app recognises them: by symbol at 2ec8fce, by contract address later; every euro one is also an e-money token). -/
+/-- A crypto movement: asset, quantity (the amount without its sign), value in euros (none: no price), whether it is an
+NFT, whether it is an e-money token (`isEmt`, never an NFT: a stablecoin tied to one official currency, MiCA art. 3 c. 1
+n. 7) and which of the issuers' own euro tokens it is (`euroToken`: by an exchange's listing or the contract), if any. -/
 structure Mv where
   asset : ℕ
   qty : ℚ
   value : Option ℚ
   emt : Bool := false
-  euroEmt : Bool := false
+  nft : Bool := false
+  tok : Option ℕ := none
+
+/-! ### Euro e-money tokens by day (`isEuroEmt`, `itEuroConfirmed`; L. 199/2025 art. 1 c. 28) -/
+
+/-- The person's reserve statements for pending tokens: (token, the day of the statement's date `from`), days as
+naturals (Rome calendar days in order). The checks on the link or title and on the date (`itEuroOne`) are not
+modelled: a statement here is one the app kept. -/
+abbrev Statements := List (ℕ × ℕ)
+
+/-- `itEuroConfirmed`: a token is covered on `day` when a statement for it is dated that day or earlier. -/
+def confirmed (st : Statements) (day : ℕ) (t : ℕ) : Bool := st.any fun s => s.1 == t && decide (s.2 ≤ day)
+
+/-- `isEuroEmt`: one of the issuers' euro tokens that is not pending (`pend` is `IT_EURO_PENDING`: EURC, EURI, EURQ),
+or a pending one that is confirmed. EURCV and EURR are euro tokens not pending; a token with no entry (EURe, any other
+coin) is never one. -/
+def isEuro (pend conf : ℕ → Bool) (m : Mv) : Bool :=
+  match m.tok with
+  | some t => !pend t || conf t
+  | none => false
+
+/-- `itBook`'s `euro`: the rule for a movement on `day` (its Rome day). -/
+def euroIn (pend : ℕ → Bool) (st : Statements) (day : ℕ) : Mv → Bool := isEuro pend (confirmed st day)
+
+/-- `itRate`: 26% to 2025; from 2026 26% for a euro e-money token's line and 33% for any other. -/
+def itRate (year : ℕ) (euroEmt : Bool) : ℚ := if year ≤ 2025 then 26 / 100 else if euroEmt then 26 / 100 else 33 / 100
+
+/-- **IT-9** A pending token is not a euro e-money token on a day before every statement's day for it (or with none). -/
+theorem pending_before (pend : ℕ → Bool) (st : Statements) (day t : ℕ) (m : Mv) (ht : m.tok = some t)
+    (hp : pend t = true) (hy : ∀ s ∈ st, s.1 = t → day < s.2) : euroIn pend st day m = false := by
+  simp only [euroIn, isEuro, ht, hp, confirmed, Bool.not_true, Bool.false_or, List.any_eq_false]
+  intro s hs; have := hy s hs; simp only [Bool.and_eq_true, beq_iff_eq, decide_eq_true_eq, not_and, not_le]
+  intro h; exact this h
+
+/-- **IT-9** A pending token is a euro e-money token from the day of a statement for it on. -/
+theorem pending_from (pend : ℕ → Bool) (st : Statements) (day t d0 : ℕ) (m : Mv) (ht : m.tok = some t)
+    (hs : (t, d0) ∈ st) (hy : d0 ≤ day) : euroIn pend st day m = true := by
+  simp only [euroIn, isEuro, ht, confirmed, Bool.or_eq_true, Bool.not_eq_true', List.any_eq_true]
+  exact Or.inr ⟨(t, d0), hs, by simp [hy]⟩
+
+/-- **IT-9** A token not pending (EURCV, EURR) is a euro e-money token on every day, whatever the statements; a coin
+that is none of the issuers' euro tokens never is. -/
+theorem not_pending (pend : ℕ → Bool) (st : Statements) (day t : ℕ) (m : Mv) :
+    (m.tok = some t → pend t = false → euroIn pend st day m = true) ∧ (m.tok = none → euroIn pend st day m = false) := by
+  constructor
+  · intro ht hp; simp [euroIn, isEuro, ht, hp]
+  · intro ht; simp [euroIn, isEuro, ht]
+
+/-- **IT-9** From 2026, a line of a pending token on a day before every statement's day for it is at 33%, and from the
+day of a statement for it on at 26%. -/
+theorem pending_rate (pend : ℕ → Bool) (st : Statements) (year day t : ℕ) (m : Mv) (ht : m.tok = some t)
+    (hp : pend t = true) (h26 : 2026 ≤ year) :
+    ((∀ s ∈ st, s.1 = t → day < s.2) → itRate year (euroIn pend st day m) = 33 / 100) ∧
+      (∀ d0, (t, d0) ∈ st → d0 ≤ day → itRate year (euroIn pend st day m) = 26 / 100) := by
+  have : ¬ year ≤ 2025 := by omega
+  constructor
+  · intro hy; rw [pending_before pend st day t m ht hp hy]; simp [itRate, this]
+  · intro d0 hs hy; rw [pending_from pend st day t d0 m ht hs hy]; simp [itRate, this]
+
+/-- Statements `st2` dated no earlier than `st1`: every statement in `st2` has one in `st1` for the same token on the
+same day or before. -/
+def noEarlier (st1 st2 : Statements) : Prop := ∀ s ∈ st2, ∃ s' ∈ st1, s'.1 = s.1 ∧ s'.2 ≤ s.2
+
+/-- **IT-9** A later statement date never makes a movement a euro e-money token where an earlier one did not, so it
+never lowers the rate of any line: every line is at the same rate or higher (26% → 33%). -/
+theorem later_statement_rate (pend : ℕ → Bool) (st1 st2 : Statements) (h : noEarlier st1 st2) (year day : ℕ)
+    (m : Mv) :
+    (euroIn pend st2 day m = true → euroIn pend st1 day m = true) ∧
+      itRate year (euroIn pend st1 day m) ≤ itRate year (euroIn pend st2 day m) := by
+  have imp : euroIn pend st2 day m = true → euroIn pend st1 day m = true := by
+    simp only [euroIn, isEuro]
+    rcases m.tok with _ | t
+    · simp
+    · simp only [Bool.or_eq_true, Bool.not_eq_true', confirmed, List.any_eq_true, Bool.and_eq_true, beq_iff_eq,
+        decide_eq_true_eq]
+      rintro (hp | ⟨s, hs, hst, hd⟩)
+      · exact Or.inl hp
+      · obtain ⟨s', hs', e1, e2⟩ := h s hs
+        exact Or.inr ⟨s', hs', e1.trans hst, e2.trans hd⟩
+  refine ⟨imp, ?_⟩
+  unfold itRate
+  rcases h1 : euroIn pend st1 day m <;> rcases h2 : euroIn pend st2 day m <;> simp_all <;> split_ifs <;> norm_num
+
+/-! ### Kinds and the swap -/
+
+/-- `kindOf`: NFT, else e-money token, else coin. -/
+def kindOf (m : Mv) : ℕ := if m.nft then 2 else if m.emt then 1 else 0
+
+/-- One kind only (a set of kinds of size 1: false for no legs). -/
+def oneKind : List Mv → Bool
+  | [] => false
+  | m :: ms => ms.all fun x => kindOf x == kindOf m
+
+/-- `sameKind`: every leg on both sides of one kind. -/
+def sameKind (a b : List Mv) : Bool := oneKind (a ++ b)
 
 /-- Money moved: its value in euros (none: no rate) and whether it is euros. -/
 structure Money where
   value : Option ℚ
   eur : Bool := true
 
-/-- A swap happening: the year (Rome), crypto out and in, money out and in, and `keepsCost` (a coin put into an app
-for its receipt coin). -/
+/-- A swap happening: the year and the day (Rome), crypto out and in, money out and in, and `keepsCost` (a coin put
+into an app for its receipt coin). -/
 structure SwapH where
   year : ℕ
+  day : ℕ := 0
   out : List Mv
   inn : List Mv
   fOut : List Money := []
@@ -426,20 +540,70 @@ def gots (ms : List Mv) : List Got := ms.map fun m => ⟨m.asset, m.qty, m.value
 def buys (ins : List Mv) (total : ℚ) : List Op :=
   ins.map fun m => .buy m.asset m.qty (portion total (ins.map Mv.value) m.value)
 
-/-- Every coin on both sides an e-money token, or none. -/
-def sameKind (a b : List Mv) : Bool := (a ++ b).all Mv.emt || (a ++ b).all (fun m => !m.emt)
-
 /-- The money paid on top of an untaxed swap (`paid`, kept only when known and above 0). -/
 def paidOf (fOut : List Money) : ℚ :=
   if fOut = [] then 0 else match sumV (fOut.map Money.value) with
     | some p => if 0 < p then p else 0
     | none => 0
 
-/-- From 2026, euro e-money tokens only, turned into euros (L. 199/2025 art. 1 c. 28): no gain or loss. -/
-def euroRedeem (h : SwapH) : Bool := decide (2026 ≤ h.year) && h.out.all Mv.euroEmt && h.fIn.all Money.eur
+/-- From 2026, euro e-money tokens only, turned into euros only (L. 199/2025 art. 1 c. 28): no gain or loss. -/
+def euroRedeem (euro : Mv → Bool) (h : SwapH) : Bool :=
+  decide (2026 ≤ h.year) && h.out.all euro && h.fIn.all Money.eur
 
-/-- `itBook` for one swap happening (the euroEmt flags of lines not modelled). -/
-def classify (h : SwapH) : List Op :=
+/-- `sold`: `f` of each coin given. -/
+def scale (f : ℚ) (ms : List Mv) : List Coin := ms.map fun m => ⟨m.asset, m.qty * f⟩
+
+/-- `kept`: what is left of each coin given once `f` of it is sold. -/
+def rest (f : ℚ) (ms : List Mv) : List Coin := ms.map fun m => ⟨m.asset, m.qty - m.qty * f⟩
+
+/-- `splitMixed` (no money on either side, legs of more than one kind; Circolare 30/E p. 48). Case A, everything
+received of one kind: the legs given of that kind (`keep`) carry their cost to what came in, the others (`sell`) are
+realised at their value `v`, which is added to the cost carried; nothing of value in `sell`: the whole swap carries.
+Case B, everything given of one kind: of what came in, the legs of that kind (`keep`) take the cost of the part of each
+coin given that is kept, the others (`got`) are bought at their value `vGot`, and the share `f = vGot ÷ vAll` of each
+coin given is realised at `vGot`; nothing of value in `got` (or no value in all): the whole swap carries. None (the
+caller taxes the whole swap): both sides mixed, a part empty, a value missing. -/
+def splitMixed (euro : Mv → Bool) (out inn : List Mv) : Option (List Op) :=
+  if oneKind inn then
+    let k := (inn.head?.map kindOf).getD 0
+    let keep := out.filter fun m => kindOf m == k
+    let sell := out.filter fun m => kindOf m != k
+    if keep = [] ∨ sell = [] then none else
+    match sumV (sell.map Mv.value) with
+    | none => none
+    | some v =>
+      if v = 0 then some [.swap (coins out) (gots inn) 0]
+      else some [.dispose (coins sell) v (sell.all euro), .swap (coins keep) (gots inn) (if 0 < v then v else 0)]
+  else if oneKind out then
+    let k := (out.head?.map kindOf).getD 0
+    let keep := inn.filter fun m => kindOf m == k
+    let got := inn.filter fun m => kindOf m != k
+    if keep = [] ∨ got = [] then none else
+    match sumV (got.map Mv.value), sumV (inn.map Mv.value) with
+    | some vg, some va =>
+      if vg = 0 ∨ va ≤ 0 then some [.swap (coins out) (gots inn) 0]
+      else some ([.dispose (scale (vg / va) out) vg (out.all euro), .swap (rest (vg / va) out) (gots keep) 0] ++
+        buys got vg)
+    | _, _ => none
+  else none
+
+/-- The taxable exchange: what was given goes at the value of what came in plus money received less money paid (never
+below 0); with an NFT and no money, a missing value of what came in is taken as the value given (Circolare 30/E p. 47);
+what came in is bought at that value (or the value given). -/
+def exchange (euro : Mv → Bool) (h : SwapH) : List Op :=
+  let nft := (h.out ++ h.inn).any Mv.nft
+  let vin := (sumV (h.inn.map Mv.value)).or
+    (if nft = true ∧ h.fIn = [] ∧ h.fOut = [] then sumV (h.out.map Mv.value) else none)
+  let mIn := if h.fIn ≠ [] then sumV (h.fIn.map Money.value) else some 0
+  let mOut := if h.fOut ≠ [] then sumV (h.fOut.map Money.value) else some 0
+  let proceeds : Option ℚ := match vin, mIn, mOut with
+    | some a, some b, some c => some (max (a + b - c) 0)
+    | _, _, _ => none
+  .dispose (coins h.out) ((proceeds.or (sumV (h.out.map Mv.value))).getD 0) (h.out.all euro) ::
+    buys h.inn ((vin.or (sumV (h.out.map Mv.value))).getD 0)
+
+/-- `itBook` for one swap happening, `euro` the euro token rule of its day (`euroIn pend st h.day`). -/
+def classify (euro : Mv → Bool) (h : SwapH) : List Op :=
   if h.keepsCost then (if h.out ≠ [] ∧ h.inn ≠ [] then [.swap (coins h.out) (gots h.inn) 0] else [])
   else if h.out = [] then
     (if h.inn ≠ [] then
@@ -448,70 +612,289 @@ def classify (h : SwapH) : List Op :=
      else [])
   else if h.inn = [] then
     (if h.fIn = [] then [.drop (coins h.out)]
-     else if euroRedeem h then [.drop (coins h.out)]
+     else if euroRedeem euro h then [.drop (coins h.out)]
      else [.dispose (coins h.out) (((sumV (h.fIn.map Money.value)).or (sumV (h.out.map Mv.value))).getD 0)
-       (h.out.all Mv.euroEmt)])
+       (h.out.all euro)])
   else if h.fIn = [] ∧ sameKind h.out h.inn = true then [.swap (coins h.out) (gots h.inn) (paidOf h.fOut)]
-  else
-    let vin := sumV (h.inn.map Mv.value)
-    let mIn := if h.fIn ≠ [] then sumV (h.fIn.map Money.value) else some 0
-    let mOut := if h.fOut ≠ [] then sumV (h.fOut.map Money.value) else some 0
-    let proceeds : Option ℚ := match vin, mIn, mOut with
-      | some a, some b, some c => some (max (a + b - c) 0)
-      | _, _, _ => none
-    .dispose (coins h.out) ((proceeds.or (sumV (h.out.map Mv.value))).getD 0) (h.out.all Mv.euroEmt) ::
-      buys h.inn ((vin.or (sumV (h.out.map Mv.value))).getD 0)
+  else match (if h.fIn = [] ∧ h.fOut = [] then splitMixed euro h.out h.inn else none) with
+    | some ops => ops
+    | none => exchange euro h
 
-/-- **IT-2** Crypto for crypto of the same kind (both sides coins, or both e-money tokens) with no money received: one
+/-- `itRun`'s order for ops at one time: buys, proventi, untaxed swaps, sales, drops (each kind in the order made). -/
+def rank : Op → ℕ
+  | .buy .. => 0
+  | .income .. => 1
+  | .swap .. => 2
+  | .dispose .. => 3
+  | .drop .. => 4
+
+def byKind (ops : List Op) : List Op :=
+  ops.filter (rank · == 0) ++ ops.filter (rank · == 1) ++ ops.filter (rank · == 2) ++ ops.filter (rank · == 3) ++
+    ops.filter (rank · == 4)
+
+/-- **IT-2** Crypto for crypto of the same kind (all coins, all e-money tokens, or all NFTs) with no money received: one
 untaxed swap, with the money paid on top (when known and above 0) added to the cost carried. -/
-theorem same_kind_untaxed (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ [])
+theorem same_kind_untaxed (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ [])
     (hf : h.fIn = []) (hs : sameKind h.out h.inn = true) :
-    classify h = [.swap (coins h.out) (gots h.inn) (paidOf h.fOut)] := by
+    classify euro h = [.swap (coins h.out) (gots h.inn) (paidOf h.fOut)] := by
   simp [classify, hk, ho, hi, hf, hs]
 
-/-- **IT-3** A coin swapped into or out of an e-money token (one side tokens, the other coins), with no money: a taxable
-exchange at the value of what came in (never below 0), and what came in is bought at that value. -/
-theorem emt_exchange_taxed (h : SwapH) (v : ℚ) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ [])
-    (hf : h.fIn = []) (hfo : h.fOut = []) (hs : sameKind h.out h.inn = false)
-    (hv : sumV (h.inn.map Mv.value) = some v) :
-    classify h = .dispose (coins h.out) (max v 0) (h.out.all Mv.euroEmt) :: buys h.inn v := by
-  simp [classify, hk, ho, hi, hf, hfo, hs, hv]
+/-- Legs of no common kind: no leg given has the kind of a leg received. -/
+def apart (a b : List Mv) : Prop := ∀ x ∈ a, ∀ y ∈ b, kindOf x ≠ kindOf y
+
+theorem filter_kind_nil (l : List Mv) (y : Mv) (h : ∀ x ∈ l, kindOf x ≠ kindOf y) :
+    l.filter (fun m => kindOf m == kindOf y) = [] := by
+  rw [List.filter_eq_nil_iff]; intro x hx; simpa using h x hx
+
+/-- With no kind in common, `splitMixed` does not apply: the whole swap is taxed. -/
+theorem split_none_apart (euro : Mv → Bool) (out inn : List Mv) (h : apart out inn) :
+    splitMixed euro out inn = none := by
+  unfold splitMixed
+  by_cases h1 : oneKind inn = true
+  · cases inn with
+    | nil => simp [oneKind] at h1
+    | cons y ys =>
+      have : out.filter (fun m => kindOf m == kindOf y) = [] := filter_kind_nil out y (fun x hx => h x hx y (by simp))
+      simp [h1, this]
+  · rw [if_neg h1]
+    by_cases h2 : oneKind out = true
+    · cases out with
+      | nil => simp [oneKind] at h2
+      | cons y ys =>
+        have : inn.filter (fun m => kindOf m == kindOf y) = [] :=
+          filter_kind_nil inn y (fun x hx hk => h y (by simp) x hx hk.symm)
+        simp [h2, this]
+    · rw [if_neg h2]
+
+/-- **IT-3** Legs of no common kind (a coin for an e-money token or back, crypto for an NFT or back), with no money: a
+taxable exchange at the value of what came in (never below 0), and what came in is bought at that value. -/
+theorem apart_exchange_taxed (euro : Mv → Bool) (h : SwapH) (v : ℚ) (hk : h.keepsCost = false) (ho : h.out ≠ [])
+    (hi : h.inn ≠ []) (hf : h.fIn = []) (hfo : h.fOut = []) (hs : sameKind h.out h.inn = false)
+    (ha : apart h.out h.inn) (hv : sumV (h.inn.map Mv.value) = some v) :
+    classify euro h = .dispose (coins h.out) (max v 0) (h.out.all euro) :: buys h.inn v := by
+  simp [classify, hk, ho, hi, hf, hfo, hs, split_none_apart euro _ _ ha, exchange, hv]
+
+/-- **IT-3** NFTs: an NFT for NFTs (no money in) is an untaxed swap. Crypto for an NFT or an NFT for crypto (every leg
+of one side an NFT, none of the other), with no money: a taxable exchange at the value of what came in, or, when that
+has no price, at the value of what was given; what came in is bought at that same value. -/
+theorem nft_rules (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ []) :
+    (h.fIn = [] → (∀ m ∈ h.out ++ h.inn, m.nft = true) →
+      classify euro h = [.swap (coins h.out) (gots h.inn) (paidOf h.fOut)]) ∧
+    (∀ v, h.fIn = [] → h.fOut = [] →
+      (((∀ m ∈ h.out, m.nft = true) ∧ ∀ m ∈ h.inn, m.nft = false) ∨
+        ((∀ m ∈ h.out, m.nft = false) ∧ ∀ m ∈ h.inn, m.nft = true)) →
+      (sumV (h.inn.map Mv.value)).or (sumV (h.out.map Mv.value)) = some v →
+      classify euro h = .dispose (coins h.out) (max v 0) (h.out.all euro) :: buys h.inn v) := by
+  have kn : ∀ m : Mv, m.nft = true → kindOf m = 2 := fun m hm => by simp [kindOf, hm]
+  have kc : ∀ m : Mv, m.nft = false → kindOf m ≠ 2 := fun m hm => by
+    unfold kindOf; rw [hm]; simp only [Bool.false_eq_true, if_false]; split_ifs <;> decide
+  constructor
+  · intro hf hn
+    apply same_kind_untaxed euro h hk ho hi hf
+    unfold sameKind
+    generalize hl : h.out ++ h.inn = l at hn
+    cases l with
+    | nil => simp at hl; exact absurd hl.1 ho
+    | cons y ys =>
+      simp only [oneKind, List.all_eq_true, beq_iff_eq]
+      intro x hx; rw [kn x (hn x (by simp [hx])), kn y (hn y (by simp))]
+  · intro v hf hfo hside hv
+    have ha : apart h.out h.inn := by
+      intro x hx y hy hxy
+      rcases hside with ⟨a, b⟩ | ⟨a, b⟩
+      · exact kc y (b y hy) (hxy.symm.trans (kn x (a x hx)))
+      · exact kc x (a x hx) (hxy.trans (kn y (b y hy)))
+    have hs : sameKind h.out h.inn = false := by
+      obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil _ ho
+      obtain ⟨y, hy⟩ := List.exists_mem_of_ne_nil _ hi
+      unfold sameKind
+      generalize hl : h.out ++ h.inn = l
+      cases l with
+      | nil => simp at hl; exact absurd hl.1 ho
+      | cons z zs =>
+        simp only [oneKind, List.all_eq_false, beq_iff_eq]
+        have mx : x ∈ z :: zs := hl ▸ (by simp [hx])
+        have my : y ∈ z :: zs := hl ▸ (by simp [hy])
+        by_contra hc; push_neg at hc
+        have e : ∀ w ∈ z :: zs, kindOf w = kindOf z := by
+          intro w hw; rcases List.mem_cons.mp hw with rfl | hw
+          · rfl
+          · exact hc w hw
+        exact ha x hx y hy ((e x mx).trans (e y my).symm)
+    have hnft : (h.out ++ h.inn).any Mv.nft = true := by
+      rcases hside with ⟨a, _⟩ | ⟨_, b⟩
+      · obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil _ ho; exact List.any_eq_true.mpr ⟨x, by simp [hx], a x hx⟩
+      · obtain ⟨y, hy⟩ := List.exists_mem_of_ne_nil _ hi; exact List.any_eq_true.mpr ⟨y, by simp [hy], b y hy⟩
+    simp only [classify, hk, ho, hi, hf, hfo, hs, split_none_apart euro _ _ ha, exchange]
+    rcases h1 : sumV (h.inn.map Mv.value) with _ | a <;> rcases h2 : sumV (h.out.map Mv.value) with _ | b <;>
+      simp_all
 
 /-- **IT-3** Crypto sold for money (outside the 2026 euro e-money token rule): a sale at the money received. -/
-theorem sale_for_money (h : SwapH) (m : ℚ) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn = [])
-    (hf : h.fIn ≠ []) (hr : euroRedeem h = false) (hm : sumV (h.fIn.map Money.value) = some m) :
-    classify h = [.dispose (coins h.out) m (h.out.all Mv.euroEmt)] := by
+theorem sale_for_money (euro : Mv → Bool) (h : SwapH) (m : ℚ) (hk : h.keepsCost = false) (ho : h.out ≠ [])
+    (hi : h.inn = []) (hf : h.fIn ≠ []) (hr : euroRedeem euro h = false) (hm : sumV (h.fIn.map Money.value) = some m) :
+    classify euro h = [.dispose (coins h.out) m (h.out.all euro)] := by
   simp [classify, hk, ho, hi, hf, hr, hm]
 
-/-- **IT-2** (where the code differs from "money paid on top") Money received with a swap of the same kind makes the
-whole swap a taxable exchange: the first op is a sale of the coins given. -/
-theorem money_in_taxed (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ [])
-    (hf : h.fIn ≠ []) : ∃ p e rest, classify h = .dispose (coins h.out) p e :: rest := by
-  simp only [classify, hk, ho, hi, hf, Bool.false_eq_true, if_false, ne_eq, not_false_eq_true, false_and]
+/-- **IT-2** (where the code differs from "money paid on top") Money received with a swap makes the whole swap a
+taxable exchange: the first op is a sale of every coin given. -/
+theorem money_in_taxed (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ [])
+    (hf : h.fIn ≠ []) : ∃ p e rest, classify euro h = .dispose (coins h.out) p e :: rest := by
+  simp only [classify, hk, ho, hi, hf, Bool.false_eq_true, if_false, ne_eq, not_false_eq_true, false_and, exchange]
   exact ⟨_, _, _, rfl⟩
 
-/-- **IT-10** From 2026, euro e-money tokens turned into euros (L. 199/2025 art. 1 c. 28): the coins go with no line, so
-no gain or loss. -/
-theorem euro_redeem_no_gain (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn = [])
-    (hf : h.fIn ≠ []) (hy : 2026 ≤ h.year) (he : h.out.all Mv.euroEmt = true) (hr : h.fIn.all Money.eur = true) :
-    classify h = [.drop (coins h.out)] := by
-  have : euroRedeem h = true := by simp [euroRedeem, hy, he, hr]
-  simp [classify, hk, ho, hi, hf, this]
+/-- **IT-2** Both sides mixed (legs of more than one kind given and received), no money: no split, the whole swap is
+a taxable exchange. -/
+theorem both_mixed_whole (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ [])
+    (hi : h.inn ≠ []) (hs : sameKind h.out h.inn = false) (h1 : oneKind h.inn = false) (h2 : oneKind h.out = false) :
+    classify euro h = exchange euro h := by
+  by_cases hf : h.fIn = [] <;> by_cases hfo : h.fOut = [] <;>
+    simp [classify, hk, ho, hi, hf, hfo, hs, splitMixed, h1, h2]
 
-/-- **IT-10** The coins dropped make no line (and leave the stacks as a sale would). -/
-theorem drop_no_line (st : Stacks) (gave : List Coin) : (step st (.drop gave)).2 = none := rfl
+/-- **IT-2** Case A, everything received of one kind (`y` the first leg received): when the legs given of another kind
+(`sell`) are worth `v > 0`, they are realised in one line at `v` (a euro e-money token's only when every one of them
+is), and the legs given of the kind received (`keep`) go into what came in as an untaxed swap with `v` paid on top. -/
+theorem case_a (euro : Mv → Bool) (h : SwapH) (y : Mv) (ys : List Mv) (v : ℚ) (hk : h.keepsCost = false)
+    (ho : h.out ≠ []) (hi : h.inn = y :: ys) (hf : h.fIn = []) (hfo : h.fOut = []) (hs : sameKind h.out h.inn = false)
+    (h1 : oneKind h.inn = true) (hkeep : h.out.filter (fun m => kindOf m == kindOf y) ≠ [])
+    (hsell : h.out.filter (fun m => kindOf m != kindOf y) ≠ [])
+    (hv : sumV ((h.out.filter fun m => kindOf m != kindOf y).map Mv.value) = some v) (hv0 : 0 < v) :
+    classify euro h =
+      [.dispose (coins (h.out.filter fun m => kindOf m != kindOf y)) v
+          ((h.out.filter fun m => kindOf m != kindOf y).all euro),
+        .swap (coins (h.out.filter fun m => kindOf m == kindOf y)) (gots h.inn) v] := by
+  have hne : v ≠ 0 := ne_of_gt hv0
+  have hh : (Option.map kindOf h.inn.head?).getD 0 = kindOf y := by rw [hi]; rfl
+  have hi' : h.inn ≠ [] := by rw [hi]; simp
+  simp [classify, hk, ho, hi', hf, hfo, hs, splitMixed, h1, hh, hkeep, hsell, hv, hne, hv0]
+
+/-- **IT-2** Case A with the legs of another kind worth nothing: the whole swap carries its cost, no line. -/
+theorem case_a_zero (euro : Mv → Bool) (h : SwapH) (y : Mv) (ys : List Mv) (hk : h.keepsCost = false)
+    (ho : h.out ≠ []) (hi : h.inn = y :: ys) (hf : h.fIn = []) (hfo : h.fOut = []) (hs : sameKind h.out h.inn = false)
+    (h1 : oneKind h.inn = true) (hkeep : h.out.filter (fun m => kindOf m == kindOf y) ≠ [])
+    (hsell : h.out.filter (fun m => kindOf m != kindOf y) ≠ [])
+    (hv : sumV ((h.out.filter fun m => kindOf m != kindOf y).map Mv.value) = some 0) :
+    classify euro h = [.swap (coins h.out) (gots h.inn) 0] := by
+  have hh : (Option.map kindOf h.inn.head?).getD 0 = kindOf y := by rw [hi]; rfl
+  have hi' : h.inn ≠ [] := by rw [hi]; simp
+  simp [classify, hk, ho, hi', hf, hfo, hs, splitMixed, h1, hh, hkeep, hsell, hv]
+
+/-- **IT-2** Case B, everything given of one kind (`y` the first leg given, received legs not all of one kind): with
+`vg > 0` the value of the legs received of another kind (`got`) and `va > 0` the value of all received, `f = vg ÷ va`
+of each coin given is realised in one line at `vg`, the rest of each coin given goes into the legs received of the
+kind given (`keep`) as an untaxed swap, and `got` is bought at `vg`. -/
+theorem case_b (euro : Mv → Bool) (h : SwapH) (y : Mv) (ys : List Mv) (vg va : ℚ) (hk : h.keepsCost = false)
+    (ho : h.out = y :: ys) (hi : h.inn ≠ []) (hf : h.fIn = []) (hfo : h.fOut = []) (hs : sameKind h.out h.inn = false)
+    (h1 : oneKind h.inn = false) (h2 : oneKind h.out = true)
+    (hkeep : h.inn.filter (fun m => kindOf m == kindOf y) ≠ []) (hgot : h.inn.filter (fun m => kindOf m != kindOf y) ≠ [])
+    (hg : sumV ((h.inn.filter fun m => kindOf m != kindOf y).map Mv.value) = some vg)
+    (ha : sumV (h.inn.map Mv.value) = some va) (hg0 : vg ≠ 0) (ha0 : 0 < va) :
+    classify euro h =
+      [.dispose (scale (vg / va) h.out) vg (h.out.all euro),
+        .swap (rest (vg / va) h.out) (gots (h.inn.filter fun m => kindOf m == kindOf y)) 0] ++
+        buys (h.inn.filter fun m => kindOf m != kindOf y) vg := by
+  have ho' : h.out ≠ [] := by rw [ho]; simp
+  have hna : ¬ va ≤ 0 := not_le.mpr ha0
+  have hh : (Option.map kindOf h.out.head?).getD 0 = kindOf y := by rw [ho]; rfl
+  simp [classify, hk, ho', hi, hf, hfo, hs, splitMixed, h1, h2, hh, hkeep, hgot, hg, ha, hg0, hna]
+
+/-- **IT-2** Case B with the legs received of another kind worth nothing: the whole swap carries its cost, no line. -/
+theorem case_b_zero (euro : Mv → Bool) (h : SwapH) (y : Mv) (ys : List Mv) (va : ℚ) (hk : h.keepsCost = false)
+    (ho : h.out = y :: ys) (hi : h.inn ≠ []) (hf : h.fIn = []) (hfo : h.fOut = []) (hs : sameKind h.out h.inn = false)
+    (h1 : oneKind h.inn = false) (h2 : oneKind h.out = true)
+    (hkeep : h.inn.filter (fun m => kindOf m == kindOf y) ≠ []) (hgot : h.inn.filter (fun m => kindOf m != kindOf y) ≠ [])
+    (hg : sumV ((h.inn.filter fun m => kindOf m != kindOf y).map Mv.value) = some 0)
+    (ha : sumV (h.inn.map Mv.value) = some va) :
+    classify euro h = [.swap (coins h.out) (gots h.inn) 0] := by
+  have ho' : h.out ≠ [] := by rw [ho]; simp
+  have hh : (Option.map kindOf h.out.head?).getD 0 = kindOf y := by rw [ho]; rfl
+  simp [classify, hk, ho', hi, hf, hfo, hs, splitMixed, h1, h2, hh, hkeep, hgot, hg, ha]
+
+/-- **IT-2** Quantities in Case A: the coins carried (`keep`) and the coins realised (`sell`) are exactly the coins
+given, split by kind. -/
+theorem case_a_qty (out : List Mv) (k : ℕ) :
+    ((coins (out.filter fun m => kindOf m == k)).map Coin.qty).sum +
+      ((coins (out.filter fun m => kindOf m != k)).map Coin.qty).sum = ((coins out).map Coin.qty).sum := by
+  induction out with
+  | nil => simp [coins]
+  | cons m ms ih =>
+    by_cases hm : kindOf m = k
+    · simp [coins, hm] at ih ⊢; linarith
+    · simp [coins, hm] at ih ⊢; linarith
+
+/-- **IT-2** Quantities in Case B: each coin given is split exactly into the part realised (`f` of it) and the part
+carried, same asset, so the parts add up to every coin given. -/
+theorem case_b_qty (f : ℚ) (out : List Mv) :
+    (scale f out).map Coin.asset = out.map Mv.asset ∧ (rest f out).map Coin.asset = out.map Mv.asset ∧
+      List.zipWith (fun a b => a.qty + b.qty) (scale f out) (rest f out) = out.map Mv.qty := by
+  refine ⟨by simp [scale], by simp [rest], ?_⟩
+  induction out with
+  | nil => simp [scale, rest]
+  | cons m ms ih => simp only [scale, rest, List.map_cons, List.zipWith_cons_cons] at ih ⊢; rw [ih]; congr 1; ring
+
+/-- **IT-10** From 2026, euro e-money tokens turned into euros (L. 199/2025 art. 1 c. 28) go with no line, so no gain
+or loss and no cost carried; this happens only when every coin given is a euro e-money token in that year and all the
+money received is euros, from 2026. Otherwise the coins are sold at the money received. -/
+theorem euro_redeem_iff (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn = [])
+    (hf : h.fIn ≠ []) :
+    classify euro h = [.drop (coins h.out)] ↔
+      (2026 ≤ h.year ∧ (∀ m ∈ h.out, euro m = true) ∧ ∀ x ∈ h.fIn, x.eur = true) := by
+  by_cases hr : euroRedeem euro h = true
+  · have : 2026 ≤ h.year ∧ (∀ m ∈ h.out, euro m = true) ∧ ∀ x ∈ h.fIn, x.eur = true := by
+      simpa [euroRedeem, List.all_eq_true, and_assoc] using hr
+    simpa [classify, hk, ho, hi, hf, hr] using this
+  · have hr' : ¬ (2026 ≤ h.year ∧ (∀ m ∈ h.out, euro m = true) ∧ ∀ x ∈ h.fIn, x.eur = true) := by
+      intro c; apply hr; simp only [euroRedeem, Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true]
+      exact ⟨⟨c.1, c.2.1⟩, c.2.2⟩
+    simp only [Bool.not_eq_true] at hr
+    simp [classify, hk, ho, hi, hf, hr, hr']
+
+/-- **IT-10** The redemption follows the token's day: from 2026, a pending token `t` (EURC, EURI, EURQ) turned into
+euros is not realised exactly when a statement for it is dated on that day or before. -/
+theorem redeem_days (pend : ℕ → Bool) (st : Statements) (h : SwapH) (t : ℕ) (hk : h.keepsCost = false)
+    (ho : h.out ≠ []) (hi : h.inn = []) (hf : h.fIn ≠ []) (ht : ∀ m ∈ h.out, m.tok = some t) (hp : pend t = true)
+    (he : ∀ x ∈ h.fIn, x.eur = true) (hy : 2026 ≤ h.year) :
+    classify (euroIn pend st h.day) h = [.drop (coins h.out)] ↔ ∃ d0, (t, d0) ∈ st ∧ d0 ≤ h.day := by
+  rw [euro_redeem_iff _ h hk ho hi hf]
+  constructor
+  · rintro ⟨-, hall, -⟩
+    obtain ⟨m, hm⟩ := List.exists_mem_of_ne_nil _ ho
+    by_contra hc; push_neg at hc
+    have := pending_before pend st h.day t m (ht m hm) hp (fun s hs hst => hc s.2 (by rw [← hst]; exact hs))
+    rw [hall m hm] at this; exact absurd this (by simp)
+  · rintro ⟨d0, hs, hd0⟩
+    exact ⟨hy, fun m hm => pending_from pend st h.day t d0 m (ht m hm) hs hd0, he⟩
+
+/-- **IT-10** Euros received for a pending token `t` on a day before every statement's day for it are realised: a
+sale at the euros received, not marked a euro e-money token's (so at 33% from 2026). -/
+theorem redeem_before_day (pend : ℕ → Bool) (st : Statements) (h : SwapH) (t : ℕ) (mon : ℚ)
+    (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn = []) (hf : h.fIn ≠ [])
+    (ht : ∀ m ∈ h.out, m.tok = some t) (hp : pend t = true) (hd : ∀ s ∈ st, s.1 = t → h.day < s.2)
+    (hm : sumV (h.fIn.map Money.value) = some mon) :
+    classify (euroIn pend st h.day) h = [.dispose (coins h.out) mon false] := by
+  obtain ⟨m, hmo⟩ := List.exists_mem_of_ne_nil _ ho
+  have hm0 := pending_before pend st h.day t m (ht m hmo) hp hd
+  have hall : h.out.all (euroIn pend st h.day) = false := List.all_eq_false.mpr ⟨m, hmo, by simp [hm0]⟩
+  have hr : euroRedeem (euroIn pend st h.day) h = false := by simp [euroRedeem, hall]
+  rw [sale_for_money _ h mon hk ho hi hf hr hm, hall]
+
+/-- **IT-10** The coins dropped make no line and no lot: over the assets given, the cost taken leaves the cost held. -/
+theorem drop_no_line (A : Finset ℕ) (st : Stacks) (gave : List Coin) (h : ∀ c ∈ gave, c.asset ∈ A) :
+    (step st (.drop gave)).2 = none ∧ totalCost A (step st (.drop gave)).1 + (takeAll st gave).1 = totalCost A st := by
+  refine ⟨rfl, ?_⟩
+  have := takeAll_cost A st gave h
+  simp only [step]; linarith
 
 /-- **IT-10** Before 2026 the same redemption is a sale at the euros received, marked a euro e-money token's. -/
-theorem euro_redeem_2025_taxed (h : SwapH) (m : ℚ) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn = [])
-    (hf : h.fIn ≠ []) (hy : h.year ≤ 2025) (hm : sumV (h.fIn.map Money.value) = some m) :
-    classify h = [.dispose (coins h.out) m (h.out.all Mv.euroEmt)] := by
-  have : euroRedeem h = false := by simp [euroRedeem]; omega
-  exact sale_for_money h m hk ho hi hf this hm
+theorem euro_redeem_2025_taxed (euro : Mv → Bool) (h : SwapH) (m : ℚ) (hk : h.keepsCost = false) (ho : h.out ≠ [])
+    (hi : h.inn = []) (hf : h.fIn ≠ []) (hy : h.year ≤ 2025) (hm : sumV (h.fIn.map Money.value) = some m) :
+    classify euro h = [.dispose (coins h.out) m (h.out.all euro)] := by
+  have : euroRedeem euro h = false := by simp [euroRedeem]; omega
+  exact sale_for_money euro h m hk ho hi hf this hm
 
 /-- **IT-10** Euros (or any money) turned into tokens: only buys at the money paid, no line. -/
-theorem bought_with_money (h : SwapH) (p : ℚ) (hk : h.keepsCost = false) (ho : h.out = []) (hi : h.inn ≠ [])
-    (hf : h.fOut ≠ []) (hp : sumV (h.fOut.map Money.value) = some p) :
-    classify h = buys h.inn p := by
+theorem bought_with_money (euro : Mv → Bool) (h : SwapH) (p : ℚ) (hk : h.keepsCost = false) (ho : h.out = [])
+    (hi : h.inn ≠ []) (hf : h.fOut ≠ []) (hp : sumV (h.fOut.map Money.value) = some p) :
+    classify euro h = buys h.inn p := by
   simp [classify, hk, ho, hi, hf, hp]
 
 def Op.cost : Op → ℚ
@@ -524,6 +907,148 @@ theorem buys_total (ins : List Mv) (total : ℚ) (h : ins ≠ []) : ((buys ins t
   rw [List.map_map] at this
   simpa [buys, Op.cost, Function.comp_def] using this
 
+/-! ### Cost through the split (`itRun` on the ops of one time, in `byKind` order) -/
+
+theorem run_append (st : Stacks) (a b : List Op) :
+    run st (a ++ b) = ((run st a).1 ++ (run (run st a).2 b).1, (run (run st a).2 b).2) := by
+  induction a generalizing st with
+  | nil => simp [run]
+  | cons o os ih => simp only [List.cons_append, run, ih, List.append_assoc]
+
+theorem run_buys (A : Finset ℕ) (ins : List Mv) (total : ℚ) (st : Stacks) (hA : ∀ m ∈ ins, m.asset ∈ A)
+    (hq : ∀ m ∈ ins, 0 < m.qty) (hne : ins ≠ []) :
+    (run st (buys ins total)).1 = [] ∧ totalCost A (run st (buys ins total)).2 = totalCost A st + total := by
+  have key : ∀ (c : Mv → ℚ) (ms : List Mv) (st : Stacks), (∀ m ∈ ms, m.asset ∈ A) → (∀ m ∈ ms, 0 < m.qty) →
+      (run st (ms.map fun m => Op.buy m.asset m.qty (c m))).1 = [] ∧
+        totalCost A (run st (ms.map fun m => Op.buy m.asset m.qty (c m))).2 = totalCost A st + (ms.map c).sum := by
+    intro c ms
+    induction ms with
+    | nil => intro st _ _; simp [run]
+    | cons m ms ih =>
+      intro st hA hq
+      have hm : 0 < m.qty := hq m (by simp)
+      obtain ⟨h1, h2⟩ := ih (push st m.asset ⟨m.qty, c m⟩) (fun x hx => hA x (by simp [hx]))
+        (fun x hx => hq x (by simp [hx]))
+      simp only [List.map_cons, run, step, hm, if_true, Option.toList, List.nil_append]
+      refine ⟨h1, ?_⟩
+      rw [h2, push, total_update A st m.asset _ (hA m (by simp))]
+      simp [sumCost]; ring
+  obtain ⟨k1, k2⟩ := key (fun m => portion total (ins.map Mv.value) m.value) ins st hA hq
+  unfold buys
+  refine ⟨k1, ?_⟩
+  rw [k2]
+  have := buys_total ins total hne
+  simp only [buys, List.map_map, Function.comp_def, Op.cost] at this
+  rw [this]
+
+theorem byKind_buys (ins : List Mv) (total : ℚ) (r : ℕ) :
+    (buys ins total).filter (rank · == r) = if r = 0 then buys ins total else [] := by
+  unfold buys
+  split_ifs with h
+  · subst h; rw [List.filter_eq_self]; intro x hx; obtain ⟨m, -, rfl⟩ := List.mem_map.mp hx; rfl
+  · rw [List.filter_eq_nil_iff]; intro x hx; obtain ⟨m, -, rfl⟩ := List.mem_map.mp hx
+    simp [rank]; omega
+
+/-- **IT-2** Case A conserves cost: run in `itRun`'s order (the swap, then the line), the cost held after is the cost
+held before less the cost realised plus the value realised `v` (which becomes cost of what came in). So the cost
+carried plus the cost realised is the cost given: the split invents no cost and loses none. -/
+theorem case_a_cost (A : Finset ℕ) (st : Stacks) (sell keep inn : List Mv) (v : ℚ) (e : Bool)
+    (hA : ∀ m ∈ sell ++ keep ++ inn, m.asset ∈ A) (hpos : (gots inn).filter (fun x => decide (0 < x.qty)) ≠ []) :
+    ∃ l, (run st (byKind [.dispose (coins sell) v e, .swap (coins keep) (gots inn) v])).1 = [l] ∧ l.proceeds = v ∧
+      totalCost A (run st (byKind [.dispose (coins sell) v e, .swap (coins keep) (gots inn) v])).2 =
+        totalCost A st - l.cost + l.proceeds := by
+  have hb : byKind [.dispose (coins sell) v e, .swap (coins keep) (gots inn) v] =
+      [.swap (coins keep) (gots inn) v, .dispose (coins sell) v e] := by simp [byKind, rank]
+  rw [hb]
+  have hk : ∀ c ∈ coins keep, c.asset ∈ A := by
+    intro c hc; obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hc; exact hA m (by simp [hm])
+  have hs : ∀ c ∈ coins sell, c.asset ∈ A := by
+    intro c hc; obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hc; exact hA m (by simp [hm])
+  have hi : ∀ g ∈ gots inn, g.asset ∈ A := by
+    intro g hg; obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hg; exact hA m (by simp [hm])
+  have h1 := swap_conserves A st (coins keep) (gots inn) v hk hi hpos
+  have hn := swap_no_line st (coins keep) (gots inn) v
+  set st1 := (step st (.swap (coins keep) (gots inn) v)).1
+  have h2 := takeAll_cost A st1 (coins sell) hs
+  refine ⟨⟨.sale, v, (takeAll st1 (coins sell)).1, v - (takeAll st1 (coins sell)).1, (takeAll st1 (coins sell)).2.1,
+    e⟩, ?_, rfl, ?_⟩
+  · simp only [run, hn, Option.toList, List.nil_append, List.append_nil]; rfl
+  · show totalCost A (takeAll st1 (coins sell)).2.2 = _
+    dsimp only; linarith
+
+/-- **IT-2** Case B conserves cost: run in `itRun`'s order (the buys of `got`, the swap of the part kept, then the line
+for the part realised), the cost held after is the cost held before less the cost realised plus `vg` (the cost of
+`got`). The cost carried to `keep` plus the cost realised is the cost of the coins given. -/
+theorem case_b_cost (A : Finset ℕ) (st : Stacks) (out keep got : List Mv) (f vg : ℚ) (e : Bool)
+    (hA : ∀ m ∈ out ++ keep ++ got, m.asset ∈ A) (hpos : (gots keep).filter (fun x => decide (0 < x.qty)) ≠ [])
+    (hq : ∀ m ∈ got, 0 < m.qty) (hg : got ≠ []) :
+    ∃ l, (run st (byKind ([.dispose (scale f out) vg e, .swap (rest f out) (gots keep) 0] ++ buys got vg))).1 = [l] ∧
+      l.proceeds = vg ∧
+      totalCost A (run st (byKind ([.dispose (scale f out) vg e, .swap (rest f out) (gots keep) 0] ++
+        buys got vg))).2 = totalCost A st - l.cost + l.proceeds := by
+  have hb : byKind ([.dispose (scale f out) vg e, .swap (rest f out) (gots keep) 0] ++ buys got vg) =
+      buys got vg ++ [.swap (rest f out) (gots keep) 0, .dispose (scale f out) vg e] := by
+    simp only [byKind, List.filter_append, byKind_buys]
+    simp [rank]
+  rw [hb, run_append]
+  obtain ⟨b1, b2⟩ := run_buys A got vg st (fun m hm => hA m (by simp [hm])) hq hg
+  set st0 := (run st (buys got vg)).2
+  have hk : ∀ c ∈ rest f out, c.asset ∈ A := by
+    intro c hc; obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hc; exact hA m (by simp [hm])
+  have hs : ∀ c ∈ scale f out, c.asset ∈ A := by
+    intro c hc; obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hc; exact hA m (by simp [hm])
+  have hi : ∀ g ∈ gots keep, g.asset ∈ A := by
+    intro g hg; obtain ⟨m, hm, rfl⟩ := List.mem_map.mp hg; exact hA m (by simp [hm])
+  have h1 := swap_conserves A st0 (rest f out) (gots keep) 0 hk hi hpos
+  have hn := swap_no_line st0 (rest f out) (gots keep) 0
+  set st1 := (step st0 (.swap (rest f out) (gots keep) 0)).1
+  have h2 := takeAll_cost A st1 (scale f out) hs
+  refine ⟨⟨.sale, vg, (takeAll st1 (scale f out)).1, vg - (takeAll st1 (scale f out)).1,
+    (takeAll st1 (scale f out)).2.1, e⟩, ?_, rfl, ?_⟩
+  · simp only [run, b1, hn, Option.toList, List.nil_append, List.append_nil]; rfl
+  · show totalCost A (takeAll st1 (scale f out)).2.2 = _
+    dsimp only; linarith
+
+/-- The app's test (Case A): 1 ETH (cost €2,000, now €3,000) and 1,000 USDC (cost €1,000) for a pool token worth
+€4,000: one line, USDC realised at €1,000 for €1,000 of cost; the pool token costs €3,000 (ETH's €2,000 plus €1,000). -/
+theorem lp_case_a :
+    let st : Stacks := push (push (fun _ => []) 0 ⟨1, 2000⟩) 1 ⟨1000, 1000⟩
+    let h : SwapH :=
+      { year := 2025
+        out := [⟨0, 1, some 3000, false, false, none⟩, ⟨1, 1000, some 1000, true, false, none⟩]
+        inn := [⟨2, 1, some 4000, false, false, none⟩] }
+    let r := run st (byKind (classify (fun _ => false) h))
+    r.1 = [⟨.sale, 1000, 1000, 0, 0, false⟩] ∧ r.2 2 = [⟨1, 3000⟩] := by
+  norm_num [classify, sameKind, oneKind, kindOf, splitMixed, sumV, coins, gots, byKind, rank, run, step, takeAll,
+    take, push, pushAll, portion, allPos, wt, Function.update, List.cons_ne_nil, reduceCtorEq]
+
+/-- The app's test (Case B): 1 ETH (cost €2,000) for a pool token worth €2,000 and 1,000 USDC: a third of the ETH is
+realised at €1,000 for €666.67 of cost (exactly 2,000/3); the pool token costs €1,333.33 (4,000/3), USDC €1,000. -/
+theorem lp_case_b :
+    let st : Stacks := push (fun _ => []) 0 ⟨1, 2000⟩
+    let h : SwapH :=
+      { year := 2025
+        out := [⟨0, 1, some 3000, false, false, none⟩]
+        inn := [⟨2, 1, some 2000, false, false, none⟩, ⟨1, 1000, some 1000, true, false, none⟩] }
+    let r := run st (byKind (classify (fun _ => false) h))
+    r.1 = [⟨.sale, 1000, 2000 / 3, 1000 / 3, 0, false⟩] ∧ r.2 2 = [⟨1, 4000 / 3⟩] ∧ r.2 1 = [⟨1000, 1000⟩] := by
+  norm_num [classify, sameKind, oneKind, kindOf, splitMixed, sumV, coins, gots, byKind, rank, run, step, takeAll,
+    take, push, pushAll, portion, allPos, wt, Function.update, buys, scale, rest, List.cons_ne_nil, reduceCtorEq]
+
+/-- Finding (Case B with lots at different costs): the untaxed swap runs before the line (`itRun`'s order), so the
+part kept takes the newest lots and the part realised the older ones, not a share of the cost of the coins given. ETH
+held as 0.5 bought for €750 and then 0.5 for €250, all given for a pool token worth €2,000 and 1,000 USDC: the third
+realised costs €500 (older lot), where a third of the €1,000 given is €333.33 (LIFO on the realised part alone: €166.67). -/
+theorem case_b_older_lots :
+    let st : Stacks := push (push (fun _ => []) 0 ⟨1 / 2, 750⟩) 0 ⟨1 / 2, 250⟩
+    let h : SwapH :=
+      { year := 2025
+        out := [⟨0, 1, some 3000, false, false, none⟩]
+        inn := [⟨2, 1, some 2000, false, false, none⟩, ⟨1, 1000, some 1000, true, false, none⟩] }
+    let r := run st (byKind (classify (fun _ => false) h))
+    r.1 = [⟨.sale, 1000, 500, 500, 0, false⟩] ∧ r.2 2 = [⟨1, 500⟩] := by
+  norm_num [classify, sameKind, oneKind, kindOf, splitMixed, sumV, coins, gots, byKind, rank, run, step, takeAll,
+    take, push, pushAll, portion, allPos, wt, Function.update, buys, scale, rest, List.cons_ne_nil, reduceCtorEq]
 /-! ## The year (`itYearBase`, `itYears`; rules 5-8) -/
 
 /-- Losses on hand: the year a loss came from and what is left of it (whole euros). -/
@@ -573,13 +1098,34 @@ structure YearOut where
   expired : ℤ
   residues : List Entry
 
+/-- `itYearBase`'s `[...pool].sort((a, b) => a.from - b.from)`: the losses on hand by year, oldest first (a stable
+sort, so losses of one year keep their order). -/
+def sortPool (pool : List Entry) : List Entry := pool.mergeSort fun a b => decide (a.yr ≤ b.yr)
+
+theorem amt_sortPool (pool : List Entry) : amt (sortPool pool) = amt pool := by
+  unfold amt sortPool; exact ((List.mergeSort_perm _ _).map _).sum_eq
+
+/-- A pool already in year order is left as it is. -/
+theorem sortPool_of_sorted (pool : List Entry) (h : pool.Pairwise fun a b => a.yr ≤ b.yr) : sortPool pool = pool := by
+  unfold sortPool; apply List.mergeSort_of_pairwise; simpa using h
+
+/-- **IT-7** The losses are used oldest first whatever the order they come in: the sorted pool is in year order and
+holds the same losses. -/
+theorem sortPool_sorted (pool : List Entry) :
+    (sortPool pool).Pairwise (fun a b => a.yr ≤ b.yr) ∧ (sortPool pool).Perm pool := by
+  refine ⟨?_, List.mergeSort_perm _ _⟩
+  have := List.pairwise_mergeSort (le := fun a b : Entry => decide (a.yr ≤ b.yr))
+    (fun a b c hab hbc => by simp only [decide_eq_true_eq] at *; omega)
+    (fun a b => by simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) pool
+  simpa [sortPool] using this
+
 /-- One year of `itYears` from its net and the losses on hand: `expired` is what drops out of the pool unused. -/
 def yearStep (year : ℕ) (net : ℚ) (pool : List Entry) : YearOut :=
   { gain := yGain year (euros net), loss := yLoss year (euros net),
-    used := (use year (yGain year (euros net)) pool).1,
-    base := (use year (yGain year (euros net)) pool).2.2,
-    expired := amt ((use year (yGain year (euros net)) pool).2.1.filter (fun e => !keep year e)),
-    residues := (use year (yGain year (euros net)) pool).2.1.filter (keep year) ++
+    used := (use year (yGain year (euros net)) (sortPool pool)).1,
+    base := (use year (yGain year (euros net)) (sortPool pool)).2.2,
+    expired := amt ((use year (yGain year (euros net)) (sortPool pool)).2.1.filter (fun e => !keep year e)),
+    residues := (use year (yGain year (euros net)) (sortPool pool)).2.1.filter (keep year) ++
       (if 0 < yLoss year (euros net) then [⟨year, yLoss year (euros net)⟩] else []) }
 
 /-- `itYears` over (year, net) in year order, from the losses carried in. -/
@@ -629,13 +1175,13 @@ def tax2025 (o : YearOut) : ℚ := centsUp ((o.base : ℚ) * (26 / 100))
 theorem circolare_p51 :
     (yearStep 2023 (-2500) []).loss = 500 ∧ (yearStep 2023 (-2500) []).residues = [⟨2023, 500⟩] ∧
       (yearStep 2023 (-2500) []).base = 0 := by
-  simp [yearStep, yGain, yLoss, threshold, euros, use, keep]; norm_num
+  simp [yearStep, yGain, yLoss, threshold, euros, use, keep, sortPool]; norm_num
 
 /-- **IT-6** Agenzia delle Entrate FAQ (the app's test): net gains of €2,500 in 2024 are taxed on the €500 over
 €2,000, at 26%: €130. -/
 theorem faq_2024 :
     (yearStep 2024 2500 []).gain = 500 ∧ (yearStep 2024 2500 []).base = 500 ∧ tax2025 (yearStep 2024 2500 []) = 130 := by
-  simp [yearStep, yGain, yLoss, threshold, euros, use, tax2025, centsUp]; norm_num
+  simp [yearStep, yGain, yLoss, threshold, euros, use, tax2025, centsUp, sortPool]; norm_num
 
 /-! ### Rule 7: losses carried four years, oldest first, then expire -/
 
@@ -743,9 +1289,10 @@ theorem yGain_nonneg (year : ℕ) (n : ℤ) : 0 ≤ yGain year n := by
 theorem year_accounts (year : ℕ) (net : ℚ) (pool : List Entry) :
     amt pool + (yearStep year net pool).loss =
       amt (yearStep year net pool).used + (yearStep year net pool).expired + amt (yearStep year net pool).residues := by
-  have h1 := use_conserves year (yGain year (euros net)) pool
-  have h2 := filter_split (keep year) (use year (yGain year (euros net)) pool).2.1
+  have h1 := use_conserves year (yGain year (euros net)) (sortPool pool)
+  have h2 := filter_split (keep year) (use year (yGain year (euros net)) (sortPool pool)).2.1
   have h3 := yLoss_nonneg year (euros net)
+  rw [← amt_sortPool pool]
   simp only [yearStep, amt_append]
   split_ifs with h
   · simp; linarith
@@ -768,8 +1315,9 @@ theorem run_accounts (pool : List Entry) (ys : List (ℕ × ℚ)) :
 /-- **IT-7** A loss expires only after its fourth year: every loss carried on from the pool is still usable next year,
 and every loss dropped with something left could not be used next year. -/
 theorem expiry (year : ℕ) (net : ℚ) (pool : List Entry) :
-    (∀ e ∈ (use year (yGain year (euros net)) pool).2.1, keep year e = true → year + 1 ≤ e.yr + 4) ∧
-    (∀ e ∈ (use year (yGain year (euros net)) pool).2.1, keep year e = false → 0 < e.amount → e.yr + 4 < year + 1) := by
+    (∀ e ∈ (use year (yGain year (euros net)) (sortPool pool)).2.1, keep year e = true → year + 1 ≤ e.yr + 4) ∧
+    (∀ e ∈ (use year (yGain year (euros net)) (sortPool pool)).2.1, keep year e = false → 0 < e.amount →
+      e.yr + 4 < year + 1) := by
   constructor
   · intro e _ h; simp [keep] at h; omega
   · intro e _ h hp; simp [keep, hp] at h; omega
@@ -781,7 +1329,7 @@ theorem carry_four_years :
     (ys.map YearOut.residues).take 5 =
         [[⟨2025, 1000⟩], [⟨2025, 1000⟩], [⟨2025, 1000⟩], [⟨2025, 1000⟩], []] ∧
       (ys.map YearOut.base).getLast? = some 5000 := by
-  norm_num [runYears, yearStep, yGain, yLoss, threshold, euros, use, keep]
+  norm_num [runYears, yearStep, yGain, yLoss, threshold, euros, use, keep, sortPool]
 
 /-! ### Rule 8: tax never below 0, more gain never less tax -/
 
@@ -813,7 +1361,7 @@ theorem base_bounds (year : ℕ) (net : ℚ) (pool : List Entry) :
     0 ≤ (yearStep year net pool).base ∧ (yearStep year net pool).base ≤ (yearStep year net pool).gain := by
   simp only [yearStep]
   rw [base_eq _ _ _ (yGain_nonneg _ _)]
-  have := avail_nonneg year pool
+  have := avail_nonneg year (sortPool pool)
   have := yGain_nonneg year (euros net)
   constructor <;> omega
 
@@ -834,100 +1382,9 @@ theorem tax_mono (year : ℕ) (a b : ℚ) (pool : List Entry) (h : a ≤ b) :
   simp only [yearStep]
   rw [base_eq _ _ _ (yGain_nonneg _ _), base_eq _ _ _ (yGain_nonneg _ _)]
   have := yGain_mono year _ _ (euros_mono a b h)
-  exact_mod_cast (show max (yGain year (euros a) - avail year pool) 0 ≤ max (yGain year (euros b) - avail year pool) 0
+  exact_mod_cast (show max (yGain year (euros a) - avail year (sortPool pool)) 0 ≤
+      max (yGain year (euros b) - avail year (sortPool pool)) 0
     by omega)
-
-/-! ### Rule 9: the 2026 rates (L. 207/2024 art. 1 c. 24; euro e-money tokens: L. 199/2025 art. 1 c. 28) -/
-
-/-- The year's net from its euro e-money token lines (`euroEmtNet`). -/
-def emtNet (ls : List Line) : ℚ := ((ls.filter Line.euroEmt).map Line.gain).sum
-
-/-- The year's net from its other lines. -/
-def otherNet (ls : List Line) : ℚ := ((ls.filter (fun l => !l.euroEmt)).map Line.gain).sum
-
-/-- **IT-9** The euro e-money token part and the rest add up to the year's net. -/
-theorem net_split (ls : List Line) : emtNet ls + otherNet ls = yearNet ls := by
-  induction ls with
-  | nil => simp [emtNet, otherNet, yearNet]
-  | cons l ls ih =>
-    unfold emtNet otherNet yearNet at *
-    cases h : l.euroEmt <;> simp [h] <;> linarith
-
-/-- `itYears`' split of the base from 2026: (at 26%, at 33%). The euro e-money token net (whole euros, not below 0)
-is taxed at 26% up to the base; the rest of the base at 33%. Earlier losses so come off the 33% part first: a KANON
-choice the report states, which no source settles. Before 2026 all of the base is at 26%. -/
-def split (year : ℕ) (base : ℤ) (emt : ℚ) : ℤ × ℤ :=
-  if 2026 ≤ year then (min (max (euros emt) 0) base, base - min (max (euros emt) 0) base) else (base, 0)
-
-/-- `itYears`' tax (years from 2023): 26% of the first part plus 33% of the second, rounded up to the cent. -/
-def yearTaxSplit (year : ℕ) (base : ℤ) (emt : ℚ) : ℚ :=
-  centsUp (((split year base emt).1 : ℚ) * (26 / 100) + ((split year base emt).2 : ℚ) * (33 / 100))
-
-/-- **IT-9** The parts add up to the base and, for a base not below 0, neither is below 0; the 26% part is the euro
-e-money token net up to the base (losses off the 33% part first). -/
-theorem split_spec (year : ℕ) (base : ℤ) (emt : ℚ) (hb : 0 ≤ base) :
-    (split year base emt).1 + (split year base emt).2 = base ∧ 0 ≤ (split year base emt).1 ∧
-      0 ≤ (split year base emt).2 ∧
-      (2026 ≤ year → (split year base emt).1 = min (max (euros emt) 0) base) := by
-  unfold split
-  split_ifs with h
-  · refine ⟨by ring, by omega, by omega, fun _ => rfl⟩
-  · exact ⟨by ring, hb, le_refl _, fun h' => absurd h' h⟩
-
-/-- **IT-9** To 2025 the tax is 26% of the base, as `tax2025`. -/
-theorem split_before_2026 (year : ℕ) (net : ℚ) (pool : List Entry) (emt : ℚ) (h : year ≤ 2025) :
-    yearTaxSplit year (yearStep year net pool).base emt = tax2025 (yearStep year net pool) := by
-  unfold yearTaxSplit split tax2025
-  rw [if_neg (by omega)]; simp
-
-/-- **IT-9** From 2026, with no euro e-money token gain the whole base is at 33%. -/
-theorem split_no_emt (year : ℕ) (base : ℤ) (emt : ℚ) (hy : 2026 ≤ year) (hb : 0 ≤ base) (he : euros emt ≤ 0) :
-    yearTaxSplit year base emt = centsUp ((base : ℚ) * (33 / 100)) := by
-  unfold yearTaxSplit split
-  rw [if_pos hy, max_eq_right he, min_eq_left hb]; simp
-
-/-- **IT-9** From 2026, when the euro e-money token net covers the base, the whole base is at 26%. -/
-theorem split_all_emt (year : ℕ) (base : ℤ) (emt : ℚ) (hy : 2026 ≤ year) (hb : 0 ≤ base) (he : base ≤ euros emt) :
-    yearTaxSplit year base emt = centsUp ((base : ℚ) * (26 / 100)) := by
-  unfold yearTaxSplit split
-  rw [if_pos hy, max_eq_left (by omega), min_eq_right he]; simp
-
-/-- **IT-9** The tax is between 26% and 33% of the base (each rounded up to the cent). -/
-theorem split_between (year : ℕ) (base : ℤ) (emt : ℚ) (hb : 0 ≤ base) :
-    centsUp ((base : ℚ) * (26 / 100)) ≤ yearTaxSplit year base emt ∧
-      yearTaxSplit year base emt ≤ centsUp ((base : ℚ) * (33 / 100)) := by
-  obtain ⟨hs, h1, h2, -⟩ := split_spec year base emt hb
-  have hs' : ((split year base emt).1 : ℚ) + (split year base emt).2 = base := by exact_mod_cast hs
-  have h1' : (0 : ℚ) ≤ (split year base emt).1 := by exact_mod_cast h1
-  have h2' : (0 : ℚ) ≤ (split year base emt).2 := by exact_mod_cast h2
-  unfold yearTaxSplit
-  constructor <;> apply centsUp_mono <;> rw [← hs'] <;> nlinarith
-
-/-- **IT-9** Never below 0, and a bigger base never means less tax (same euro e-money token net). -/
-theorem split_mono (year : ℕ) (a b : ℤ) (emt : ℚ) (ha : 0 ≤ a) (h : a ≤ b) :
-    0 ≤ yearTaxSplit year a emt ∧ yearTaxSplit year a emt ≤ yearTaxSplit year b emt := by
-  have ha' : (0 : ℚ) ≤ a := by exact_mod_cast ha
-  constructor
-  · exact le_trans (centsUp_nonneg _ (by linarith)) (split_between year a emt ha).1
-  · unfold yearTaxSplit
-    apply centsUp_mono
-    unfold split
-    split_ifs with hy
-    · have key : (min (max (euros emt) 0) b : ℤ) - min (max (euros emt) 0) a ≤ b - a := by omega
-      have k2 : (min (max (euros emt) 0) a : ℤ) ≤ min (max (euros emt) 0) b := by omega
-      have key' : ((min (max (euros emt) 0) b : ℤ) : ℚ) - ((min (max (euros emt) 0) a : ℤ) : ℚ) ≤ (b : ℚ) - a := by
-        exact_mod_cast key
-      have k2' : ((min (max (euros emt) 0) a : ℤ) : ℚ) ≤ ((min (max (euros emt) 0) b : ℤ) : ℚ) := by
-        exact_mod_cast k2
-      push_cast at key' k2' ⊢
-      linarith
-    · push_cast
-      have : (a : ℚ) ≤ b := by exact_mod_cast h
-      nlinarith
-
-/-- A 2026 example: a base of €1,000 of which €400 is euro e-money token net: €104 + €198 = €302. -/
-theorem split_2026_example : split 2026 1000 400 = (400, 600) ∧ yearTaxSplit 2026 1000 400 = 302 := by
-  simp [split, yearTaxSplit, euros, centsUp]; norm_num
 
 /-! ### Rule 11: rounding -/
 
@@ -969,46 +1426,328 @@ theorem centsUp_bounds (x : ℚ) : x ≤ centsUp x ∧ centsUp x < x + 1 / 100 :
   · rw [le_div_iff₀ (by norm_num)]; exact h1
   · rw [div_lt_iff₀ (by norm_num)]; linarith
 
+/-! ### Earlier losses (2019-2022; `itEarlierIn`, art. 68 c. 5 TUIR; L. 197/2022 art. 1 c. 127) -/
+
+/-- `itEarlierIn` and the report's filter: the losses the person declared for 2019 to 2022, whole euros, kept only
+when above 0 and at most 10^10, in year order. `v y` is the figure given for year `y`. -/
+def earlierIn (v : ℕ → ℤ) : List Entry :=
+  ([2019, 2020, 2021, 2022].filter fun y => decide (0 < v y ∧ v y ≤ 10 ^ 10)).map fun y => ⟨y, v y⟩
+
+/-- **IT-7** Earlier losses come only from 2019 to 2022, each above 0, in year order (so used oldest first). -/
+theorem earlier_years (v : ℕ → ℤ) :
+    (∀ e ∈ earlierIn v, 2019 ≤ e.yr ∧ e.yr ≤ 2022 ∧ 0 < e.amount ∧ e.amount = v e.yr) ∧
+      (earlierIn v).Pairwise (fun a b => a.yr ≤ b.yr) ∧ sortPool (earlierIn v) = earlierIn v := by
+  have hp : (earlierIn v).Pairwise (fun a b => a.yr ≤ b.yr) := by
+    unfold earlierIn
+    simp only [List.pairwise_map]
+    apply List.Pairwise.filter
+    decide
+  refine ⟨?_, hp, sortPool_of_sorted _ hp⟩
+  intro e he
+  simp only [earlierIn, List.mem_map, List.mem_filter, decide_eq_true_eq] at he
+  obtain ⟨y, ⟨hy, hv, -⟩, rfl⟩ := he
+  simp only [List.mem_cons, List.not_mem_nil, or_false] at hy
+  refine ⟨?_, ?_, hv, rfl⟩ <;> rcases hy with rfl | rfl | rfl | rfl <;> norm_num
+
+/-- **IT-7** The window for an earlier loss: one of year `y` is usable only in the four years after it, so a 2022 loss
+up to 2026 at the latest and a 2019 loss only in 2023 (the first year of the regime). -/
+theorem earlier_window (e : Entry) (year : ℕ) (h : usableIn year e) : e.yr < year ∧ year ≤ e.yr + 4 :=
+  ⟨h.1, h.2.1⟩
+
+/-- The app's tests: in 2023, a net of €8,000 (gain €6,000 over the threshold) with €4,000 of 2019 and €1,000 of 2020
+uses both, leaving a base of €1,000 (tax €260); in 2024 a net of €8,000 with €4,000 of 2019 (expired) and €3,000 of
+2022 uses only 2022's €3,000. -/
+theorem earlier_examples :
+    let a := yearStep 2023 8000 (earlierIn fun y => if y = 2019 then 4000 else if y = 2020 then 1000 else 0)
+    let b := yearStep 2024 8000 (earlierIn fun y => if y = 2019 then 4000 else if y = 2022 then 3000 else 0)
+    a.used = [⟨2019, 4000⟩, ⟨2020, 1000⟩] ∧ a.base = 1000 ∧ tax2025 a = 260 ∧ b.used = [⟨2022, 3000⟩] := by
+  have s1 := (earlier_years fun y => if y = 2019 then 4000 else if y = 2020 then 1000 else 0).2.2
+  have s2 := (earlier_years fun y => if y = 2019 then 4000 else if y = 2022 then 3000 else 0).2.2
+  simp only [yearStep, s1, s2]
+  norm_num [earlierIn, yGain, threshold, euros, use, usableIn, tax2025, centsUp]
+
+/-! ### Rule 9: the 2026 rates (L. 207/2024 art. 1 c. 24; euro e-money tokens: L. 199/2025 art. 1 c. 28) -/
+
+/-- The year's net from its euro e-money token lines (`euroEmtNet`). -/
+def emtNet (ls : List Line) : ℚ := ((ls.filter Line.euroEmt).map Line.gain).sum
+
+/-- The year's net from its other lines. -/
+def otherNet (ls : List Line) : ℚ := ((ls.filter (fun l => !l.euroEmt)).map Line.gain).sum
+
+/-- **IT-9** The euro e-money token part and the rest add up to the year's net. -/
+theorem net_split (ls : List Line) : emtNet ls + otherNet ls = yearNet ls := by
+  induction ls with
+  | nil => simp [emtNet, otherNet, yearNet]
+  | cons l ls ih =>
+    unfold emtNet otherNet yearNet at *
+    cases h : l.euroEmt <;> simp [h] <;> linarith
+
+/-- `itSplit`'s gains: the euro e-money token net and the other net, each not below 0. -/
+def emtPart (e : ℚ) : ℚ := max e 0
+def otherPart (net e : ℚ) : ℚ := max (net - e) 0
+
+/-- `itSplit`'s `at26` from 2026: the base shared pro rata between the two gains (the euro e-money token share, in
+whole euros, never above the base); 0 when there is no gain. -/
+def at26 (base : ℤ) (net e : ℚ) : ℤ :=
+  if emtPart e + otherPart net e ≤ 0 then 0
+  else min (euros ((base : ℚ) * emtPart e / (emtPart e + otherPart net e))) base
+
+/-- `itSplit`: (at 26%, at 33%). Before 2026 all of the base is at 26%. -/
+def split (year : ℕ) (base : ℤ) (net e : ℚ) : ℤ × ℤ :=
+  if year < 2026 then (base, 0) else (at26 base net e, base - at26 base net e)
+
+/-- `itSplit`'s tax: 26% of the first part plus 33% of the second, rounded up to the cent. -/
+def splitTax (year : ℕ) (base : ℤ) (net e : ℚ) : ℚ :=
+  centsUp (((split year base net e).1 : ℚ) * (26 / 100) + ((split year base net e).2 : ℚ) * (33 / 100))
+
+theorem euros_int (n : ℤ) (h : 0 ≤ n) : euros n = n := by
+  unfold euros
+  rw [if_pos (by exact_mod_cast h), Int.floor_eq_iff]; constructor <;> linarith
+
+@[simp] theorem euros_zero : euros 0 = 0 := by simpa using euros_int 0 le_rfl
+
+theorem euros_nonneg (x : ℚ) (h : 0 ≤ x) : 0 ≤ euros x := by
+  have := euros_mono 0 x h; rwa [euros_zero] at this
+
+/-- `euros` moves by whole euros: for `x ≥ 0`, adding `n` euros adds `n`. -/
+theorem euros_add_int (x : ℚ) (n : ℤ) (hx : 0 ≤ x) (hn : 0 ≤ n) : euros (x + n) = euros x + n := by
+  unfold euros
+  have : (0 : ℚ) ≤ n := by exact_mod_cast hn
+  rw [if_pos (by linarith), if_pos hx, show x + n + 1 / 2 = (x + 1 / 2) + (n : ℚ) by ring, Int.floor_add_intCast]
+
+theorem at26_bounds (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) : 0 ≤ at26 base net e ∧ at26 base net e ≤ base := by
+  unfold at26
+  split_ifs with h
+  · exact ⟨le_rfl, hb⟩
+  · refine ⟨le_min (euros_nonneg _ ?_) hb, min_le_right _ _⟩
+    have : (0 : ℚ) ≤ base := by exact_mod_cast hb
+    have : 0 ≤ emtPart e := le_max_right _ _
+    have : 0 ≤ otherPart net e := le_max_right _ _
+    positivity
+
+/-- **IT-9** The parts add up to the base and, for a base not below 0, neither is below 0. -/
+theorem split_parts (year : ℕ) (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) :
+    (split year base net e).1 + (split year base net e).2 = base ∧ 0 ≤ (split year base net e).1 ∧
+      0 ≤ (split year base net e).2 := by
+  have := at26_bounds base net e hb
+  unfold split; split_ifs <;> simp <;> omega
+
+/-- **IT-9** To 2025 the tax is 26% of the base. -/
+theorem split_before_2026 (year : ℕ) (base : ℤ) (net e : ℚ) (h : year ≤ 2025) :
+    splitTax year base net e = centsUp ((base : ℚ) * (26 / 100)) := by
+  unfold splitTax split; rw [if_pos (by omega)]; simp
+
+/-- **IT-9** From 2026 the base is shared pro rata: the 26% part is the base times the euro e-money token gain over
+all the gains (each not below 0), in whole euros, so within 50 cents of the exact share. -/
+theorem split_prop (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 ≤ base)
+    (hg : 0 < emtPart e + otherPart net e) :
+    (split year base net e).1 = euros ((base : ℚ) * emtPart e / (emtPart e + otherPart net e)) ∧
+      |((split year base net e).1 : ℚ) - base * emtPart e / (emtPart e + otherPart net e)| ≤ 1 / 2 := by
+  have hb' : (0 : ℚ) ≤ base := by exact_mod_cast hb
+  have he : 0 ≤ emtPart e := le_max_right _ _
+  have ho : 0 ≤ otherPart net e := le_max_right _ _
+  have hle : (base : ℚ) * emtPart e / (emtPart e + otherPart net e) ≤ base := by
+    rw [div_le_iff₀ hg]; nlinarith
+  have hr : euros ((base : ℚ) * emtPart e / (emtPart e + otherPart net e)) ≤ base := by
+    have := euros_mono _ _ hle; rwa [euros_int base hb] at this
+  have h1 : (split year base net e).1 = euros ((base : ℚ) * emtPart e / (emtPart e + otherPart net e)) := by
+    simp only [split, if_neg (show ¬ year < 2026 by omega), at26, if_neg (show ¬ emtPart e + otherPart net e ≤ 0 by
+      linarith)]
+    exact min_eq_left hr
+  exact ⟨h1, h1 ▸ (euros_bounds _).1⟩
+
+/-- **IT-9** From 2026, with no euro e-money token gain the whole base is at 33%. -/
+theorem split_no_emt (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 ≤ base) (he : e ≤ 0) :
+    splitTax year base net e = centsUp ((base : ℚ) * (33 / 100)) := by
+  have h0 : emtPart e = 0 := max_eq_right he
+  have : at26 base net e = 0 := by
+    unfold at26; rw [h0]; split_ifs
+    · rfl
+    · simp only [mul_zero, zero_div, euros_zero]; exact min_eq_left hb
+  unfold splitTax split; rw [if_neg (by omega), this]; simp
+
+/-- **IT-9** From 2026, when all the gain is the euro e-money token's (a gain, and no other gain), the whole base is
+at 26%. -/
+theorem split_all_emt (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 ≤ base) (he : 0 < e)
+    (hn : net ≤ e) : splitTax year base net e = centsUp ((base : ℚ) * (26 / 100)) := by
+  have h1 : emtPart e = e := max_eq_left he.le
+  have h2 : otherPart net e = 0 := max_eq_right (by linarith)
+  have : at26 base net e = base := by
+    unfold at26; rw [h1, h2, add_zero, if_neg (by linarith), mul_div_assoc, div_self he.ne', mul_one,
+      euros_int base hb, min_self]
+  unfold splitTax split; rw [if_neg (by omega), this]; simp
+
+/-- **IT-9** The tax is between 26% and 33% of the base (each rounded up to the cent). -/
+theorem split_between (year : ℕ) (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) :
+    centsUp ((base : ℚ) * (26 / 100)) ≤ splitTax year base net e ∧
+      splitTax year base net e ≤ centsUp ((base : ℚ) * (33 / 100)) := by
+  obtain ⟨hs, h1, h2⟩ := split_parts year base net e hb
+  have hs' : ((split year base net e).1 : ℚ) + (split year base net e).2 = base := by exact_mod_cast hs
+  have h1' : (0 : ℚ) ≤ (split year base net e).1 := by exact_mod_cast h1
+  have h2' : (0 : ℚ) ≤ (split year base net e).2 := by exact_mod_cast h2
+  unfold splitTax
+  constructor <;> apply centsUp_mono <;> rw [← hs'] <;> nlinarith
+
+/-- The tax inside the rounding: 33% of the base less 7% of the 26% part. -/
+theorem splitTax_eq (year : ℕ) (base : ℤ) (net e : ℚ) :
+    splitTax year base net e = centsUp ((base : ℚ) * (33 / 100) - ((split year base net e).1 : ℚ) * (7 / 100)) := by
+  unfold splitTax
+  congr 1
+  have : (split year base net e).2 = base - (split year base net e).1 := by unfold split; split_ifs <;> simp
+  rw [this]; push_cast; ring
+
+/-- **IT-9** More gain other than the euro e-money tokens' (a higher net with the same euro e-money token net) and a
+bigger base never mean less tax. -/
+theorem split_mono (year : ℕ) (a b : ℤ) (n1 n2 e : ℚ) (ha : 0 ≤ a) (hab : a ≤ b) (hn : n1 ≤ n2) :
+    splitTax year a n1 e ≤ splitTax year b n2 e := by
+  rw [splitTax_eq, splitTax_eq]
+  apply centsUp_mono
+  have hab' : (a : ℚ) ≤ b := by exact_mod_cast hab
+  have ha' : (0 : ℚ) ≤ a := by exact_mod_cast ha
+  suffices key : (split year b n2 e).1 - (split year a n1 e).1 ≤ b - a by
+    have : ((split year b n2 e).1 : ℚ) - (split year a n1 e).1 ≤ b - a := by exact_mod_cast key
+    linarith
+  unfold split
+  split_ifs with hy
+  · simp
+  · simp only
+    unfold at26
+    have he : 0 ≤ emtPart e := le_max_right _ _
+    have ho1 : 0 ≤ otherPart n1 e := le_max_right _ _
+    have hoo : otherPart n1 e ≤ otherPart n2 e := max_le_max (by linarith) le_rfl
+    by_cases h0 : emtPart e = 0
+    · have z : ∀ c : ℤ, 0 ≤ c → ∀ n, (if emtPart e + otherPart n e ≤ 0 then 0
+          else min (euros ((c : ℚ) * emtPart e / (emtPart e + otherPart n e))) c) = 0 := by
+        intro c hc n; split_ifs
+        · rfl
+        · rw [h0]; simp only [mul_zero, zero_div, euros_zero]; exact min_eq_left hc
+      rw [z a ha n1, z b (le_trans ha hab) n2]; omega
+    · have hep : 0 < emtPart e := lt_of_le_of_ne he (Ne.symm h0)
+      have g1 : 0 < emtPart e + otherPart n1 e := by linarith
+      have g2 : 0 < emtPart e + otherPart n2 e := by linarith
+      rw [if_neg (by linarith), if_neg (by linarith)]
+      set x := (a : ℚ) * emtPart e / (emtPart e + otherPart n1 e)
+      have hx : 0 ≤ x := by positivity
+      have hy' : (b : ℚ) * emtPart e / (emtPart e + otherPart n2 e) ≤ x + ((b - a : ℤ) : ℚ) := by
+        push_cast
+        have r1 : (b : ℚ) * emtPart e / (emtPart e + otherPart n2 e) ≤ b * emtPart e / (emtPart e + otherPart n1 e) :=
+          div_le_div_of_nonneg_left (by nlinarith) g1 (by linarith)
+        have r2 : ((b : ℚ) - a) * emtPart e / (emtPart e + otherPart n1 e) ≤ b - a := by
+          rw [div_le_iff₀ g1]; nlinarith
+        have : (b : ℚ) * emtPart e / (emtPart e + otherPart n1 e) = x + ((b : ℚ) - a) * emtPart e /
+            (emtPart e + otherPart n1 e) := by simp only [x]; field_simp; ring
+        linarith
+      have := euros_mono _ _ hy'
+      rw [euros_add_int x _ hx (by omega)] at this
+      omega
+
+/-- **IT-9** A pending token's lines that net to a gain `p ≥ 0`, counted as euro e-money token lines (a statement
+dated on or before them), never raise the tax: the same net with more of it at 26%. -/
+theorem statement_gain_less_tax (year : ℕ) (base : ℤ) (net e p : ℚ) (hb : 0 ≤ base) (hp : 0 ≤ p) :
+    splitTax year base net (e + p) ≤ splitTax year base net e := by
+  rw [splitTax_eq, splitTax_eq]
+  apply centsUp_mono
+  suffices key : (split year base net e).1 ≤ (split year base net (e + p)).1 by
+    have : ((split year base net e).1 : ℚ) ≤ (split year base net (e + p)).1 := by exact_mod_cast key
+    linarith
+  unfold split
+  split_ifs with hy
+  · rfl
+  · simp only
+    unfold at26
+    have hE : emtPart e ≤ emtPart (e + p) := max_le_max (by linarith) le_rfl
+    have hO : otherPart net (e + p) ≤ otherPart net e := max_le_max (by linarith) le_rfl
+    have he : 0 ≤ emtPart e := le_max_right _ _
+    have hO' : 0 ≤ otherPart net (e + p) := le_max_right _ _
+    have hb' : (0 : ℚ) ≤ base := by exact_mod_cast hb
+    have hE' : 0 ≤ emtPart (e + p) := le_max_right _ _
+    by_cases h1 : emtPart e + otherPart net e ≤ 0
+    · rw [if_pos h1]; split_ifs
+      · exact le_rfl
+      · exact le_min (euros_nonneg _ (by positivity)) hb
+    · rw [if_neg h1]
+      by_cases h2 : emtPart (e + p) + otherPart net (e + p) ≤ 0
+      · rw [if_pos h2]
+        have h0 : emtPart e = 0 := by linarith
+        rw [h0]; simp only [mul_zero, zero_div, euros_zero]; exact min_le_left _ _
+      · rw [if_neg h2]
+        apply min_le_min _ le_rfl
+        apply euros_mono
+        push_neg at h1 h2
+        rw [div_le_div_iff₀ h1 h2]
+        nlinarith [mul_le_mul_of_nonneg_left hE hb', mul_le_mul_of_nonneg_left hO hb',
+          mul_nonneg hb' he, mul_nonneg hb' hO', mul_nonneg (mul_nonneg hb' he) hO']
+
+/-- The app's tests (2026, with a €10,000 loss of 2025 carried): €10,000 of gain on BTC and €10,000 on EURCV, base
+€10,000, €5,000 at 26% and €5,000 at 33%: €2,950. BTC +€10,000 and EURCV −€2,000: base €8,000, all at 33%: €2,640.
+BTC €3,000 and EURCV €1,000 with €2,000 of 2024 losses: base €2,000, €500 at 26%, €1,500 at 33%: €625. -/
+theorem split_examples :
+    split 2026 10000 20000 10000 = (5000, 5000) ∧ splitTax 2026 10000 20000 10000 = 2950 ∧
+      split 2026 8000 8000 (-2000) = (0, 8000) ∧ splitTax 2026 8000 8000 (-2000) = 2640 ∧
+      split 2026 2000 4000 1000 = (500, 1500) ∧ splitTax 2026 2000 4000 1000 = 625 := by
+  norm_num [split, splitTax, at26, emtPart, otherPart, euros, centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
+
+/-- Finding (where a statement raises the tax): €10,000 of gain on EURCV, €2,000 on BTC and a €2,000 loss on EURC, a
+base of €10,000 in 2026. With a statement for EURC dated after the loss, the euro e-money token net is €10,000 and
+the other net €0: €2,600. With one dated before it, the EURC loss joins the euro e-money token net (€8,000), the BTC
+gain stays (€2,000): €8,000 at 26% and €2,000 at 33%, €2,740. So a later statement date can lower the tax. -/
+theorem later_statement_can_lower_tax :
+    splitTax 2026 10000 10000 10000 = 2600 ∧ splitTax 2026 10000 10000 8000 = 2740 := by
+  norm_num [split, splitTax, at26, emtPart, otherPart, euros, centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
 /-! ## Rule 15: tax if sold today (`itYearTax`, `itTaxOnSale`) -/
 
-/-- `itRate` for a line not a euro e-money token's: 26% to 2025, 33% from 2026. `itYearTax` (tax if sold today) uses
-it for every gain: it does not tell euro e-money tokens apart. -/
-def rate (year : ℕ) : ℚ := if year ≤ 2025 then 26 / 100 else 33 / 100
+/-- `itYearTax`: the year's tax from its net so far, the losses carried in (as one loss of last year) and the euro
+e-money token net so far, shared as `itSplit` does. -/
+def yearTax (year : ℕ) (net : ℚ) (carried : ℤ) (e : ℚ) : ℚ :=
+  splitTax year (use year (yGain year (euros net)) (if 0 < carried then [⟨year - 1, carried⟩] else [])).2.2 net e
 
-/-- `itYearTax`: the year's tax from its net so far and the losses carried in (as one loss of last year). -/
-def yearTax (year : ℕ) (net : ℚ) (carried : ℤ) : ℚ :=
-  centsUp (((use year (yGain year (euros net)) (if 0 < carried then [⟨year - 1, carried⟩] else [])).2.2 : ℚ) *
-    rate year)
+/-- `itTaxOnSale`: the rise in the year's tax from one more sale (its gain, and its part that is a euro e-money
+token's), never below 0. -/
+def taxOnSale (year : ℕ) (gain sofar : ℚ) (carried : ℤ) (eSo eGain : ℚ) : ℚ :=
+  max (yearTax year (sofar + gain) carried (eSo + eGain) - yearTax year sofar carried eSo) 0
 
-/-- `itTaxOnSale`: the rise in the year's tax from one more sale, never below 0. -/
-def taxOnSale (year : ℕ) (gain sofar : ℚ) (carried : ℤ) : ℚ :=
-  max (yearTax year (sofar + gain) carried - yearTax year sofar carried) 0
-
-theorem yearTax_mono (year : ℕ) (a b : ℚ) (carried : ℤ) (h : a ≤ b) : yearTax year a carried ≤ yearTax year b carried := by
+theorem yearTax_mono (year : ℕ) (a b : ℚ) (carried : ℤ) (e : ℚ) (h : a ≤ b) :
+    yearTax year a carried e ≤ yearTax year b carried e := by
   unfold yearTax
-  apply centsUp_mono
-  apply mul_le_mul_of_nonneg_right _ (by unfold rate; split_ifs <;> norm_num)
-  rw [base_eq _ _ _ (yGain_nonneg _ _), base_eq _ _ _ (yGain_nonneg _ _)]
+  have ha := (base_eq year (yGain year (euros a)) (if 0 < carried then [⟨year - 1, carried⟩] else [])
+    (yGain_nonneg _ _))
+  have hb := (base_eq year (yGain year (euros b)) (if 0 < carried then [⟨year - 1, carried⟩] else [])
+    (yGain_nonneg _ _))
   have := yGain_mono year _ _ (euros_mono a b h)
-  exact_mod_cast (show max (yGain year (euros a) - avail year _) 0 ≤ max (yGain year (euros b) - avail year _) 0
-    by omega)
+  apply split_mono year _ _ a b e _ _ h <;> rw [ha] <;> try rw [hb]
+  · omega
+  · omega
 
-/-- **IT-15** Tax if sold today is the year's tax with the sale less without it, never below 0: exactly that rise for
-a sale at a gain (or break-even), and 0 for a sale at a loss. -/
-theorem tax_on_sale (year : ℕ) (gain sofar : ℚ) (carried : ℤ) :
-    0 ≤ taxOnSale year gain sofar carried ∧
-      (0 ≤ gain → taxOnSale year gain sofar carried = yearTax year (sofar + gain) carried - yearTax year sofar carried) ∧
-      (gain ≤ 0 → taxOnSale year gain sofar carried = 0) := by
+/-- **IT-15** Tax if sold today is the year's tax with the sale less without it, never below 0: for a sale that is not
+a euro e-money token's, exactly that rise for a sale at a gain (or break-even), and 0 for a sale at a loss. -/
+theorem tax_on_sale (year : ℕ) (gain sofar : ℚ) (carried : ℤ) (eSo : ℚ) :
+    0 ≤ taxOnSale year gain sofar carried eSo 0 ∧
+      (0 ≤ gain → taxOnSale year gain sofar carried eSo 0 =
+        yearTax year (sofar + gain) carried eSo - yearTax year sofar carried eSo) ∧
+      (gain ≤ 0 → taxOnSale year gain sofar carried eSo 0 = 0) := by
   refine ⟨le_max_right _ _, fun h => ?_, fun h => ?_⟩
-  · have := yearTax_mono year sofar (sofar + gain) carried (by linarith)
-    exact max_eq_left (by linarith)
-  · have := yearTax_mono year (sofar + gain) sofar carried (by linarith)
-    exact max_eq_right (by linarith)
+  · have := yearTax_mono year sofar (sofar + gain) carried eSo (by linarith)
+    unfold taxOnSale; rw [add_zero]; exact max_eq_left (by linarith)
+  · have := yearTax_mono year (sofar + gain) sofar carried eSo (by linarith)
+    unfold taxOnSale; rw [add_zero]; exact max_eq_right (by linarith)
 
-/-- The app's test: in 2024, €1,500 of net gains so far and a sale at €1,000 more: €130 (26% of €500 over €2,000). -/
-theorem tax_on_sale_2024 : taxOnSale 2024 1000 1500 0 = 130 := by
-  simp [taxOnSale, yearTax, yGain, threshold, euros, use, rate, centsUp]; norm_num
+/-- The app's tests: in 2024, €1,500 of net gains so far and a sale at €1,000 more: €130 (26% of €500 over €2,000).
+In 2026, a €1,000 gain on a euro e-money token: €260 (the year's tax with it alone is €260 too); a €1,000 gain on BTC
+after €600 on a euro e-money token: €330. With €10,000 of 2025 losses, €20,000 of gains half on EURCV: €2,950. -/
+theorem tax_on_sale_examples :
+    taxOnSale 2024 1000 1500 0 0 0 = 130 ∧ taxOnSale 2026 1000 0 0 0 1000 = 260 ∧ yearTax 2026 1000 0 1000 = 260 ∧
+      taxOnSale 2026 1000 600 0 600 0 = 330 ∧ yearTax 2026 20000 10000 10000 = 2950 := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
+    norm_num [taxOnSale, yearTax, yGain, threshold, euros, use, usableIn, split, splitTax, at26, emtPart, otherPart,
+      centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
 
+/-- Finding (rounding): more euro e-money token gain can mean 7 cents less tax. In 2026 with no losses, €500.25 of
+euro e-money token gain and €499.50 of other gain: base €1,000, €500 at 26%, tax €295. With €500.75 of euro e-money
+token gain and the same €499.50: base €1,000 still, but €501 at 26%, tax €294.93. -/
+theorem emt_gain_can_lower_tax :
+    yearTax 2026 (3999 / 4) 0 (2001 / 4) = 295 ∧ yearTax 2026 (4001 / 4) 0 (2003 / 4) = 29493 / 100 := by
+  refine ⟨?_, ?_⟩ <;> norm_num [yearTax, yGain, threshold, euros, use, split, splitTax, at26, emtPart, otherPart, centsUp,
+    Int.floor_eq_iff, Int.ceil_eq_iff]
 /-! ## Rule 12: IVCA (DL 201/2011 art. 19 c. 18-bis; Modello Redditi PF, RW col. 33 and RW8) -/
 
 /-- `itIvca`: 0.2% of the value, times the share owned, for the days held (a full year at most) over the days in the
@@ -1021,8 +1760,10 @@ def accountIvca (cs : List (ℚ × ℕ)) (diy : ℕ) : ℤ := euros ((cs.map fun
 /-- RW8 col. 1: the sum of the accounts' whole-euro figures. -/
 def rwTotal (accounts : List (List (ℚ × ℕ))) (diy : ℕ) : ℤ := (accounts.map (accountIvca · diy)).sum
 
-/-- `itIvcaDue`: the year's IVCA in euros, nothing when €12 or less. -/
-def ivcaDue (total : ℚ) : ℤ := if 12 < euros total then euros total else 0
+/-- `itIvcaDue`: RW col. 5 for the year, the IVCA in euros (col. 1) less the foreign tax credit (col. 2) plus the
+credit used to offset (col. 3) less the instalments paid (col. 4); nothing when €12 or less. -/
+def ivcaDue (col1 : ℚ) (credit used inst : ℤ) : ℤ :=
+  if 12 < euros col1 - credit + used - inst then euros col1 - credit + used - inst else 0
 
 /-- **IT-12** A full year (or more days than the year has) is 0.2% of the value times the share. -/
 theorem ivca_full_year (v share : ℚ) (days diy : ℕ) (hd : diy ≤ days) (hy : 0 < diy) :
@@ -1052,17 +1793,20 @@ theorem account_close (cs : List (ℚ × ℕ)) (diy : ℕ) :
     |(accountIvca cs diy : ℚ) - (cs.map fun c => ivca c.1 c.2 diy).sum| ≤ 1 / 2 :=
   (euros_bounds _).1
 
-/-- **IT-12** Nothing is due when the year's IVCA is €12 or less; over €12 all of it is. -/
-theorem ivca_due (total : ℚ) :
-    (euros total ≤ 12 → ivcaDue total = 0) ∧ (12 < euros total → ivcaDue total = euros total) := by
+/-- **IT-12** Nothing is due when col. 5 is €12 or less; over €12 all of it is. -/
+theorem ivca_due (col1 : ℚ) (credit used inst : ℤ) :
+    (euros col1 - credit + used - inst ≤ 12 → ivcaDue col1 credit used inst = 0) ∧
+      (12 < euros col1 - credit + used - inst → ivcaDue col1 credit used inst = euros col1 - credit + used - inst) := by
   unfold ivcaDue
   constructor
   · intro h; rw [if_neg (by omega)]
   · intro h; rw [if_pos h]
 
-/-- The app's tests: €10,000 for 73 days of 365 is €4; €12.40 → nothing, €12.50 → €13, €20 → €20. -/
+/-- The app's tests: €10,000 for 73 days of 365 is €4; €12.40 → nothing, €12.50 → €13, €20 → €20; €20 less €10 of
+instalments → nothing, less €5 → €15; €20 less a €30 credit plus €25 used → €15; less a €40 credit → nothing. -/
 theorem ivca_examples :
-    ivca 10000 73 365 = 4 ∧ ivcaDue (124 / 10) = 0 ∧ ivcaDue (125 / 10) = 13 ∧ ivcaDue 20 = 20 := by
+    ivca 10000 73 365 = 4 ∧ ivcaDue (124 / 10) 0 0 0 = 0 ∧ ivcaDue (125 / 10) 0 0 0 = 13 ∧ ivcaDue 20 0 0 0 = 20 ∧
+      ivcaDue 20 0 0 10 = 0 ∧ ivcaDue 20 0 0 5 = 15 ∧ ivcaDue 20 30 25 0 = 15 ∧ ivcaDue 20 40 0 0 = 0 := by
   simp [ivca, ivcaDue, euros]; norm_num
 
 /-! ## Rule 13: next year's IVCA instalments (the report's note; not computed by the app) -/

@@ -1949,7 +1949,11 @@ price came in: what came is worth what was given less the soulte). Not modelled:
 the flows and the operations of Rules 10-17 built from them (`nft-leave` shares, `nftKeep`, which NFT a receipt
 stands for: before 2026 a receipt standing for a seen NFT is followed under that NFT's key, chain|standsFor, and
 from 2026 a receipt is not treated as an NFT at all), an NFT that left with or without an answer
-(`unexplained-out`), and `frHeld` leaving NFTs out of the portfolio from 2026. -/
+(`unexplained-out`), and `frHeld` leaving NFTs out of the portfolio from 2026. A swap with `keepsCost` is nothing
+(a move: Rule 18) except a crossing (`crossing`): from 2026 an NFT put into an app for a crypto receipt, or taken back
+for one, is booked like any swap (the NFT listed as exchanged and the receipt acquired; the receipt given back a
+cession of kind `.nft`). Not modelled with it: a receipt held from before 2026 given back leaves its NFT's key (an
+`out` flow, from 2026 no NFT operation). -/
 
 /-- A movement with whether its asset is an NFT. -/
 structure NMove extends Move where
@@ -2089,9 +2093,16 @@ def bookSwapNft (B : BookN) (h : NSwap) : BookN :=
     ⟨{ B2.book with acquisitions := B2.book.acquisitions ++ [(tot cryptoIn).getD 0] }, B2.nfts⟩
   else B2
 
-/-- `frBook` on a swap: before 2019 or `keepsCost`, nothing; with an NFT from 2026, `bookSwapNft`; else as before. -/
+/-- `crossing` (without `keepsCost`): from 2026, an NFT and a crypto that is neither money nor an NFT in one swap. An
+NFT put into an app for a crypto receipt, or taken back for one, crosses from a good (art. 150 VH ter) to a
+crypto-asset (art. 150 VH bis) or back, so it is not kept at cost but booked like any swap. -/
+def crossing (h : NSwap) : Bool :=
+  decide (nftFrom ≤ h.day) && (h.out ++ h.inn).any (·.nft) && (h.out ++ h.inn).any (fun m => !m.fiat && !m.nft)
+
+/-- `frBook` on a swap: before 2019, or `keepsCost` and not a crossing, nothing; with an NFT from 2026,
+`bookSwapNft`; else as before. -/
 def bookSwapN (B : BookN) (h : NSwap) : BookN :=
-  if h.day < startDay ∨ h.keepsCost = true then B
+  if h.day < startDay ∨ (h.keepsCost = true ∧ crossing h = false) then B
   else if h.out.filter (late h.day) ≠ [] ∨ h.inn.filter (late h.day) ≠ [] then bookSwapNft B h
   else { B with book := bookSwapOld B.book h }
 
@@ -2131,6 +2142,10 @@ theorem bookSwapN_plain (B : BookN) (h : NSwap) (hn : ∀ m ∈ h.out ++ h.inn, 
     List.filter_congr (fun m hm => by simp [hi m hm])
   have nf : h.inn.filter (·.nft) = [] :=
     List.filter_eq_nil_iff.mpr (fun m hm => by simp [hn m (List.mem_append_right _ hm)])
+  have hx : crossing h = false := by
+    have : (h.out ++ h.inn).any (·.nft) = false :=
+      List.any_eq_false.mpr (fun m hm => by simp [hn m hm])
+    simp [crossing, this]
   have fb : ∀ g s k, fallback (decide (h.inn.filter (·.nft) ≠ [])) g s k = none := by
     intro g s k; rw [nf]; simp [fallback]
   have oe : ∀ x : Option ℚ, x.orElse (fun _ => none) = x := by intro x; cases x <;> rfl
@@ -2150,7 +2165,7 @@ theorem bookSwapN_plain (B : BookN) (h : NSwap) (hn : ∀ m ∈ h.out ++ h.inn, 
   have t4 := tm h.inn (fun m => !m.fiat)
   simp only at e1 e2 e3 e4 t1 t2 t3 t4
   unfold bookSwapN bookSwapOld bookSwap
-  simp only [lo, li, co, ci, fb, oe, NSwap.plain, ne_eq, not_true_eq_false, or_self, if_false, e1, e2, e3, e4, t1, t2,
+  simp only [hx, and_true, lo, li, co, ci, fb, oe, NSwap.plain, ne_eq, not_true_eq_false, or_self, if_false, e1, e2, e3, e4, t1, t2,
     t3, t4]
   split_ifs <;> rfl
 
@@ -2195,7 +2210,7 @@ theorem nft_given_no_line (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc :
     (bookSwapN B h).book.drafts = B.book.drafts ++
         (if h.out.filter (fun m => !m.fiat && !late h.day m) = [] then [] else [nftDraft h]) ∧
       ∃ p, (bookSwapN B h).nfts = B.nfts ++ [⟨h.day, p⟩] := by
-  have hs : ¬ (h.day < startDay ∨ h.keepsCost = true) := by
+  have hs : ¬ (h.day < startDay ∨ (h.keepsCost = true ∧ crossing h = false)) := by
     simp only [startDay, nftFrom] at hd ⊢; simp [hc]; omega
   unfold bookSwapN bookSwapNft
   rw [if_neg hs, if_pos (Or.inl hO)]
@@ -2226,7 +2241,7 @@ theorem nft_buy_cession (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hc : h
     (bookSwapN B h).book.drafts = B.book.drafts ++ [nftDraft h] ∧
       (bookSwapN B h).book.acquisitions = B.book.acquisitions ∧ (bookSwapN B h).nfts = B.nfts ∧
       (nftDraft h).how = .nft ∧ (nftDraft h).fees = 0 ∧ (nftDraft h).cryptoIn = false := by
-  have hs : ¬ (h.day < startDay ∨ h.keepsCost = true) := by
+  have hs : ¬ (h.day < startDay ∨ (h.keepsCost = true ∧ crossing h = false)) := by
     simp only [startDay, nftFrom] at hd ⊢; simp [hc]; omega
   unfold bookSwapN bookSwapNft
   rw [if_neg hs, if_pos (Or.inr hI)]
@@ -2268,5 +2283,153 @@ theorem nft_buy_unpriced (h : NSwap) (g k s : ℚ) (hO : h.out.filter (late h.da
     refine ⟨?_, ?_, ?_⟩ <;> trivial
   refine ⟨hp.1, hp.2.1, hp.2.2, ?_⟩
   rw [hp.1, hp.2.1]; ring
+
+/-- **FR-15** From 2026, a swap with an NFT and a crypto that is neither money nor an NFT (an NFT put into an app for a
+crypto receipt, or taken back for one) is booked as any swap with an NFT from 2026 (`bookSwapNft`), `keepsCost` or not:
+never kept at cost. -/
+theorem bookSwapN_crossing (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hn : ∃ m ∈ h.out ++ h.inn, m.nft = true)
+    (hc : ∃ m ∈ h.out ++ h.inn, m.fiat = false ∧ m.nft = false) : bookSwapN B h = bookSwapNft B h := by
+  have hx : crossing h = true := by
+    obtain ⟨m, hm, h1⟩ := hn
+    obtain ⟨m', hm', h2, h3⟩ := hc
+    simp only [crossing, Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true]
+    exact ⟨⟨hd, m, hm, h1⟩, m', hm', by simp [h2, h3]⟩
+  have hs : ¬ (h.day < startDay ∨ (h.keepsCost = true ∧ crossing h = false)) := by
+    simp only [startDay, nftFrom] at hd ⊢; simp [hx]; omega
+  have hl : h.out.filter (late h.day) ≠ [] ∨ h.inn.filter (late h.day) ≠ [] := by
+    obtain ⟨m, hm, h1⟩ := hn
+    have hlm : late h.day m = true := by simp [late, h1, hd]
+    rcases List.mem_append.mp hm with hm | hm
+    · exact Or.inl (fun he => by simpa [hlm] using List.filter_eq_nil_iff.mp he m hm)
+    · exact Or.inr (fun he => by simpa [hlm] using List.filter_eq_nil_iff.mp he m hm)
+  unfold bookSwapN
+  rw [if_neg hs, if_pos hl]
+
+/-- **FR-15** From 2026, an NFT put into an app for a crypto receipt (`keepsCost` or not; no crypto given with it):
+no draft, the NFT listed apart (exchanged) at what came for it (the money and the receipt's value, none when either is
+not known; none when an NFT came too), and the receipt acquired at its value (0 when not known). -/
+theorem nft_deposit_listed (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hO : h.out.filter (late h.day) ≠ [])
+    (hco : h.out.filter (fun m => !m.fiat && !late h.day m) = [])
+    (hci : h.inn.filter (fun m => !m.fiat && !late h.day m) ≠ []) :
+    (bookSwapN B h).book.drafts = B.book.drafts ∧
+      (bookSwapN B h).nfts = B.nfts ++ [⟨h.day, if h.inn.filter (late h.day) ≠ [] then none
+        else plus (tot (h.inn.filter (·.fiat))) (tot (h.inn.filter (fun m => !m.fiat && !late h.day m)))⟩] ∧
+      (bookSwapN B h).book.acquisitions =
+        B.book.acquisitions ++ [(tot (h.inn.filter (fun m => !m.fiat && !late h.day m))).getD 0] := by
+  have hn : ∃ m ∈ h.out ++ h.inn, m.nft = true := by
+    obtain ⟨m, hm⟩ := List.exists_mem_of_ne_nil _ hO
+    rw [List.mem_filter] at hm
+    exact ⟨m, List.mem_append_left _ hm.1, by simp [late] at hm; exact hm.2.1⟩
+  have hc : ∃ m ∈ h.out ++ h.inn, m.fiat = false ∧ m.nft = false := by
+    obtain ⟨m, hm⟩ := List.exists_mem_of_ne_nil _ hci
+    rw [List.mem_filter] at hm
+    refine ⟨m, List.mem_append_right _ hm.1, ?_⟩
+    simp [late, hd] at hm; exact hm.2
+  rw [bookSwapN_crossing B h hd hn hc]
+  unfold bookSwapNft
+  simp only [hO, hco, hci, ne_eq, not_true_eq_false, not_false_eq_true, if_true, if_false, false_or, true_or,
+    and_self]
+
+/-- **FR-15** From 2026, a crypto receipt given back for its NFT (`keepsCost` or not; no NFT given): exactly one
+cession is added, how `.nft` (crypto given for a good, no sursis), no fees, not an exchange with crypto in, and no
+acquisition; the NFT is not listed. -/
+theorem nft_redeem_cession (B : BookN) (h : NSwap) (hd : nftFrom ≤ h.day) (hO : h.out.filter (late h.day) = [])
+    (hI : h.inn.filter (late h.day) ≠ []) (hco : h.out.filter (fun m => !m.fiat && !late h.day m) ≠ []) :
+    (bookSwapN B h).book.drafts = B.book.drafts ++ [nftDraft h] ∧
+      (bookSwapN B h).book.acquisitions = B.book.acquisitions ∧ (bookSwapN B h).nfts = B.nfts ∧
+      (nftDraft h).how = .nft ∧ (nftDraft h).fees = 0 ∧ (nftDraft h).cryptoIn = false := by
+  have hn : ∃ m ∈ h.out ++ h.inn, m.nft = true := by
+    obtain ⟨m, hm⟩ := List.exists_mem_of_ne_nil _ hI
+    rw [List.mem_filter] at hm
+    exact ⟨m, List.mem_append_right _ hm.1, by simp [late] at hm; exact hm.2.1⟩
+  have hc : ∃ m ∈ h.out ++ h.inn, m.fiat = false ∧ m.nft = false := by
+    obtain ⟨m, hm⟩ := List.exists_mem_of_ne_nil _ hco
+    rw [List.mem_filter] at hm
+    refine ⟨m, List.mem_append_left _ hm.1, ?_⟩
+    simp [late, hd] at hm; exact hm.2
+  rw [bookSwapN_crossing B h hd hn hc]
+  unfold bookSwapNft
+  simp only [hO, hco, ne_eq, not_true_eq_false, not_false_eq_true, if_true, if_false, false_or, and_false, pushDraft]
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;> trivial
+
+/-- **FR-15** Its l.213 for a receipt given back for NFTs alone (no money, no crypto back): the NFTs' value, else the
+receipt's; no soulte; unpriced only when neither value is known. -/
+theorem nft_redeem_price (h : NSwap) (hO : h.out.filter (late h.day) = []) (hI : h.inn.filter (late h.day) ≠ [])
+    (hfo : h.out.filter (·.fiat) = []) (hfi : h.inn.filter (·.fiat) = [])
+    (hci : h.inn.filter (fun m => !m.fiat && !late h.day m) = []) :
+    (nftDraft h).price = ((tot (h.inn.filter (late h.day))).orElse
+        (fun _ => tot (h.out.filter (fun m => !m.fiat && !late h.day m)))).getD 0 ∧
+      (nftDraft h).soulte = 0 ∧
+      (nftDraft h).unpriced = ((tot (h.inn.filter (late h.day))).isNone &&
+        (tot (h.out.filter (fun m => !m.fiat && !late h.day m))).isNone) := by
+  have t0 : tot [] = some 0 := rfl
+  simp only [nftDraft, nftPrice, nftSoulte, hO, hI, hfo, hfi, hci, t0, ne_eq, not_true_eq_false, not_false_eq_true,
+    if_true, if_false]
+  cases tot (h.inn.filter (late h.day)) <;> cases tot (h.out.filter (fun m => !m.fiat && !late h.day m)) <;>
+    simp
+
+/-! ### Rule 18: a move within one key that mixes units
+
+`frBook`'s `move` flow (an NFT put into an app for a receipt that is itself an NFT or stands for it, `keepsCost`, or
+an NFT moved between chains), modelled by its NFT operations before 2026 (`FR_NFT_START`, `before`): within one key,
+with more of the key held than the units moved (`held`) and a count that changes (1 NFT for 1,000 receipt units),
+units of different weight are mixed, so what each carries is not known: `nft-paid` with a value not known. Between two
+keys, `nft-pass` of the share taken. Not modelled: the held cost (`held`, set to not known by a mixed move), the share
+(`t.share`, taken as given). -/
+
+/-- A `move` flow: from key, to key, the units that came, the units that went (`fromQty`), the share of the source's
+units taken. -/
+structure MoveFlow where
+  src : ℕ
+  dst : ℕ
+  qty : ℚ
+  fromQty : Option ℚ
+  share : Option ℚ
+
+/-- `mixed`: within one key, a count that changes, while the key held more than the units that went. -/
+def MoveFlow.mixed (f : MoveFlow) (held : ℚ) : Bool :=
+  match f.fromQty with
+  | some q => decide (f.src = f.dst) && decide (q ≠ f.qty) && decide (q < held)
+  | none => false
+
+/-- The NFT operations of a `move` flow (none from 2026): a mixed move sets the key's part not known (`nft-paid`
+null); a move between keys passes the share taken. -/
+def moveOps (f : MoveFlow) (held : ℚ) (before : Bool) : List OpN :=
+  (if before && f.mixed held then [.nft (.paid f.dst none)] else []) ++
+    (if before && decide (f.src ≠ f.dst) then [.nft (.pass [(f.src, f.share)] [f.dst])] else [])
+
+/-- **FR-18** Before 2026, a mixed move within one key is exactly one `nft-paid` with a value not known: the key's
+part becomes not known (whatever it was), no line, nothing else changes. -/
+theorem nft_move_mixed (S : NState) (f : MoveFlow) (held : ℚ) (hm : f.mixed held = true) :
+    moveOps f held true = [.nft (.paid f.dst none)] ∧
+      (runN S (moveOps f held true)).1 = [] ∧
+      (runN S (moveOps f held true)).2 = ⟨S.s, upd S.carried f.dst (some none), S.cut⟩ := by
+  have he : f.src = f.dst := by
+    unfold MoveFlow.mixed at hm
+    split at hm
+    · simp only [Bool.and_eq_true, decide_eq_true_eq] at hm; exact hm.1.1
+    · cases hm
+  have ho : moveOps f held true = [.nft (.paid f.dst none)] := by
+    simp [moveOps, hm, he]
+  have ha : ∀ c : Part, addPart c none = some none := by
+    intro c; rcases c with _ | _ | _ <;> rfl
+  refine ⟨ho, ?_, ?_⟩ <;> simp [ho, runN, stepN, ha]
+
+/-- **FR-18** So when that key is held at the cut (`keep` above 0), the cut is not known, never a number, and every
+later line has no l.223 or l.224. -/
+theorem nft_move_mixed_cut (S : NState) (f : MoveFlow) (held x : ℚ) (keep : List (ℕ × ℚ)) (rest : List OpN)
+    (hm : f.mixed held = true) (hx : 0 < x) (he : (f.dst, x) ∈ keep) :
+    (stepN (runN S (moveOps f held true)).2 (.nft (.off keep))).1.cut = some none ∧
+      (∀ L ∈ (runN (stepN (runN S (moveOps f held true)).2 (.nft (.off keep))).1 rest).1,
+        L.l223 = none ∧ L.l224 = none) := by
+  have hc : (runN S (moveOps f held true)).2.carried f.dst = some none := by
+    rw [(nft_move_mixed S f held hm).2.2]; simp [upd]
+  obtain ⟨h1, h2, _⟩ := nft_cut_unknown (runN S (moveOps f held true)).2 keep rest
+    (Or.inr ⟨(f.dst, x), he, hx, hc⟩)
+  exact ⟨h1, h2⟩
+
+/-- **FR-18** A move from 2026 gives no NFT operation (the cut is past). -/
+theorem nft_move_late (f : MoveFlow) (held : ℚ) : moveOps f held false = [] := by
+  simp [moveOps]
 
 end Kanon.France

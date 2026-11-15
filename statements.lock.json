@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent reviewer (Claude agent a0108848, rounds 1-2, 14 Nov 2026)",
+  "reviewedBy": "independent AI reviewer, France NFT statements, 2 rounds (audit/REVIEW-2026-11-15-frnft.md)",
   "theorems": {
     "Kanon.Alerts.atLeast_iff": {
       "file": "Alerts.lean",
@@ -345,9 +345,25 @@
       "file": "FeeSplit.lean",
       "sha": "a1631d21956fb013"
     },
+    "Kanon.France.D_exchangeIn": {
+      "file": "France.lean",
+      "sha": "55fe26f04c066716"
+    },
+    "Kanon.France.D_mono": {
+      "file": "France.lean",
+      "sha": "7cd47ab5b2787dfa"
+    },
     "Kanon.France.addFee_spec": {
       "file": "France.lean",
       "sha": "1fafdde78621443f"
+    },
+    "Kanon.France.addPart_ok": {
+      "file": "France.lean",
+      "sha": "a5635fd57ecf3a18"
+    },
+    "Kanon.France.below_step": {
+      "file": "France.lean",
+      "sha": "2aec12a831a946b5"
     },
     "Kanon.France.bofip_110": {
       "file": "France.lean",
@@ -356,6 +372,22 @@
     "Kanon.France.bofip_120": {
       "file": "France.lean",
       "sha": "77cb9a05fdd811da"
+    },
+    "Kanon.France.bookN_plain": {
+      "file": "France.lean",
+      "sha": "5703557bca81b555"
+    },
+    "Kanon.France.bookSwapN_crossing": {
+      "file": "France.lean",
+      "sha": "fd326cd8dcc67299"
+    },
+    "Kanon.France.bookSwapN_kept": {
+      "file": "France.lean",
+      "sha": "6bc38a1bf7344d2f"
+    },
+    "Kanon.France.bookSwapN_plain": {
+      "file": "France.lean",
+      "sha": "cd691913b1430f80"
     },
     "Kanon.France.boxes_agree": {
       "file": "France.lean",
@@ -377,6 +409,14 @@
       "file": "France.lean",
       "sha": "203ef8ced1ab005b"
     },
+    "Kanon.France.doPass_keeps": {
+      "file": "France.lean",
+      "sha": "6aece4869eab21d7"
+    },
+    "Kanon.France.doPass_ok": {
+      "file": "France.lean",
+      "sha": "539e006664625c2a"
+    },
     "Kanon.France.euros_bounds": {
       "file": "France.lean",
       "sha": "6bc10ff520d6ba82"
@@ -389,9 +429,17 @@
       "file": "France.lean",
       "sha": "9051c5bce052c961"
     },
+    "Kanon.France.filter_map_toMove": {
+      "file": "France.lean",
+      "sha": "be15bfd693c387d7"
+    },
     "Kanon.France.fraction_bounds": {
       "file": "France.lean",
       "sha": "9c387fdaed1377aa"
+    },
+    "Kanon.France.fraction_rate": {
+      "file": "France.lean",
+      "sha": "fda3505c535e79a1"
     },
     "Kanon.France.gain_formula": {
       "file": "France.lean",
@@ -421,6 +469,10 @@
       "file": "France.lean",
       "sha": "8285488c92a50e92"
     },
+    "Kanon.France.kept_bounds": {
+      "file": "France.lean",
+      "sha": "bae53b4f9aed0208"
+    },
     "Kanon.France.l52_none_iff": {
       "file": "France.lean",
       "sha": "a1317ea6c13abdd2"
@@ -428,6 +480,10 @@
     "Kanon.France.l52_sum": {
       "file": "France.lean",
       "sha": "156a855e2cb0c40f"
+    },
+    "Kanon.France.leavePart_scale": {
+      "file": "France.lean",
+      "sha": "ce3a25af232967ae"
     },
     "Kanon.France.loss_to_3BN": {
       "file": "France.lean",
@@ -449,6 +505,10 @@
       "file": "France.lean",
       "sha": "ba4fc3cd7982e21f"
     },
+    "Kanon.France.net_mono": {
+      "file": "France.lean",
+      "sha": "201f40e58683eab1"
+    },
     "Kanon.France.net_nonneg": {
       "file": "France.lean",
       "sha": "93adaa0f656504a4"
@@ -465,9 +525,177 @@
       "file": "France.lean",
       "sha": "58eab99ea3789afd"
     },
+    "Kanon.France.nft_buy_cession": {
+      "file": "France.lean",
+      "sha": "3da0717016637133"
+    },
+    "Kanon.France.nft_buy_priced": {
+      "file": "France.lean",
+      "sha": "b518e40b640aca4f"
+    },
+    "Kanon.France.nft_buy_unpriced": {
+      "file": "France.lean",
+      "sha": "856a88130411b22b"
+    },
+    "Kanon.France.nft_case_b": {
+      "file": "France.lean",
+      "sha": "6e18e7440a994363"
+    },
+    "Kanon.France.nft_cut": {
+      "file": "France.lean",
+      "sha": "fd3abd5da4cab769"
+    },
+    "Kanon.France.nft_cut_gone": {
+      "file": "France.lean",
+      "sha": "43573df9c98c3d60"
+    },
+    "Kanon.France.nft_cut_held": {
+      "file": "France.lean",
+      "sha": "e883aba12970502b"
+    },
+    "Kanon.France.nft_cut_no_loss": {
+      "file": "France.lean",
+      "sha": "810bb0d862a0a68d"
+    },
+    "Kanon.France.nft_cut_no_loss_run": {
+      "file": "France.lean",
+      "sha": "98cb898f39e4bc2d"
+    },
+    "Kanon.France.nft_cut_nonneg": {
+      "file": "France.lean",
+      "sha": "fc517d387e3df456"
+    },
+    "Kanon.France.nft_cut_once": {
+      "file": "France.lean",
+      "sha": "9d4eb7a581cdc720"
+    },
+    "Kanon.France.nft_cut_unknown": {
+      "file": "France.lean",
+      "sha": "48ea007bb87784a8"
+    },
+    "Kanon.France.nft_deposit_listed": {
+      "file": "France.lean",
+      "sha": "d861d877be02e88a"
+    },
+    "Kanon.France.nft_fee_listed": {
+      "file": "France.lean",
+      "sha": "2f18329cb985fc40"
+    },
+    "Kanon.France.nft_given_draft": {
+      "file": "France.lean",
+      "sha": "6319d6ec0d746753"
+    },
+    "Kanon.France.nft_given_l51": {
+      "file": "France.lean",
+      "sha": "ef5000a894e088ca"
+    },
+    "Kanon.France.nft_given_no_line": {
+      "file": "France.lean",
+      "sha": "bcef79709eb6dfa5"
+    },
+    "Kanon.France.nft_kept_nft_receipt": {
+      "file": "France.lean",
+      "sha": "1acfc0426a702bdc"
+    },
+    "Kanon.France.nft_leave_commutes": {
+      "file": "France.lean",
+      "sha": "52ab01f6bdba7631"
+    },
+    "Kanon.France.nft_leave_full": {
+      "file": "France.lean",
+      "sha": "57f40acc03b83a92"
+    },
+    "Kanon.France.nft_leave_part": {
+      "file": "France.lean",
+      "sha": "30ef7b559aefe70e"
+    },
+    "Kanon.France.nft_left_not_cut": {
+      "file": "France.lean",
+      "sha": "970b77a76a5d193c"
+    },
+    "Kanon.France.nft_move_late": {
+      "file": "France.lean",
+      "sha": "8af49d2057500ed3"
+    },
+    "Kanon.France.nft_move_mixed": {
+      "file": "France.lean",
+      "sha": "cfe2a12f82e57b4b"
+    },
+    "Kanon.France.nft_move_mixed_cut": {
+      "file": "France.lean",
+      "sha": "9f474ff76ac93062"
+    },
+    "Kanon.France.nft_part_cession": {
+      "file": "France.lean",
+      "sha": "41628e850b2c62e1"
+    },
+    "Kanon.France.nft_part_tracks": {
+      "file": "France.lean",
+      "sha": "da59e18084b973bb"
+    },
+    "Kanon.France.nft_parts_nonneg": {
+      "file": "France.lean",
+      "sha": "de3aa49fa5575f2c"
+    },
+    "Kanon.France.nft_parts_run": {
+      "file": "France.lean",
+      "sha": "a60f2ae5963dc66e"
+    },
+    "Kanon.France.nft_pass_moves": {
+      "file": "France.lean",
+      "sha": "80da954ef3b2c50f"
+    },
+    "Kanon.France.nft_pass_nothing": {
+      "file": "France.lean",
+      "sha": "fbdfbbe670c98d55"
+    },
+    "Kanon.France.nft_pass_nothing_cut": {
+      "file": "France.lean",
+      "sha": "81641f976bde57af"
+    },
+    "Kanon.France.nft_pass_unknown": {
+      "file": "France.lean",
+      "sha": "7f6e4b41b55840a8"
+    },
+    "Kanon.France.nft_pass_unknown_cut": {
+      "file": "France.lean",
+      "sha": "c79f11ba68d318cb"
+    },
+    "Kanon.France.nft_redeem_cession": {
+      "file": "France.lean",
+      "sha": "49321e482ba585e7"
+    },
+    "Kanon.France.nft_redeem_price": {
+      "file": "France.lean",
+      "sha": "551486f9a2f650d6"
+    },
+    "Kanon.France.nft_report_case1": {
+      "file": "France.lean",
+      "sha": "6a0ff943c6366866"
+    },
+    "Kanon.France.nft_report_case2": {
+      "file": "France.lean",
+      "sha": "d41a446c778afd2c"
+    },
+    "Kanon.France.nft_unknown_persists": {
+      "file": "France.lean",
+      "sha": "7df702a49f5a86a0"
+    },
     "Kanon.France.no_carry": {
       "file": "France.lean",
       "sha": "4863bd2bd5c818e8"
+    },
+    "Kanon.France.offStep_none": {
+      "file": "France.lean",
+      "sha": "54830f39f8e68ca4"
+    },
+    "Kanon.France.offStep_sum": {
+      "file": "France.lean",
+      "sha": "10b7dacf37287d02"
+    },
+    "Kanon.France.offStep_unknown": {
+      "file": "France.lean",
+      "sha": "b1a9c7b6425d7ef0"
     },
     "Kanon.France.ok_addFee": {
       "file": "France.lean",
@@ -505,9 +733,65 @@
       "file": "France.lean",
       "sha": "27b976ade1dff08b"
     },
+    "Kanon.France.passDst_keeps": {
+      "file": "France.lean",
+      "sha": "25555071e446dcfc"
+    },
+    "Kanon.France.passDst_unknown": {
+      "file": "France.lean",
+      "sha": "b85f80e3a76d09cd"
+    },
+    "Kanon.France.passSrc_keeps": {
+      "file": "France.lean",
+      "sha": "014e54b06b5f6347"
+    },
+    "Kanon.France.passSrc_none_sticks": {
+      "file": "France.lean",
+      "sha": "42dcdcd4e4f37abc"
+    },
+    "Kanon.France.passSrc_ok": {
+      "file": "France.lean",
+      "sha": "c811fb3ebfb94297"
+    },
+    "Kanon.France.passSrc_other": {
+      "file": "France.lean",
+      "sha": "f109abfeb19ececc"
+    },
+    "Kanon.France.passSrc_unknown": {
+      "file": "France.lean",
+      "sha": "8da78dcb97846816"
+    },
+    "Kanon.France.rate_bounds": {
+      "file": "France.lean",
+      "sha": "d9b8a7f783dffaa7"
+    },
     "Kanon.France.rates": {
       "file": "France.lean",
       "sha": "52187752f35cf1c1"
+    },
+    "Kanon.France.runN_append": {
+      "file": "France.lean",
+      "sha": "c5381c834c68645d"
+    },
+    "Kanon.France.runN_base": {
+      "file": "France.lean",
+      "sha": "0accf265297418fa"
+    },
+    "Kanon.France.runN_no_nft": {
+      "file": "France.lean",
+      "sha": "97c1fd4bfd778cb5"
+    },
+    "Kanon.France.scale_apply": {
+      "file": "France.lean",
+      "sha": "c3fb0590e33ef74c"
+    },
+    "Kanon.France.stepN_base": {
+      "file": "France.lean",
+      "sha": "b83a8ba68a966372"
+    },
+    "Kanon.France.stepN_nft": {
+      "file": "France.lean",
+      "sha": "88ad7b27761bad6c"
     },
     "Kanon.France.swap_changes_nothing": {
       "file": "France.lean",
@@ -529,9 +813,17 @@
       "file": "France.lean",
       "sha": "41bdb0194a70016c"
     },
+    "Kanon.France.unknownN_sticks": {
+      "file": "France.lean",
+      "sha": "0e365c056cf7fd04"
+    },
     "Kanon.France.unknown_line": {
       "file": "France.lean",
       "sha": "e406c7dafbe9c8c7"
+    },
+    "Kanon.France.unknown_step": {
+      "file": "France.lean",
+      "sha": "0cf21a532a220f45"
     },
     "Kanon.France.unknown_sticks": {
       "file": "France.lean",
@@ -548,6 +840,18 @@
     "Kanon.France.unusable_iff": {
       "file": "France.lean",
       "sha": "fe12d11902a0ce36"
+    },
+    "Kanon.France.upd_apply": {
+      "file": "France.lean",
+      "sha": "9e3ea905db9557c0"
+    },
+    "Kanon.France.upd_ok": {
+      "file": "France.lean",
+      "sha": "84b67824f641ac66"
+    },
+    "Kanon.France.usable_spec": {
+      "file": "France.lean",
+      "sha": "e5f6645455ab77ee"
     },
     "Kanon.France.year_unknown": {
       "file": "France.lean",

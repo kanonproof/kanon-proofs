@@ -954,7 +954,8 @@ operations that follow the part of l.220 each NFT carries and take out, when 202
 * `nft-swap` (`NftOp.swap`): crypto given for an NFT with no money, a sursis: l.220 doesn't change and the NFT carries
   l.223 × value ÷ portfolio value (when that value is known, above 0 and not below the value given);
 * `nft-pass` (`NftOp.pass`): an NFT passed on for another NFT or to another chain: `share` (at most 1) of each source's
-  part goes, split evenly, to the NFTs that came; a share not known (`none`: the source was never seen arriving) makes
+  part goes, split evenly, to the NFTs that came; a source carrying nothing (no entry, or a known 0) hands on nothing,
+  whatever its share; from a source carrying a part, a share not known (`none`: none of that NFT was seen held) makes
   what moves not known, so every NFT that came carries a part not known;
 * `nft-leave` (`NftOp.leave`): NFTs of one key leaving before 2026 (sold, given, swapped for crypto, paid as a fee,
   gone unexplained): `share` of the key's part (what left ÷ what was held just before) stops being followed; it stays in
@@ -1028,15 +1029,19 @@ def swapPart (s : State) : Option ℚ → Option ℚ → Option ℚ
   | some v, some p => if s.known = true ∧ 0 < p ∧ v ≤ p then some (net s * v / p) else none
   | _, _ => none
 
-/-- `nft-pass`, one source: (parts, moved, any source had an entry). A share not known: what moves is not known. -/
+/-- `nft-pass`, one source: (parts, moved, any source had an entry). A source carrying nothing (no entry, or a known
+0) hands on nothing and doesn't count; else a share not known, or a part not known, makes what moves not known (the
+source left as it is); else `share` (at most 1) of the part moves. -/
 def passSrc (acc : (ℕ → Part) × Option ℚ × Bool) (e : ℕ × Option ℚ) : (ℕ → Part) × Option ℚ × Bool :=
-  match e.2 with
-  | none => (acc.1, none, true)
-  | some sh =>
-    match acc.1 e.1 with
-    | none => acc
-    | some none => (acc.1, none, true)
-    | some (some c) => (upd acc.1 e.1 (some (some (c - c * min sh 1))), acc.2.1.map (· + c * min sh 1), true)
+  match acc.1 e.1 with
+  | none => acc
+  | some none => (acc.1, none, true)
+  | some (some c) =>
+    if c = 0 then acc
+    else
+      match e.2 with
+      | none => (acc.1, none, true)
+      | some sh => (upd acc.1 e.1 (some (some (c - c * min sh 1))), acc.2.1.map (· + c * min sh 1), true)
 
 /-- `nft-pass`, one NFT that came: it takes `moved ÷ n`. -/
 def passDst (m : Option ℚ) (n : ℕ) (f : ℕ → Part) (k : ℕ) : ℕ → Part :=
@@ -1296,10 +1301,13 @@ theorem nft_pass_moves (f : ℕ → Part) (k k' : ℕ) (sh a b : ℚ) (hne : k �
       doPass f [(k, some sh)] [k'] k' = some (some (b + a * sh)) ∧
       ∀ j, j ≠ k → j ≠ k' → doPass f [(k, some sh)] [k'] j = f j := by
   have hm : min sh 1 = sh := min_eq_left h1
+  by_cases h0 : a = 0
+  · subst h0
+    refine ⟨?_, ?_, fun j _ _ => ?_⟩ <;> simp [doPass, passSrc, ha, hb]
   refine ⟨?_, ?_, fun j hj hj' => ?_⟩
-  · simp [doPass, passSrc, passDst, upd, ha, hb, hm, hne, Ne.symm hne, addPart]
-  · simp [doPass, passSrc, passDst, upd, ha, hb, hm, Ne.symm hne, addPart]
-  · simp [doPass, passSrc, passDst, upd, ha, hb, hm, Ne.symm hne, addPart, hj, hj']
+  · simp [doPass, passSrc, passDst, upd, ha, hb, hm, hne, Ne.symm hne, addPart, h0]
+  · simp [doPass, passSrc, passDst, upd, ha, hb, hm, Ne.symm hne, addPart, h0]
+  · simp [doPass, passSrc, passDst, upd, ha, hb, hm, Ne.symm hne, addPart, hj, hj', h0]
 
 /-! ### Rule 13: parts are never below 0, so the cut never adds to l.220 -/
 
@@ -1341,29 +1349,33 @@ theorem passSrc_ok (src : List (ℕ × Option ℚ)) (hs : ∀ e ∈ src, ∀ x, 
     apply ih (fun e' he' => hs e' (List.mem_cons_of_mem _ he'))
     · unfold passSrc; split
       · exact h1
-      · next sh he2 =>
-        split
+      · exact h1
+      · next c hc =>
+        split_ifs
         · exact h1
-        · exact h1
-        · next c hc =>
-          have hc0 := h1 _ _ hc
-          have hm0 : 0 ≤ min sh 1 := le_min (hs e (by simp) sh he2) zero_le_one
-          have hm1 : min sh 1 ≤ 1 := min_le_right _ _
-          refine upd_ok _ _ _ h1 (fun a ha => ?_)
-          simp only [Option.some.injEq] at ha; subst ha; nlinarith
+        · split
+          · exact h1
+          · next sh he2 =>
+            have hc0 := h1 _ _ hc
+            have hm0 : 0 ≤ min sh 1 := le_min (hs e (by simp) sh he2) zero_le_one
+            have hm1 : min sh 1 ≤ 1 := min_le_right _ _
+            refine upd_ok _ _ _ h1 (fun a ha => ?_)
+            simp only [Option.some.injEq] at ha; subst ha; nlinarith
     · unfold passSrc; split
-      · intro x hx; simp at hx
-      · next sh he2 =>
-      split
       · exact h2
       · intro x hx; simp at hx
       · next c hc =>
-        have hc0 := h1 _ _ hc
-        have hm0 : 0 ≤ min sh 1 := le_min (hs e (by simp) sh he2) zero_le_one
-        intro x hx
-        cases hm : acc.2.1 with
-        | none => simp [hm] at hx
-        | some m => simp [hm] at hx; subst hx; exact add_nonneg (h2 m hm) (mul_nonneg hc0 hm0)
+        split_ifs
+        · exact h2
+        · split
+          · intro x hx; simp at hx
+          · next sh he2 =>
+          have hc0 := h1 _ _ hc
+          have hm0 : 0 ≤ min sh 1 := le_min (hs e (by simp) sh he2) zero_le_one
+          intro x hx
+          cases hm : acc.2.1 with
+          | none => simp [hm] at hx
+          | some m => simp [hm] at hx; subst hx; exact add_nonneg (h2 m hm) (mul_nonneg hc0 hm0)
 
 theorem doPass_ok (f : ℕ → Part) (src : List (ℕ × Option ℚ)) (dst : List ℕ) (hf : PartsOk f)
     (hs : ∀ e ∈ src, ∀ x, e.2 = some x → 0 ≤ x) :
@@ -1822,21 +1834,46 @@ theorem passSrc_none_sticks (src : List (ℕ × Option ℚ)) (acc : (ℕ → Par
     apply ih
     unfold passSrc
     split
+    · exact h
     · exact ⟨rfl, rfl⟩
-    · split
+    · split_ifs
       · exact h
-      · exact ⟨rfl, rfl⟩
-      · simp [h.1]
+      · split
+        · exact ⟨rfl, rfl⟩
+        · simp [h.1]
 
-theorem passSrc_unknown (src : List (ℕ × Option ℚ)) (k : ℕ) (hk : (k, none) ∈ src)
-    (acc : (ℕ → Part) × Option ℚ × Bool) :
-    (src.foldl passSrc acc).2.1 = none ∧ (src.foldl passSrc acc).2.2 = true := by
-  induction src generalizing acc with
-  | nil => simp at hk
+/-- Sources on other keys leave a key's part as it is. -/
+theorem passSrc_other (k : ℕ) (pre : List (ℕ × Option ℚ)) (acc : (ℕ → Part) × Option ℚ × Bool)
+    (h : ∀ e ∈ pre, e.1 ≠ k) : (pre.foldl passSrc acc).1 k = acc.1 k := by
+  induction pre generalizing acc with
+  | nil => rfl
   | cons e es ih =>
-    rcases List.mem_cons.mp hk with rfl | hm
-    · exact passSrc_none_sticks es _ ⟨rfl, rfl⟩
-    · exact ih hm _
+    simp only [List.foldl_cons]
+    rw [ih _ (fun e' he' => h e' (List.mem_cons_of_mem _ he'))]
+    have hk : k ≠ e.1 := fun hk => h e (by simp) hk.symm
+    unfold passSrc
+    split
+    · rfl
+    · rfl
+    · split_ifs
+      · rfl
+      · split
+        · rfl
+        · simp [upd, hk]
+
+theorem passSrc_unknown (pre post : List (ℕ × Option ℚ)) (k : ℕ) (hpre : ∀ e ∈ pre, e.1 ≠ k)
+    (acc : (ℕ → Part) × Option ℚ × Bool) (hk : acc.1 k = some none ∨ ∃ c, acc.1 k = some (some c) ∧ c ≠ 0) :
+    ((pre ++ (k, none) :: post).foldl passSrc acc).2.1 = none ∧
+      ((pre ++ (k, none) :: post).foldl passSrc acc).2.2 = true := by
+  rw [List.foldl_append, List.foldl_cons]
+  apply passSrc_none_sticks
+  have he := passSrc_other k pre acc hpre
+  generalize pre.foldl passSrc acc = A at he
+  unfold passSrc
+  simp only
+  rcases hk with hk | ⟨c, hk, hc⟩
+  · rw [he, hk]; exact ⟨rfl, rfl⟩
+  · rw [he, hk]; simp [hc]
 
 theorem passDst_unknown (n : ℕ) (j : ℕ) (l : List ℕ) (g : ℕ → Part) (h : j ∈ l ∨ g j = some none) :
     (l.foldl (passDst none n) g) j = some none := by
@@ -1854,25 +1891,53 @@ theorem passDst_unknown (n : ℕ) (j : ℕ) (l : List ℕ) (g : ℕ → Part) (h
         · exact Or.inl h
       · right; simp [passDst, upd, hj, h]
 
-/-- **FR-17** A pass with a share not known (the source never seen arriving): every NFT that came carries a part not
-known. -/
-theorem nft_pass_unknown (f : ℕ → Part) (src : List (ℕ × Option ℚ)) (dst : List ℕ) (k j : ℕ)
-    (hk : (k, none) ∈ src) (hj : j ∈ dst) : doPass f src dst j = some none := by
-  obtain ⟨h1, h2⟩ := passSrc_unknown src k hk (f, some 0, false)
+/-- **FR-17** A pass with a share not known from a source that carries a part (not known, or known and not 0; the
+first time the pass reaches that source): every NFT that came carries a part not known. -/
+theorem nft_pass_unknown (f : ℕ → Part) (pre post : List (ℕ × Option ℚ)) (dst : List ℕ) (k j : ℕ)
+    (hpre : ∀ e ∈ pre, e.1 ≠ k) (hk : f k = some none ∨ ∃ c, f k = some (some c) ∧ c ≠ 0) (hj : j ∈ dst) :
+    doPass f (pre ++ (k, none) :: post) dst j = some none := by
+  obtain ⟨h1, h2⟩ := passSrc_unknown pre post k hpre (f, some 0, false) hk
   unfold doPass
   simp only [h2, if_true, h1]
   exact passDst_unknown _ _ _ _ (Or.inl hj)
 
 /-- **FR-17** So when such an NFT is held at the cut (`keep` above 0), the cut is not known, never a number, and every
-later line has no l.223 or l.224 and the acquisition price left is unknown. -/
-theorem nft_pass_unknown_cut (S : NState) (src : List (ℕ × Option ℚ)) (dst : List ℕ) (k j : ℕ) (x : ℚ)
-    (keep : List (ℕ × ℚ)) (rest : List OpN) (hk : (k, none) ∈ src) (hj : j ∈ dst) (hx : 0 < x) (he : (j, x) ∈ keep) :
-    (stepN (stepN S (.nft (.pass src dst))).1 (.nft (.off keep))).1.cut = some none ∧
-      (∀ L ∈ (runN (stepN (stepN S (.nft (.pass src dst))).1 (.nft (.off keep))).1 rest).1,
+later line has no l.223 or l.224. -/
+theorem nft_pass_unknown_cut (S : NState) (pre post : List (ℕ × Option ℚ)) (dst : List ℕ) (k j : ℕ) (x : ℚ)
+    (keep : List (ℕ × ℚ)) (rest : List OpN) (hpre : ∀ e ∈ pre, e.1 ≠ k)
+    (hk : S.carried k = some none ∨ ∃ c, S.carried k = some (some c) ∧ c ≠ 0) (hj : j ∈ dst) (hx : 0 < x)
+    (he : (j, x) ∈ keep) :
+    (stepN (stepN S (.nft (.pass (pre ++ (k, none) :: post) dst))).1 (.nft (.off keep))).1.cut = some none ∧
+      (∀ L ∈ (runN (stepN (stepN S (.nft (.pass (pre ++ (k, none) :: post) dst))).1 (.nft (.off keep))).1 rest).1,
         L.l223 = none ∧ L.l224 = none) := by
-  obtain ⟨h1, h2, _⟩ := nft_cut_unknown (stepN S (.nft (.pass src dst))).1 keep rest
-    (Or.inr ⟨(j, x), he, hx, nft_pass_unknown S.carried src dst k j hk hj⟩)
+  obtain ⟨h1, h2, _⟩ := nft_cut_unknown (stepN S (.nft (.pass (pre ++ (k, none) :: post) dst))).1 keep rest
+    (Or.inr ⟨(j, x), he, hx, nft_pass_unknown S.carried pre post dst k j hpre hk hj⟩)
   exact ⟨h1, h2⟩
+
+/-- **FR-17** A pass whose sources all carry nothing (no entry, or a known 0), whatever their shares (not known
+among them), changes nothing. -/
+theorem nft_pass_nothing (f : ℕ → Part) (src : List (ℕ × Option ℚ)) (dst : List ℕ)
+    (hs : ∀ e ∈ src, f e.1 = none ∨ f e.1 = some (some 0)) : doPass f src dst = f := by
+  have : src.foldl passSrc (f, some 0, false) = (f, some 0, false) := by
+    induction src with
+    | nil => rfl
+    | cons e es ih =>
+      simp only [List.foldl_cons]
+      have he : passSrc (f, some 0, false) e = (f, some 0, false) := by
+        unfold passSrc
+        rcases hs e (by simp) with h | h <;> simp [h]
+      rw [he]; exact ih (fun e' he' => hs e' (List.mem_cons_of_mem _ he'))
+  unfold doPass; simp [this]
+
+/-- **FR-17** So such a pass (a share not known from a key that carries nothing among them) leaves everything as if
+there were no pass: the same cut in 2026, the same lines after. -/
+theorem nft_pass_nothing_cut (S : NState) (src : List (ℕ × Option ℚ)) (dst : List ℕ)
+    (hs : ∀ e ∈ src, S.carried e.1 = none ∨ S.carried e.1 = some (some 0)) (op : OpN) :
+    (stepN S (.nft (.pass src dst))).1 = S ∧ stepN (stepN S (.nft (.pass src dst))).1 op = stepN S op := by
+  have h : (stepN S (.nft (.pass src dst))).1 = S := by
+    show (⟨S.s, doPass S.carried src dst, S.cut⟩ : NState) = S
+    rw [nft_pass_nothing _ _ _ hs]
+  exact ⟨h, by rw [h]⟩
 
 /-! ### Rule 15: `frBook` from 2026: an NFT given is no 2086 line; crypto given for an NFT is a cession
 
@@ -1882,7 +1947,8 @@ theorem nft_pass_unknown_cut (S : NState) (src : List (ℕ × Option ℚ)) (dst 
 swap with no NFT from 2026 the rule of before with its one change (crypto for crypto with a soulte where an NFT with no
 price came in: what came is worth what was given less the soulte). Not modelled: what NFTs cost (`nftPay`, `cost`),
 the flows and the operations of Rules 10-17 built from them (`nft-leave` shares, `nftKeep`, which NFT a receipt
-stands for), an NFT that left with or without an answer
+stands for: before 2026 a receipt standing for a seen NFT is followed under that NFT's key, chain|standsFor, and
+from 2026 a receipt is not treated as an NFT at all), an NFT that left with or without an answer
 (`unexplained-out`), and `frHeld` leaving NFTs out of the portfolio from 2026. -/
 
 /-- A movement with whether its asset is an NFT. -/

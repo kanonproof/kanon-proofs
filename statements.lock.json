@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "independent reviewer (Claude agent a0108848, rounds 1-2, 14 Nov 2026)",
+  "reviewedBy": "Spain round 3 2026-11-15, statements reviewed against kanon-app a4a0731 lots.ts and LIRPF arts 37.2/33.5.e, OK to lock",
   "theorems": {
     "Kanon.Alerts.atLeast_iff": {
       "file": "Alerts.lean",
@@ -1152,6 +1152,726 @@
     "Kanon.Simulator.share_close": {
       "file": "Simulator.lean",
       "sha": "8dab25846aefb9b7"
+    },
+    "Kanon.Spain.add_perm": {
+      "file": "Spain.lean",
+      "sha": "a6a51ee333ac59ea"
+    },
+    "Kanon.Spain.add_sorted": {
+      "file": "Spain.lean",
+      "sha": "a79d2a9514b0c4da"
+    },
+    "Kanon.Spain.aeat_ch12": {
+      "file": "Spain.lean",
+      "sha": "fd997157447f9a3a"
+    },
+    "Kanon.Spain.bandTax_mono": {
+      "file": "Spain.lean",
+      "sha": "efd0de942615ae9e"
+    },
+    "Kanon.Spain.bandTax_nonneg": {
+      "file": "Spain.lean",
+      "sha": "aa71e3b260f15e5e"
+    },
+    "Kanon.Spain.base_arith": {
+      "file": "Spain.lean",
+      "sha": "78a993009cc99913"
+    },
+    "Kanon.Spain.base_formula": {
+      "file": "Spain.lean",
+      "sha": "4613ed4453dc26c4"
+    },
+    "Kanon.Spain.base_mono": {
+      "file": "Spain.lean",
+      "sha": "965b8930fe8dddea"
+    },
+    "Kanon.Spain.basisAt_cons": {
+      "file": "Spain.lean",
+      "sha": "61c66cdf0cda1200"
+    },
+    "Kanon.Spain.before_antisymm": {
+      "file": "Spain.lean",
+      "sha": "f57fc36a76e7161f"
+    },
+    "Kanon.Spain.before_of_not": {
+      "file": "Spain.lean",
+      "sha": "8f2e1d2f4d767167"
+    },
+    "Kanon.Spain.before_trans": {
+      "file": "Spain.lean",
+      "sha": "949e8da1e7272948"
+    },
+    "Kanon.Spain.box1808_le_box1807": {
+      "file": "Spain.lean",
+      "sha": "2b862c3568436dc2"
+    },
+    "Kanon.Spain.box1814_sub_box1813": {
+      "file": "Spain.lean",
+      "sha": "4a48d5d9df97e356"
+    },
+    "Kanon.Spain.centsUp_mono": {
+      "file": "Spain.lean",
+      "sha": "e76860234b7a7d51"
+    },
+    "Kanon.Spain.centsUp_nonneg": {
+      "file": "Spain.lean",
+      "sha": "1ee6cd6e73dc613a"
+    },
+    "Kanon.Spain.cents_le_of_le": {
+      "file": "Spain.lean",
+      "sha": "2816731db24741a9"
+    },
+    "Kanon.Spain.cents_mono": {
+      "file": "Spain.lean",
+      "sha": "48b6e614a7a46d5d"
+    },
+    "Kanon.Spain.cents_nonneg": {
+      "file": "Spain.lean",
+      "sha": "e113719fd8affba5"
+    },
+    "Kanon.Spain.cents_nonpos": {
+      "file": "Spain.lean",
+      "sha": "a3f245195083944c"
+    },
+    "Kanon.Spain.cents_of_isCents": {
+      "file": "Spain.lean",
+      "sha": "abee50765e9cc0ae"
+    },
+    "Kanon.Spain.costAt_add": {
+      "file": "Spain.lean",
+      "sha": "1fe548631c8c65ec"
+    },
+    "Kanon.Spain.costAt_cons": {
+      "file": "Spain.lean",
+      "sha": "aba606cf20299656"
+    },
+    "Kanon.Spain.costAt_unit": {
+      "file": "Spain.lean",
+      "sha": "72e62caf80b40492"
+    },
+    "Kanon.Spain.count_deferred": {
+      "file": "Spain.lean",
+      "sha": "9faa0be62b79ad8e"
+    },
+    "Kanon.Spain.count_spec": {
+      "file": "Spain.lean",
+      "sha": "423c994072bb1692"
+    },
+    "Kanon.Spain.countsFrom_sum": {
+      "file": "Spain.lean",
+      "sha": "3a2f156275794ddc"
+    },
+    "Kanon.Spain.crossRate_bounds": {
+      "file": "Spain.lean",
+      "sha": "13b7e1dc66660cd6"
+    },
+    "Kanon.Spain.crossStep_bounds": {
+      "file": "Spain.lean",
+      "sha": "92f01a3edbd512d8"
+    },
+    "Kanon.Spain.crossStep_keeps_own": {
+      "file": "Spain.lean",
+      "sha": "2da0dee8cd84cd7d"
+    },
+    "Kanon.Spain.crossStep_oldest": {
+      "file": "Spain.lean",
+      "sha": "1146fe7de6b11d1e"
+    },
+    "Kanon.Spain.crossStep_used": {
+      "file": "Spain.lean",
+      "sha": "9d2be3aed7f557ec"
+    },
+    "Kanon.Spain.cross_agg": {
+      "file": "Spain.lean",
+      "sha": "b3203cf417325e45"
+    },
+    "Kanon.Spain.cross_arith": {
+      "file": "Spain.lean",
+      "sha": "f01eeb124690d62c"
+    },
+    "Kanon.Spain.cross_arith0": {
+      "file": "Spain.lean",
+      "sha": "3e1d886476304126"
+    },
+    "Kanon.Spain.cross_within_limit": {
+      "file": "Spain.lean",
+      "sha": "a92300be4353e310"
+    },
+    "Kanon.Spain.cuantia_maxima": {
+      "file": "Spain.lean",
+      "sha": "c83db08b59703106"
+    },
+    "Kanon.Spain.cuantia_maxima_year": {
+      "file": "Spain.lean",
+      "sha": "6687d0abffbcc7b9"
+    },
+    "Kanon.Spain.data_out": {
+      "file": "Spain.lean",
+      "sha": "01025b000e716216"
+    },
+    "Kanon.Spain.data_step": {
+      "file": "Spain.lean",
+      "sha": "8b29f782fee7a29f"
+    },
+    "Kanon.Spain.entries_filter": {
+      "file": "Spain.lean",
+      "sha": "722b9dc7e44c823f"
+    },
+    "Kanon.Spain.entries_sums": {
+      "file": "Spain.lean",
+      "sha": "5970c240ecabb334"
+    },
+    "Kanon.Spain.foldl_add_cost": {
+      "file": "Spain.lean",
+      "sha": "b8b619e2415a4ef9"
+    },
+    "Kanon.Spain.foldl_add_held": {
+      "file": "Spain.lean",
+      "sha": "05f16dae1e3e97b3"
+    },
+    "Kanon.Spain.foldl_add_sorted": {
+      "file": "Spain.lean",
+      "sha": "0f8343e78d52e846"
+    },
+    "Kanon.Spain.foldl_at": {
+      "file": "Spain.lean",
+      "sha": "6d47f0d23c6d05a1"
+    },
+    "Kanon.Spain.good_add": {
+      "file": "Spain.lean",
+      "sha": "71958d81b8ac13e8"
+    },
+    "Kanon.Spain.good_arrive": {
+      "file": "Spain.lean",
+      "sha": "069dda432da6dc05"
+    },
+    "Kanon.Spain.good_of_reach": {
+      "file": "Spain.lean",
+      "sha": "7327aa12b9cbd9be"
+    },
+    "Kanon.Spain.good_sell": {
+      "file": "Spain.lean",
+      "sha": "89f0c8982cd89875"
+    },
+    "Kanon.Spain.good_tail": {
+      "file": "Spain.lean",
+      "sha": "f2734630f666a6e4"
+    },
+    "Kanon.Spain.good_transfer": {
+      "file": "Spain.lean",
+      "sha": "3bd492a2c22ad269"
+    },
+    "Kanon.Spain.good_wrap": {
+      "file": "Spain.lean",
+      "sha": "8e5a60e166d268e2"
+    },
+    "Kanon.Spain.gotOf_append": {
+      "file": "Spain.lean",
+      "sha": "0a26fffb17b06526"
+    },
+    "Kanon.Spain.gotOf_new": {
+      "file": "Spain.lean",
+      "sha": "845717608487b2dd"
+    },
+    "Kanon.Spain.gotOf_none": {
+      "file": "Spain.lean",
+      "sha": "be9380f399ed9fcb"
+    },
+    "Kanon.Spain.gp_less_futures": {
+      "file": "Spain.lean",
+      "sha": "6caf3440438863ed"
+    },
+    "Kanon.Spain.head_before": {
+      "file": "Spain.lean",
+      "sha": "b3a58669a4177942"
+    },
+    "Kanon.Spain.heldAt_add": {
+      "file": "Spain.lean",
+      "sha": "8ae0d2886a783cb1"
+    },
+    "Kanon.Spain.heldAt_cons": {
+      "file": "Spain.lean",
+      "sha": "6ee08c4fbb051640"
+    },
+    "Kanon.Spain.heldAt_exists": {
+      "file": "Spain.lean",
+      "sha": "b4c313a1548dfeff"
+    },
+    "Kanon.Spain.heldAt_nonneg": {
+      "file": "Spain.lean",
+      "sha": "bc7dce2485e4d842"
+    },
+    "Kanon.Spain.heldAt_pos": {
+      "file": "Spain.lean",
+      "sha": "3c4f00de8a3290ac"
+    },
+    "Kanon.Spain.held_add": {
+      "file": "Spain.lean",
+      "sha": "aea39c5b0e792d47"
+    },
+    "Kanon.Spain.isCents_cents": {
+      "file": "Spain.lean",
+      "sha": "bd15b0863bf235bd"
+    },
+    "Kanon.Spain.isCents_sub": {
+      "file": "Spain.lean",
+      "sha": "4da3dc50cc73893f"
+    },
+    "Kanon.Spain.kindSum_cons": {
+      "file": "Spain.lean",
+      "sha": "37f92b8ecc56f83b"
+    },
+    "Kanon.Spain.kindSum_nonneg": {
+      "file": "Spain.lean",
+      "sha": "58438b3dba7a323f"
+    },
+    "Kanon.Spain.like_good": {
+      "file": "Spain.lean",
+      "sha": "d7d2b131e69a2f0b"
+    },
+    "Kanon.Spain.like_self": {
+      "file": "Spain.lean",
+      "sha": "fed708caa1bf69e6"
+    },
+    "Kanon.Spain.limitOf_eq": {
+      "file": "Spain.lean",
+      "sha": "dea6bd9d4e473d51"
+    },
+    "Kanon.Spain.matchLoss_from": {
+      "file": "Spain.lean",
+      "sha": "9fbb7b0238d463e5"
+    },
+    "Kanon.Spain.matchLoss_sum": {
+      "file": "Spain.lean",
+      "sha": "238cb948db883df3"
+    },
+    "Kanon.Spain.max_sub_max": {
+      "file": "Spain.lean",
+      "sha": "5a4248646c59eda4"
+    },
+    "Kanon.Spain.mem_foldl": {
+      "file": "Spain.lean",
+      "sha": "05e3930427b3c048"
+    },
+    "Kanon.Spain.move_keeps": {
+      "file": "Spain.lean",
+      "sha": "2cccd018ed2cf177"
+    },
+    "Kanon.Spain.move_same_sale": {
+      "file": "Spain.lean",
+      "sha": "09509304fdf0eddd"
+    },
+    "Kanon.Spain.off_within_loss": {
+      "file": "Spain.lean",
+      "sha": "27de9db5073aa7a2"
+    },
+    "Kanon.Spain.oldest_first": {
+      "file": "Spain.lean",
+      "sha": "36d42b8293202299"
+    },
+    "Kanon.Spain.out_cons": {
+      "file": "Spain.lean",
+      "sha": "474f6226de4cb6f3"
+    },
+    "Kanon.Spain.out_refl": {
+      "file": "Spain.lean",
+      "sha": "a931cbb18c27f5db"
+    },
+    "Kanon.Spain.out_split": {
+      "file": "Spain.lean",
+      "sha": "59a8ccca7ed204a1"
+    },
+    "Kanon.Spain.out_symm": {
+      "file": "Spain.lean",
+      "sha": "a72e191b15e02660"
+    },
+    "Kanon.Spain.out_trans": {
+      "file": "Spain.lean",
+      "sha": "789098cd7890f455"
+    },
+    "Kanon.Spain.ownStep_bounds": {
+      "file": "Spain.lean",
+      "sha": "4d07196686e7ea8a"
+    },
+    "Kanon.Spain.ownStep_oldest": {
+      "file": "Spain.lean",
+      "sha": "bc8ef8b4e868a771"
+    },
+    "Kanon.Spain.ownStep_used": {
+      "file": "Spain.lean",
+      "sha": "8b5187f67956bc7a"
+    },
+    "Kanon.Spain.own_agg": {
+      "file": "Spain.lean",
+      "sha": "fcf129fb87736e62"
+    },
+    "Kanon.Spain.own_arith": {
+      "file": "Spain.lean",
+      "sha": "335c51a555b9f92d"
+    },
+    "Kanon.Spain.own_arith0": {
+      "file": "Spain.lean",
+      "sha": "c132adcda680b277"
+    },
+    "Kanon.Spain.pass_bounds": {
+      "file": "Spain.lean",
+      "sha": "f48ff7f0c6104fda"
+    },
+    "Kanon.Spain.pass_carry": {
+      "file": "Spain.lean",
+      "sha": "94721e5503643bb9"
+    },
+    "Kanon.Spain.pass_get": {
+      "file": "Spain.lean",
+      "sha": "06b3bbec065efe79"
+    },
+    "Kanon.Spain.pass_get_bounds": {
+      "file": "Spain.lean",
+      "sha": "cab185598d562752"
+    },
+    "Kanon.Spain.pass_inv": {
+      "file": "Spain.lean",
+      "sha": "3eec0c454af688f9"
+    },
+    "Kanon.Spain.pass_left": {
+      "file": "Spain.lean",
+      "sha": "0ad53eaf68edfb66"
+    },
+    "Kanon.Spain.pass_length": {
+      "file": "Spain.lean",
+      "sha": "6fcfedcfe22ec230"
+    },
+    "Kanon.Spain.pass_mem": {
+      "file": "Spain.lean",
+      "sha": "d1affd738503f1d5"
+    },
+    "Kanon.Spain.pass_nonneg": {
+      "file": "Spain.lean",
+      "sha": "93b617a4cf46b42e"
+    },
+    "Kanon.Spain.pass_oldest": {
+      "file": "Spain.lean",
+      "sha": "1bf9f6132c760592"
+    },
+    "Kanon.Spain.pass_shape": {
+      "file": "Spain.lean",
+      "sha": "940fc51aa7ff359e"
+    },
+    "Kanon.Spain.pass_sum": {
+      "file": "Spain.lean",
+      "sha": "4932dbfacfd625ee"
+    },
+    "Kanon.Spain.pass_yrs": {
+      "file": "Spain.lean",
+      "sha": "ef4e4da602ad1835"
+    },
+    "Kanon.Spain.passes_nonneg": {
+      "file": "Spain.lean",
+      "sha": "3dfb6e564fcef65f"
+    },
+    "Kanon.Spain.pending_sorted": {
+      "file": "Spain.lean",
+      "sha": "753739dd062edcb4"
+    },
+    "Kanon.Spain.pending_window": {
+      "file": "Spain.lean",
+      "sha": "3173113fddb3817e"
+    },
+    "Kanon.Spain.phase1_mono": {
+      "file": "Spain.lean",
+      "sha": "c9d147865c858150"
+    },
+    "Kanon.Spain.phase1_neg": {
+      "file": "Spain.lean",
+      "sha": "b3469e132b60c81f"
+    },
+    "Kanon.Spain.phase1_pos": {
+      "file": "Spain.lean",
+      "sha": "0aaa408081331a13"
+    },
+    "Kanon.Spain.psum_append": {
+      "file": "Spain.lean",
+      "sha": "b4f09a51f9f8fba6"
+    },
+    "Kanon.Spain.psum_pos": {
+      "file": "Spain.lean",
+      "sha": "5d57faadab67de61"
+    },
+    "Kanon.Spain.psum_split": {
+      "file": "Spain.lean",
+      "sha": "a467a9eae7689718"
+    },
+    "Kanon.Spain.putOff_entry_part": {
+      "file": "Spain.lean",
+      "sha": "06e10b45a81f6518"
+    },
+    "Kanon.Spain.putOff_key": {
+      "file": "Spain.lean",
+      "sha": "ae9eb36c3c9e0d8a"
+    },
+    "Kanon.Spain.put_c": {
+      "file": "Spain.lean",
+      "sha": "b6a88d9866dd0541"
+    },
+    "Kanon.Spain.put_filter": {
+      "file": "Spain.lean",
+      "sha": "89df986d8ed02981"
+    },
+    "Kanon.Spain.put_p": {
+      "file": "Spain.lean",
+      "sha": "54edbd28c451b2ab"
+    },
+    "Kanon.Spain.put_part": {
+      "file": "Spain.lean",
+      "sha": "2a33c8f76d0ec392"
+    },
+    "Kanon.Spain.release_from": {
+      "file": "Spain.lean",
+      "sha": "b4fa95982f8168f3"
+    },
+    "Kanon.Spain.release_spec": {
+      "file": "Spain.lean",
+      "sha": "20a155b07cce729e"
+    },
+    "Kanon.Spain.released_counts": {
+      "file": "Spain.lean",
+      "sha": "c02c478ee2a78446"
+    },
+    "Kanon.Spain.released_line": {
+      "file": "Spain.lean",
+      "sha": "4488f9c133ab2396"
+    },
+    "Kanon.Spain.round_trip": {
+      "file": "Spain.lean",
+      "sha": "4e7bb1e2c5e081f9"
+    },
+    "Kanon.Spain.run_conserves": {
+      "file": "Spain.lean",
+      "sha": "dfb93383dc6ab653"
+    },
+    "Kanon.Spain.sale_short": {
+      "file": "Spain.lean",
+      "sha": "8dc19141666c8d03"
+    },
+    "Kanon.Spain.same_day_move": {
+      "file": "Spain.lean",
+      "sha": "80b0b2c349f750bb"
+    },
+    "Kanon.Spain.savingsTax_aeat": {
+      "file": "Spain.lean",
+      "sha": "a4e099a13fe00fda"
+    },
+    "Kanon.Spain.savingsTax_spec": {
+      "file": "Spain.lean",
+      "sha": "4b18cf9d697d350c"
+    },
+    "Kanon.Spain.scale_wf": {
+      "file": "Spain.lean",
+      "sha": "3fd57cfe55bd2502"
+    },
+    "Kanon.Spain.sell_all": {
+      "file": "Spain.lean",
+      "sha": "2dd399011bb1ccca"
+    },
+    "Kanon.Spain.sell_at": {
+      "file": "Spain.lean",
+      "sha": "1571c38a0879a4b3"
+    },
+    "Kanon.Spain.sell_cost": {
+      "file": "Spain.lean",
+      "sha": "3a2e84aea51fbdaf"
+    },
+    "Kanon.Spain.sell_exact": {
+      "file": "Spain.lean",
+      "sha": "259e4c7f106b6eb7"
+    },
+    "Kanon.Spain.sell_ge": {
+      "file": "Spain.lean",
+      "sha": "8e3565d42f110cf8"
+    },
+    "Kanon.Spain.sell_le": {
+      "file": "Spain.lean",
+      "sha": "590bd8a5bfd93b75"
+    },
+    "Kanon.Spain.sell_left_days": {
+      "file": "Spain.lean",
+      "sha": "d55ccf5c60385dfc"
+    },
+    "Kanon.Spain.sell_left_keys": {
+      "file": "Spain.lean",
+      "sha": "dc811268cb14e7d3"
+    },
+    "Kanon.Spain.sell_left_like": {
+      "file": "Spain.lean",
+      "sha": "8c3d36494d7d2252"
+    },
+    "Kanon.Spain.sell_lt": {
+      "file": "Spain.lean",
+      "sha": "9b1909a805ce6da3"
+    },
+    "Kanon.Spain.sell_oldest": {
+      "file": "Spain.lean",
+      "sha": "fe58db25025f4390"
+    },
+    "Kanon.Spain.sell_picks": {
+      "file": "Spain.lean",
+      "sha": "eedf0bb6e4df0fe2"
+    },
+    "Kanon.Spain.sell_prefix": {
+      "file": "Spain.lean",
+      "sha": "3488afaf10321884"
+    },
+    "Kanon.Spain.sell_qty": {
+      "file": "Spain.lean",
+      "sha": "a4b88970ff34087b"
+    },
+    "Kanon.Spain.sell_sorted": {
+      "file": "Spain.lean",
+      "sha": "3c6745f2c5480893"
+    },
+    "Kanon.Spain.steps_cross_mono": {
+      "file": "Spain.lean",
+      "sha": "201e2dd30d51f17d"
+    },
+    "Kanon.Spain.steps_keep_sign": {
+      "file": "Spain.lean",
+      "sha": "945bf7eaa4607e1c"
+    },
+    "Kanon.Spain.steps_room": {
+      "file": "Spain.lean",
+      "sha": "c78a5d32eb8f078e"
+    },
+    "Kanon.Spain.sum_scaled": {
+      "file": "Spain.lean",
+      "sha": "4999034e75c965f6"
+    },
+    "Kanon.Spain.takeAt_cons": {
+      "file": "Spain.lean",
+      "sha": "c7a5b02f4dea3df4"
+    },
+    "Kanon.Spain.taxOnSale_eq": {
+      "file": "Spain.lean",
+      "sha": "7cfeb2b10c02e763"
+    },
+    "Kanon.Spain.taxOnSale_spec": {
+      "file": "Spain.lean",
+      "sha": "32d2e5ad16fe2583"
+    },
+    "Kanon.Spain.taxOnSale_tests": {
+      "file": "Spain.lean",
+      "sha": "9d078ce99d9bba4b"
+    },
+    "Kanon.Spain.terms_mono": {
+      "file": "Spain.lean",
+      "sha": "ab31a4fe1b4c4e77"
+    },
+    "Kanon.Spain.totalCost_add": {
+      "file": "Spain.lean",
+      "sha": "3889fa96e7ffa9b9"
+    },
+    "Kanon.Spain.transfer_at": {
+      "file": "Spain.lean",
+      "sha": "94a721f9bf4e0020"
+    },
+    "Kanon.Spain.transfer_keeps": {
+      "file": "Spain.lean",
+      "sha": "340560154a4ae052"
+    },
+    "Kanon.Spain.transfer_like": {
+      "file": "Spain.lean",
+      "sha": "56e33c72703f9944"
+    },
+    "Kanon.Spain.transfer_same_sale": {
+      "file": "Spain.lean",
+      "sha": "979a44cb3e5cea60"
+    },
+    "Kanon.Spain.two_moves": {
+      "file": "Spain.lean",
+      "sha": "d0ca3d05279f8f61"
+    },
+    "Kanon.Spain.universal_one_pool": {
+      "file": "Spain.lean",
+      "sha": "940e13d97f306b03"
+    },
+    "Kanon.Spain.waiting_append": {
+      "file": "Spain.lean",
+      "sha": "865017376ac860d2"
+    },
+    "Kanon.Spain.waiting_new": {
+      "file": "Spain.lean",
+      "sha": "10989e4a9122fb99"
+    },
+    "Kanon.Spain.washLoss_inv": {
+      "file": "Spain.lean",
+      "sha": "c0869d14323dc71f"
+    },
+    "Kanon.Spain.washLoss_inv1b": {
+      "file": "Spain.lean",
+      "sha": "74c45683bd0ca6cc"
+    },
+    "Kanon.Spain.washLosses_inv": {
+      "file": "Spain.lean",
+      "sha": "d184c8d6f8649b63"
+    },
+    "Kanon.Spain.washLosses_inv1b": {
+      "file": "Spain.lean",
+      "sha": "04acdeb298505d80"
+    },
+    "Kanon.Spain.washSale_inv": {
+      "file": "Spain.lean",
+      "sha": "561ab03ef1e9359d"
+    },
+    "Kanon.Spain.washSales_inv": {
+      "file": "Spain.lean",
+      "sha": "c99fc6bb4ac7099c"
+    },
+    "Kanon.Spain.washSales_same": {
+      "file": "Spain.lean",
+      "sha": "6663ac919c3f4001"
+    },
+    "Kanon.Spain.wash_conserves": {
+      "file": "Spain.lean",
+      "sha": "bf570b332ca3aa19"
+    },
+    "Kanon.Spain.wash_split": {
+      "file": "Spain.lean",
+      "sha": "b82269558a5f9f2b"
+    },
+    "Kanon.Spain.window_all": {
+      "file": "Spain.lean",
+      "sha": "711d731d3d077522"
+    },
+    "Kanon.Spain.window_mem": {
+      "file": "Spain.lean",
+      "sha": "1459936319319776"
+    },
+    "Kanon.Spain.window_nonneg": {
+      "file": "Spain.lean",
+      "sha": "2a9467f44a4fc130"
+    },
+    "Kanon.Spain.wrapSlices_mem": {
+      "file": "Spain.lean",
+      "sha": "5c357b6ae539eab0"
+    },
+    "Kanon.Spain.wrapSlices_order": {
+      "file": "Spain.lean",
+      "sha": "fcb5babd44015ccf"
+    },
+    "Kanon.Spain.wrap_then_move": {
+      "file": "Spain.lean",
+      "sha": "4aa4391fd0f53b9e"
+    },
+    "Kanon.Spain.yearTax_eq": {
+      "file": "Spain.lean",
+      "sha": "219fa5da4365b5b5"
+    },
+    "Kanon.Spain.year_conserves": {
+      "file": "Spain.lean",
+      "sha": "0474b90c1534966d"
+    },
+    "Kanon.Spain.zip_pairwise_get": {
+      "file": "Spain.lean",
+      "sha": "f19dec890c1ea5e6"
     },
     "Kanon.Split.never_worse_than_one_pool": {
       "file": "Split.lean",

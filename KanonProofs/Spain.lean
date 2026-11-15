@@ -988,7 +988,7 @@ theorem good_of_reach {L : List Lot} (h : Reach L) : Kept L := by
     exact good_wrap q id w date s dest tq c0 ihL ihT hc0 hs hto
 
 /-- **ES-1** A move between the person's own wallets does not change a later sale: from any pool the ledger can
-reach (purchases, sales, moves, including after earlier moves of part of a lot), a sale of any amount after the move
+reach (purchases, sales, moves, including after earlier moves of part of a lot, and wraps), a sale of any amount after the move
 takes the same coins from the same lots, at the same cost, as it would have before the move. -/
 theorem transfer_same_sale (ls : List Lot) (q r : ℚ) (dest : ℕ) (h : Reach ls) :
     ((sell (transfer ls q dest) r).1.map Pick.basis).sum = ((sell ls r).1.map Pick.basis).sum ∧

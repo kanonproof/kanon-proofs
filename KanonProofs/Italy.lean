@@ -7,7 +7,7 @@ The app's engine `src/lib/engine/it.ts` (`itRun`, `itYears`, `itYearBase`, `itSp
 `itRate`, `itEuros`, `itEarlierIn`, `itEuroConfirmed`, `itIvca`, `itIvcaDue`, `itWorkingDay`, `itDeadlines`), the swap
 branch of the classifier `itBook` with `splitMixed` and `isEuroEmt`, and the IVCA sum of `itRw` in
 `src/lib/report/it.ts`, and `itReport`'s readings of the pending euro tokens, the years as shown and `now`, at
-kanon-app commit b03d3be (branch claude/italy-32). Sources: TUIR art. 67 c. 1 c-sexies and 68 cc. 5 and 9-bis (L. 197/2022 art. 1
+kanon-app commit 7583be0 (branch claude/italy-32). Sources: TUIR art. 67 c. 1 c-sexies and 68 cc. 5 and 9-bis (L. 197/2022 art. 1
 cc. 126-127); L. 207/2024 art. 1 cc. 24-25 (33% from 2026; no €2,000 threshold from 2025); L. 199/2025 art. 1 c. 28
 (euro e-money tokens); Agenzia delle Entrate, Circolare 30/E of 27 October 2023 (§§ 3.2.1, 3.3-3.4, pp. 47-48, 51,
 55); DL 201/2011 art. 19 c. 18-bis (IVCA, 0.2%); Modello Redditi PF (RT57, RT88-89, RW col. 1-5 and 33, RW8); DPR
@@ -36,9 +36,11 @@ Modelled, in exact fractions where the app uses decimal.js:
 * `itYearBase` and `itYears` (rules 5-8): the net in whole euros, the €2,000 threshold to 2024, the losses on hand
   sorted by year (`sortPool`, a stable sort) and used oldest first within four years (`use`), the residues kept and
   the losses that expire (engine/it.ts:306-341); earlier losses of 2019-2022 (`earlierIn`). The tax (`itSplit`,
-  engine/it.ts:362-371, rule 9): to 2025 26% of the base; from 2026 the base shared pro rata between the euro e-money
-  token gain (26%) and the other gain (33%), the parts not rounded, the tax rounded up to the cent (`tax`) and to whole
-  euros 50 cents up (`form`, RT89). `itYearTax` and `itTaxOnSale` (engine/it.ts:377-389, rule 15). Years before 2023
+  engine/it.ts:369-381, rule 9): to 2025, or with a base not above 0, 26% of the base; from 2026 26% of the whole-euro
+  base (RT88) and 7% more on the part at 33% (`other33`): the base before the net was rounded (`exactBase`, the base
+  plus the net less the net in whole euros) times the other gain over all the gains (each not below 0), never above
+  the base, not rounded; the tax rounded up to the cent (`tax`) and to whole euros 50 cents up (`form`, RT89); the parts
+  shown in whole euros (`atOther`, the rest at 26%). `itYearTax` and `itTaxOnSale` (engine/it.ts:386-398, rule 15). Years before 2023
   (no rate) are not modelled.
 * The readings (rule 16): `itBook`'s readings (report/it.ts:212-229) take each set of the pending tokens no statement
   covers as euro e-money tokens on every day (`assumed_every_day`); `itReport` (report/it.ts:496-536) runs each, and
@@ -1510,32 +1512,39 @@ theorem net_split (ls : List Line) : emtNet ls + otherNet ls = yearNet ls := by
     unfold emtNet otherNet yearNet at *
     cases h : l.euroEmt <;> simp [h] <;> linarith
 
-/-- `itSplit`'s gains: the euro e-money token net and the other net, each not below 0. -/
+/-- `itSplit`'s gains (engine/it.ts:373): the euro e-money token net and the other net, each not below 0. -/
 def emtPart (e : ℚ) : ℚ := max e 0
 def otherPart (net e : ℚ) : ℚ := max (net - e) 0
 
-/-- `itSplit`'s `part26` (engine/it.ts:367): the base shared pro rata between the two gains, the euro e-money token
-share, not rounded; 0 when there is no gain. -/
-def part26 (base : ℤ) (net e : ℚ) : ℚ :=
-  if emtPart e + otherPart net e ≤ 0 then 0 else (base : ℚ) * emtPart e / (emtPart e + otherPart net e)
+/-- `itSplit`'s `exactBase` (engine/it.ts:374): the base before the net was rounded, the base plus the net less the
+net in whole euros. -/
+def exactBase (base : ℤ) (net : ℚ) : ℚ := (base : ℚ) + (net - euros net)
 
-/-- `itSplit`'s exact tax `t` (engine/it.ts:365, 369; rates itRate, engine/it.ts:51-54): to 2025 26% of the base;
-from 2026 26% of `part26` and 33% of the rest. -/
+/-- `itSplit`'s `other` (engine/it.ts:375): the part at 33%, `exactBase` shared pro rata to the other gain over all
+the gains, never above the base, not rounded; 0 when there is no gain. -/
+def other33 (base : ℤ) (net e : ℚ) : ℚ :=
+  if emtPart e + otherPart net e ≤ 0 then 0
+  else min (base : ℚ) (exactBase base net * otherPart net e / (emtPart e + otherPart net e))
+
+/-- `itSplit`'s exact tax `t` (engine/it.ts:372, 377; rates itRate, engine/it.ts:51-54): to 2025, or with a base not
+above 0, 26% of the base; from 2026 26% of the base and 7% (33% less 26%) more on `other33`. -/
 def exactTax (year : ℕ) (base : ℤ) (net e : ℚ) : ℚ :=
-  if year < 2026 then (base : ℚ) * (26 / 100)
-  else part26 base net e * (26 / 100) + ((base : ℚ) - part26 base net e) * (33 / 100)
+  if year < 2026 ∨ base ≤ 0 then (base : ℚ) * (26 / 100)
+  else (base : ℚ) * (26 / 100) + other33 base net e * (7 / 100)
 
-/-- `itSplit`'s `at26` from 2026 (engine/it.ts:368): `part26` shown in whole euros, never above the base. -/
-def at26 (base : ℤ) (net e : ℚ) : ℤ := min (euros (part26 base net e)) base
+/-- `itSplit`'s `atOther` (engine/it.ts:378): `other33` in whole euros, never above the base. -/
+def atOther (base : ℤ) (net e : ℚ) : ℤ := min (euros (other33 base net e)) base
 
-/-- `itSplit`'s parts as shown, (at 26%, at 33%), whole euros. Before 2026 all of the base is at 26%. -/
+/-- `itSplit`'s parts as shown, (at 26%, at 33%), whole euros (engine/it.ts:372, 379). To 2025, or with a base not
+above 0, all of the base is at 26%. -/
 def split (year : ℕ) (base : ℤ) (net e : ℚ) : ℤ × ℤ :=
-  if year < 2026 then (base, 0) else (at26 base net e, base - at26 base net e)
+  if year < 2026 ∨ base ≤ 0 then (base, 0) else (base - atOther base net e, atOther base net e)
 
-/-- `itSplit`'s `tax`: the exact tax rounded up to the cent (the estimate). -/
+/-- `itSplit`'s `tax` (engine/it.ts:372, 379): the exact tax rounded up to the cent (the estimate). -/
 def splitTax (year : ℕ) (base : ℤ) (net e : ℚ) : ℚ := centsUp (exactTax year base net e)
 
-/-- `itSplit`'s `form`: RT89 as filed, the exact tax in whole euros, 50 cents up (`itEuros`, engine/it.ts:276). -/
+/-- `itSplit`'s `form` (engine/it.ts:372, 379): RT89 as filed, the exact tax in whole euros, 50 cents up (`itEuros`,
+engine/it.ts:276). -/
 def splitForm (year : ℕ) (base : ℤ) (net e : ℚ) : ℤ := euros (exactTax year base net e)
 
 theorem euros_int (n : ℤ) (h : 0 ≤ n) : euros n = n := by
@@ -1553,81 +1562,117 @@ theorem euros_add_int (x : ℚ) (n : ℤ) (hx : 0 ≤ x) (hn : 0 ≤ n) : euros 
   have : (0 : ℚ) ≤ n := by exact_mod_cast hn
   rw [if_pos (by linarith), if_pos hx, show x + n + 1 / 2 = (x + 1 / 2) + (n : ℚ) by ring, Int.floor_add_intCast]
 
-theorem part26_bounds (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) :
-    0 ≤ part26 base net e ∧ part26 base net e ≤ base := by
-  have hb' : (0 : ℚ) ≤ base := by exact_mod_cast hb
+/-- `exactBase` is within 50 cents of the base. -/
+theorem exactBase_bounds (base : ℤ) (net : ℚ) :
+    (base : ℚ) - 1 / 2 ≤ exactBase base net ∧ exactBase base net ≤ (base : ℚ) + 1 / 2 := by
+  obtain ⟨h1, h2⟩ := abs_le.mp (euros_bounds net).1
+  unfold exactBase; constructor <;> linarith
+
+theorem other33_bounds (base : ℤ) (net e : ℚ) (hb : 0 < base) :
+    0 ≤ other33 base net e ∧ other33 base net e ≤ base := by
+  have hb' : (1 : ℚ) ≤ base := by exact_mod_cast hb
+  have hB := (exactBase_bounds base net).1
   have he : 0 ≤ emtPart e := le_max_right _ _
   have ho : 0 ≤ otherPart net e := le_max_right _ _
-  unfold part26
+  unfold other33
   split_ifs with h
-  · exact ⟨le_rfl, hb'⟩
-  · push_neg at h
-    refine ⟨by positivity, ?_⟩
-    rw [div_le_iff₀ h]; nlinarith
+  · exact ⟨le_rfl, by linarith⟩
+  · exact ⟨le_min (by linarith) (div_nonneg (mul_nonneg (by linarith) ho) (by linarith)), min_le_left _ _⟩
 
-theorem at26_bounds (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) : 0 ≤ at26 base net e ∧ at26 base net e ≤ base :=
-  ⟨le_min (euros_nonneg _ (part26_bounds base net e hb).1) hb, min_le_right _ _⟩
+theorem atOther_bounds (base : ℤ) (net e : ℚ) (hb : 0 < base) : 0 ≤ atOther base net e ∧ atOther base net e ≤ base :=
+  ⟨le_min (euros_nonneg _ (other33_bounds base net e hb).1) hb.le, min_le_right _ _⟩
 
-/-- From 2026 the exact tax is 33% of the base less 7% of the part at 26%. -/
-theorem exactTax_eq (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) :
-    exactTax year base net e = (base : ℚ) * (33 / 100) - part26 base net e * (7 / 100) := by
-  unfold exactTax; rw [if_neg (by omega)]; ring
+/-- From 2026, with a base above 0, the exact tax is 26% of the base and 7% more on the part at 33%. -/
+theorem exactTax_eq (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 < base) :
+    exactTax year base net e = (base : ℚ) * (26 / 100) + other33 base net e * (7 / 100) := by
+  unfold exactTax; rw [if_neg (by omega)]
 
 /-- **IT-9** The exact tax is between 26% and 33% of the base. -/
 theorem exactTax_between (year : ℕ) (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) :
     (base : ℚ) * (26 / 100) ≤ exactTax year base net e ∧ exactTax year base net e ≤ (base : ℚ) * (33 / 100) := by
-  have := part26_bounds base net e hb
   have hb' : (0 : ℚ) ≤ base := by exact_mod_cast hb
-  unfold exactTax; split_ifs <;> constructor <;> nlinarith
+  unfold exactTax
+  split_ifs with h
+  · constructor <;> linarith
+  · have := other33_bounds base net e (by omega)
+    constructor <;> linarith
 
 /-- **IT-9** The parts add up to the base and, for a base not below 0, neither is below 0. -/
 theorem split_parts (year : ℕ) (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) :
     (split year base net e).1 + (split year base net e).2 = base ∧ 0 ≤ (split year base net e).1 ∧
       0 ≤ (split year base net e).2 := by
-  have := at26_bounds base net e hb
-  unfold split; split_ifs <;> simp <;> omega
+  unfold split
+  split_ifs with h
+  · exact ⟨by simp, hb, le_rfl⟩
+  · have := atOther_bounds base net e (by omega)
+    dsimp only
+    exact ⟨by omega, by omega, this.1⟩
 
 /-- **IT-9** To 2025 the tax is 26% of the base: the estimate rounded up to the cent, RT89 in whole euros. -/
 theorem split_before_2026 (year : ℕ) (base : ℤ) (net e : ℚ) (h : year ≤ 2025) :
     splitTax year base net e = centsUp ((base : ℚ) * (26 / 100)) ∧
       splitForm year base net e = euros ((base : ℚ) * (26 / 100)) := by
-  unfold splitTax splitForm exactTax; rw [if_pos (by omega)]; exact ⟨rfl, rfl⟩
+  unfold splitTax splitForm exactTax; rw [if_pos (Or.inl (by omega))]; exact ⟨rfl, rfl⟩
 
-/-- **IT-9** From 2026 the base is shared pro rata: the part at 26% is the base times the euro e-money token gain
-over all the gains (each not below 0), not rounded, and the tax is 26% of it and 33% of the rest; the part shown is
-within 50 cents of it. -/
-theorem split_prop (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 ≤ base)
+/-- **IT-9** From 2026, with a base above 0 and a gain: the part at 33% is the base before the net was rounded
+(`exactBase`) times the other gain over all the gains (each not below 0), never above the base, not rounded; the tax
+is 26% of the base and 7% more on that part; the part at 33% shown is that part in whole euros (within 50 cents of
+it) and the part at 26% shown is the rest of the base. -/
+theorem split_prop (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 < base)
     (hg : 0 < emtPart e + otherPart net e) :
-    part26 base net e = (base : ℚ) * emtPart e / (emtPart e + otherPart net e) ∧
-      exactTax year base net e = part26 base net e * (26 / 100) + ((base : ℚ) - part26 base net e) * (33 / 100) ∧
-      (split year base net e).1 = euros (part26 base net e) ∧
-      |((split year base net e).1 : ℚ) - part26 base net e| ≤ 1 / 2 := by
-  have hp : part26 base net e = (base : ℚ) * emtPart e / (emtPart e + otherPart net e) := by
-    unfold part26; rw [if_neg (by linarith)]
-  have hr : euros (part26 base net e) ≤ base := by
-    have := euros_mono _ _ (part26_bounds base net e hb).2; rwa [euros_int base hb] at this
-  have h1 : (split year base net e).1 = euros (part26 base net e) := by
-    simp only [split, if_neg (show ¬ year < 2026 by omega), at26]; exact min_eq_left hr
-  refine ⟨hp, ?_, h1, h1 ▸ (euros_bounds _).1⟩
-  unfold exactTax; rw [if_neg (by omega)]
+    other33 base net e = min (base : ℚ) (exactBase base net * otherPart net e / (emtPart e + otherPart net e)) ∧
+      exactTax year base net e = (base : ℚ) * (26 / 100) + other33 base net e * (7 / 100) ∧
+      (split year base net e).2 = euros (other33 base net e) ∧
+      (split year base net e).1 = base - (split year base net e).2 ∧
+      |((split year base net e).2 : ℚ) - other33 base net e| ≤ 1 / 2 := by
+  have hp : other33 base net e =
+      min (base : ℚ) (exactBase base net * otherPart net e / (emtPart e + otherPart net e)) := by
+    unfold other33; rw [if_neg (by linarith)]
+  have hr : euros (other33 base net e) ≤ base := by
+    have := euros_mono _ _ (other33_bounds base net e hb).2; rwa [euros_int base hb.le] at this
+  have hn : ¬ (year < 2026 ∨ base ≤ 0) := by omega
+  have h2 : (split year base net e).2 = euros (other33 base net e) := by
+    simp only [split, if_neg hn, atOther]; exact min_eq_left hr
+  refine ⟨hp, exactTax_eq year base net e hy hb, h2, ?_, h2 ▸ (euros_bounds _).1⟩
+  simp only [split, if_neg hn]
 
-/-- **IT-9** From 2026, with no euro e-money token gain the whole base is at 33%. -/
-theorem split_no_emt (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (he : e ≤ 0) :
-    exactTax year base net e = (base : ℚ) * (33 / 100) ∧ splitTax year base net e = centsUp ((base : ℚ) * (33 / 100)) := by
+/-- **IT-9** From 2026, with a base above 0, no euro e-money token gain and a net above 0, the part at 33% is the base
+before rounding (never above the base): the tax is within 7% of 50 cents below 33% of the base, and exactly 33% of it
+when the net is in whole euros. -/
+theorem split_no_emt (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (hb : 0 < base) (he : e ≤ 0)
+    (hn : 0 < net) :
+    (base : ℚ) * (33 / 100) - 7 / 200 ≤ exactTax year base net e ∧ exactTax year base net e ≤ (base : ℚ) * (33 / 100) ∧
+      ((euros net : ℚ) = net → exactTax year base net e = (base : ℚ) * (33 / 100)) := by
   have h0 : emtPart e = 0 := max_eq_right he
-  have : part26 base net e = 0 := by unfold part26; rw [h0]; split_ifs <;> simp
-  have h : exactTax year base net e = (base : ℚ) * (33 / 100) := by rw [exactTax_eq _ _ _ _ hy, this]; ring
-  exact ⟨h, by unfold splitTax; rw [h]⟩
+  have ho : otherPart net e = net - e := max_eq_left (by linarith)
+  have hpos : 0 < net - e := by linarith
+  have hO : other33 base net e = min (base : ℚ) (exactBase base net) := by
+    unfold other33; rw [h0, ho, zero_add, if_neg (by linarith), mul_div_assoc, div_self hpos.ne', mul_one]
+  have hB := exactBase_bounds base net
+  rw [exactTax_eq _ _ _ _ hy hb, hO]
+  refine ⟨?_, ?_, fun hw => ?_⟩
+  · have : (base : ℚ) - 1 / 2 ≤ min (base : ℚ) (exactBase base net) := le_min (by linarith) hB.1
+    linarith
+  · have := min_le_left (base : ℚ) (exactBase base net); linarith
+  · have : exactBase base net = base := by unfold exactBase; rw [hw]; ring
+    rw [this, min_self]; ring
 
 /-- **IT-9** From 2026, when all the gain is the euro e-money token's (a gain, and no other gain), the whole base is
 at 26%. -/
-theorem split_all_emt (year : ℕ) (base : ℤ) (net e : ℚ) (hy : 2026 ≤ year) (he : 0 < e) (hn : net ≤ e) :
+theorem split_all_emt (year : ℕ) (base : ℤ) (net e : ℚ) (he : 0 < e) (hn : net ≤ e) :
     exactTax year base net e = (base : ℚ) * (26 / 100) ∧ splitTax year base net e = centsUp ((base : ℚ) * (26 / 100)) := by
-  have h1 : emtPart e = e := max_eq_left he.le
   have h2 : otherPart net e = 0 := max_eq_right (by linarith)
-  have : part26 base net e = base := by
-    unfold part26; rw [h1, h2, add_zero, if_neg (by linarith), mul_div_assoc, div_self he.ne', mul_one]
-  have h : exactTax year base net e = (base : ℚ) * (26 / 100) := by rw [exactTax_eq _ _ _ _ hy, this]; ring
+  have h : exactTax year base net e = (base : ℚ) * (26 / 100) := by
+    unfold exactTax
+    split_ifs with hc
+    · rfl
+    · have hb : (0 : ℚ) ≤ base := by exact_mod_cast (show 0 ≤ base by omega)
+      have : other33 base net e = 0 := by
+        unfold other33; rw [h2]
+        split_ifs
+        · rfl
+        · rw [mul_zero, zero_div]; exact min_eq_right hb
+      rw [this]; ring
   exact ⟨h, by unfold splitTax; rw [h]⟩
 
 /-- **IT-9** The tax is between 26% and 33% of the base (each rounded up to the cent). -/
@@ -1644,76 +1689,197 @@ theorem form_half_up (year : ℕ) (base : ℤ) (net e : ℚ) (hb : 0 ≤ base) :
   have hb' : (0 : ℚ) ≤ base := by exact_mod_cast hb
   unfold splitForm euros; rw [if_pos (by linarith)]
 
-/-- The exact tax when the year's part at 26% grows by less than the base does is not lower. -/
-theorem exactTax_le (year : ℕ) (a b : ℤ) (n1 n2 e1 e2 : ℚ)
-    (hab : (a : ℚ) ≤ b) (hp : year < 2026 ∨ part26 b n2 e2 - part26 a n1 e1 ≤ (b : ℚ) - a) :
-    exactTax year a n1 e1 ≤ exactTax year b n2 e2 := by
-  unfold exactTax
-  split_ifs with hy
-  · linarith
-  · rcases hp with hp | hp
-    · exact absurd hp hy
-    · nlinarith
-
-/-- **IT-9** More gain other than the euro e-money tokens' (a higher net with the same euro e-money token net) and a
-bigger base never mean less tax: neither the estimate nor RT89. -/
-theorem split_mono (year : ℕ) (a b : ℤ) (n1 n2 e : ℚ) (ha : 0 ≤ a) (hab : a ≤ b) (hn : n1 ≤ n2) :
-    splitTax year a n1 e ≤ splitTax year b n2 e ∧ splitForm year a n1 e ≤ splitForm year b n2 e := by
+theorem other33_base_mono (a b : ℤ) (net e : ℚ) (ha : 0 < a) (hab : a ≤ b) :
+    other33 a net e ≤ other33 b net e := by
   have hab' : (a : ℚ) ≤ b := by exact_mod_cast hab
-  have ha' : (0 : ℚ) ≤ a := by exact_mod_cast ha
-  have key : exactTax year a n1 e ≤ exactTax year b n2 e := by
-    apply exactTax_le year a b n1 n2 e e hab'
-    right
-    have he : 0 ≤ emtPart e := le_max_right _ _
-    have ho1 : 0 ≤ otherPart n1 e := le_max_right _ _
-    have hoo : otherPart n1 e ≤ otherPart n2 e := max_le_max (by linarith) le_rfl
-    unfold part26
-    by_cases h0 : emtPart e = 0
-    · simp only [h0, mul_zero, zero_div, ite_self]; linarith
-    · have hep : 0 < emtPart e := lt_of_le_of_ne he (Ne.symm h0)
-      have g1 : 0 < emtPart e + otherPart n1 e := by linarith
-      have g2 : 0 < emtPart e + otherPart n2 e := by linarith
-      rw [if_neg (by linarith), if_neg (by linarith)]
-      have r1 : (b : ℚ) * emtPart e / (emtPart e + otherPart n2 e) ≤ b * emtPart e / (emtPart e + otherPart n1 e) :=
-        div_le_div_of_nonneg_left (by nlinarith) g1 (by linarith)
-      have r2 : ((b : ℚ) - a) * emtPart e / (emtPart e + otherPart n1 e) ≤ b - a := by
-        rw [div_le_iff₀ g1]; nlinarith
-      have : (b : ℚ) * emtPart e / (emtPart e + otherPart n1 e) = a * emtPart e / (emtPart e + otherPart n1 e) +
-          ((b : ℚ) - a) * emtPart e / (emtPart e + otherPart n1 e) := by field_simp; ring
-      linarith
-  exact ⟨centsUp_mono _ _ key, euros_mono _ _ key⟩
+  unfold other33
+  split_ifs with h
+  · exact le_rfl
+  · push_neg at h
+    apply min_le_min hab'
+    apply div_le_div_of_nonneg_right _ h.le
+    apply mul_le_mul_of_nonneg_right _ (le_max_right _ _)
+    unfold exactBase; linarith
+
+/-- **IT-9** A bigger base with the same net and euro e-money token net never means less tax: neither the exact tax,
+the estimate nor RT89. -/
+theorem split_base_mono (year : ℕ) (a b : ℤ) (net e : ℚ) (ha : 0 ≤ a) (hab : a ≤ b) :
+    exactTax year a net e ≤ exactTax year b net e ∧ splitTax year a net e ≤ splitTax year b net e ∧
+      splitForm year a net e ≤ splitForm year b net e := by
+  have hab' : (a : ℚ) ≤ b := by exact_mod_cast hab
+  have key : exactTax year a net e ≤ exactTax year b net e := by
+    rcases eq_or_lt_of_le ha with h0 | hpos
+    · subst h0
+      have h1 : exactTax year 0 net e = 0 := by unfold exactTax; rw [if_pos (Or.inr le_rfl)]; simp
+      have := (exactTax_between year b net e hab).1
+      have hb' : (0 : ℚ) ≤ b := by exact_mod_cast hab
+      rw [h1]; linarith
+    · by_cases hy : year < 2026
+      · unfold exactTax; rw [if_pos (Or.inl hy), if_pos (Or.inl hy)]; linarith
+      · rw [exactTax_eq _ _ _ _ (by omega) hpos, exactTax_eq _ _ _ _ (by omega) (by omega)]
+        have := other33_base_mono a b net e hpos hab; linarith
+  exact ⟨key, centsUp_mono _ _ key, euros_mono _ _ key⟩
 
 /-- **IT-9** A pending token's lines that net to a gain `p ≥ 0`, counted as euro e-money token lines (a statement
-dated on or before them), never raise the tax, neither the estimate nor RT89: the same net with more of it at 26%. -/
+dated on or before them), never raise the tax, neither the estimate nor RT89: the same net and base with more of it
+at 26%. -/
 theorem statement_gain_less_tax (year : ℕ) (base : ℤ) (net e p : ℚ) (hb : 0 ≤ base) (hp : 0 ≤ p) :
     splitTax year base net (e + p) ≤ splitTax year base net e ∧ splitForm year base net (e + p) ≤ splitForm year base net e := by
   have key : exactTax year base net (e + p) ≤ exactTax year base net e := by
     unfold exactTax
     split_ifs with hy
     · exact le_rfl
-    · suffices part26 base net e ≤ part26 base net (e + p) by linarith
-      unfold part26
+    · suffices other33 base net (e + p) ≤ other33 base net e by linarith
+      have hpos : 0 < base := by omega
+      have hb1 : (1 : ℚ) ≤ base := by exact_mod_cast hpos
+      have hB : 0 ≤ exactBase base net := by have := (exactBase_bounds base net).1; linarith
       have hE : emtPart e ≤ emtPart (e + p) := max_le_max (by linarith) le_rfl
       have hO : otherPart net (e + p) ≤ otherPart net e := max_le_max (by linarith) le_rfl
       have he : 0 ≤ emtPart e := le_max_right _ _
+      have ho : 0 ≤ otherPart net e := le_max_right _ _
       have hO' : 0 ≤ otherPart net (e + p) := le_max_right _ _
-      have hb' : (0 : ℚ) ≤ base := by exact_mod_cast hb
       have hE' : 0 ≤ emtPart (e + p) := le_max_right _ _
-      by_cases h1 : emtPart e + otherPart net e ≤ 0
-      · rw [if_pos h1]; split_ifs
+      unfold other33
+      by_cases h2 : emtPart (e + p) + otherPart net (e + p) ≤ 0
+      · rw [if_pos h2]
+        split_ifs
         · exact le_rfl
-        · positivity
-      · rw [if_neg h1]
-        by_cases h2 : emtPart (e + p) + otherPart net (e + p) ≤ 0
-        · rw [if_pos h2]
-          have h0 : emtPart e = 0 := by linarith
-          rw [h0]; simp
-        · rw [if_neg h2]
+        · exact le_min (by linarith) (div_nonneg (mul_nonneg hB ho) (by linarith))
+      · rw [if_neg h2]
+        by_cases h1 : emtPart e + otherPart net e ≤ 0
+        · have h0 : otherPart net (e + p) = 0 := by linarith
+          rw [if_pos h1, h0, mul_zero, zero_div]; exact min_le_right _ _
+        · rw [if_neg h1]
           push_neg at h1 h2
-          rw [div_le_div_iff₀ h1 h2]
-          nlinarith [mul_le_mul_of_nonneg_left hE hb', mul_le_mul_of_nonneg_left hO hb',
-            mul_nonneg hb' he, mul_nonneg hb' hO', mul_nonneg (mul_nonneg hb' he) hO']
+          apply min_le_min le_rfl
+          rw [mul_div_assoc, mul_div_assoc]
+          apply mul_le_mul_of_nonneg_left _ hB
+          rw [div_le_div_iff₀ h2 h1]
+          nlinarith [mul_le_mul hO hE he ho]
   exact ⟨centsUp_mono _ _ key, euros_mono _ _ key⟩
+
+/-! #### A larger gain in either part never gives less tax -/
+
+/-- The other gain's share of all the gains, for an other net `o` and a euro e-money token net `x` (each part's gain
+not below 0; 0 when there is no gain). -/
+def rat (o x : ℚ) : ℚ := if max x 0 + max o 0 ≤ 0 then 0 else max o 0 / (max x 0 + max o 0)
+
+theorem rat_nonneg (o x : ℚ) : 0 ≤ rat o x := by
+  unfold rat
+  split_ifs with h
+  · exact le_rfl
+  · push_neg at h; exact div_nonneg (le_max_right _ _) h.le
+
+/-- `other33` for a net that is the other net `o` plus the euro e-money token net `x`. -/
+theorem other33_rat (b : ℤ) (o x : ℚ) (hb : 0 ≤ b) :
+    other33 b (o + x) x = min (b : ℚ) (exactBase b (o + x) * rat o x) := by
+  have h : otherPart (o + x) x = max o 0 := by unfold otherPart; rw [add_sub_cancel_right]
+  unfold other33 rat; rw [h]; unfold emtPart
+  split_ifs with hg
+  · rw [mul_zero]; exact (min_eq_right (by exact_mod_cast hb)).symm
+  · rw [mul_div_assoc]
+
+theorem rat_mono_o (o1 o2 x : ℚ) (ho : o1 ≤ o2) : rat o1 x ≤ rat o2 x := by
+  have hm : max o1 0 ≤ max o2 0 := max_le_max ho le_rfl
+  have h1 := le_max_right o1 0
+  have hx := le_max_right x 0
+  unfold rat
+  split_ifs with g1 g2 g2
+  · exact le_rfl
+  · push_neg at g2; exact div_nonneg (le_max_right _ _) g2.le
+  · push_neg at g1; linarith
+  · push_neg at g1 g2
+    rw [div_le_div_iff₀ g1 g2]; nlinarith [mul_le_mul_of_nonneg_left hm hx]
+
+/-- More other gain: the base before rounding less `c`, times the other gain's share, does not fall. -/
+theorem share_mono_o (o1 o2 x c : ℚ) (ho : o1 ≤ o2) (hd : 0 ≤ o1 + x - c) :
+    (o1 + x - c) * rat o1 x ≤ (o2 + x - c) * rat o2 x :=
+  mul_le_mul (by linarith) (rat_mono_o o1 o2 x ho) (rat_nonneg _ _) (by linarith)
+
+/-- More euro e-money token gain: the share falls but the net rises at least as much, so `(o + x − c) × share` does
+not fall (for `c ≥ 0`). -/
+theorem share_mono_x (o x1 x2 c : ℚ) (hx : x1 ≤ x2) (hc : 0 ≤ c) :
+    (o + x1 - c) * rat o x1 ≤ (o + x2 - c) * rat o x2 := by
+  by_cases ho : o ≤ 0
+  · have h0 : ∀ x, rat o x = 0 := by
+      intro x; unfold rat; rw [max_eq_right ho, add_zero]
+      split_ifs
+      · rfl
+      · simp
+    rw [h0, h0]; simp
+  · push_neg at ho
+    have hr : ∀ x, rat o x = o / (max x 0 + o) := by
+      intro x; unfold rat; rw [max_eq_left ho.le, if_neg (by linarith [le_max_right x 0])]
+    have g1 : 0 < max x1 0 + o := by linarith [le_max_right x1 0]
+    have g2 : 0 < max x2 0 + o := by linarith [le_max_right x2 0]
+    rw [hr, hr, ← mul_div_assoc, ← mul_div_assoc, div_le_div_iff₀ g1 g2]
+    suffices h : (o + x1 - c) * (max x2 0 + o) ≤ (o + x2 - c) * (max x1 0 + o) by
+      nlinarith [mul_le_mul_of_nonneg_left h ho.le]
+    rcases le_total x2 0 with h2 | h2
+    · rw [max_eq_right h2, max_eq_right (le_trans hx h2)]; nlinarith [mul_le_mul_of_nonneg_left hx ho.le]
+    · rw [max_eq_left h2]
+      rcases le_total x1 0 with h1 | h1
+      · rw [max_eq_right h1]
+        nlinarith [mul_nonneg (neg_nonneg.mpr h1) (show 0 ≤ x2 + o by linarith), mul_nonneg hc h2]
+      · rw [max_eq_left h1]; nlinarith [mul_le_mul_of_nonneg_left hx hc]
+
+/-- From 2026, for bases above 0 that are each net less the same `c ≥ 0` before rounding: no less tax for a larger
+other net and a larger euro e-money token net. -/
+theorem exact_step (year : ℕ) (b1 b2 : ℤ) (c o1 o2 x1 x2 : ℚ) (hy : 2026 ≤ year) (hp : 0 < b1) (h12 : b1 ≤ b2)
+    (hc : 0 ≤ c) (ho : o1 ≤ o2) (hx : x1 ≤ x2)
+    (hE1 : exactBase b1 (o1 + x1) = o1 + x1 - c) (hE2 : exactBase b2 (o2 + x2) = o2 + x2 - c) :
+    exactTax year b1 (o1 + x1) x1 ≤ exactTax year b2 (o2 + x2) x2 := by
+  have hb1 : (1 : ℚ) ≤ b1 := by exact_mod_cast hp
+  have h12' : (b1 : ℚ) ≤ b2 := by exact_mod_cast h12
+  have hd : 0 ≤ o1 + x1 - c := by have := (exactBase_bounds b1 (o1 + x1)).1; linarith
+  rw [exactTax_eq _ _ _ _ hy hp, exactTax_eq _ _ _ _ hy (by omega), other33_rat _ _ _ hp.le,
+    other33_rat _ _ _ (by omega), hE1, hE2]
+  have s1 := share_mono_o o1 o2 x1 c ho hd
+  have s2 := share_mono_x o2 x1 x2 c hx hc
+  have := min_le_min h12' (s1.trans s2)
+  linarith
+
+/-- The base above 0 from a net and `A` of losses: the net in whole euros less the threshold and `A`, so the base
+before rounding is the net less the threshold and `A` (for `A ≥ 0`). -/
+theorem exactBase_gbase (year : ℕ) (A : ℤ) (hA : 0 ≤ A) (n : ℚ) (h : 0 < max (yGain year (euros n) - A) 0) :
+    exactBase (max (yGain year (euros n) - A) 0) n = n - (threshold year + A) := by
+  have : max (yGain year (euros n) - A) 0 = euros n - threshold year - A := by
+    rcases max_cases (yGain year (euros n) - A) 0 with ⟨h1, -⟩ | ⟨h1, -⟩
+    · rw [h1] at h ⊢; unfold yGain at h ⊢; split_ifs at h ⊢ <;> omega
+    · rw [h1] at h; omega
+  unfold exactBase; rw [this]; push_cast; ring
+
+/-- **IT-9** With the same losses `A ≥ 0` taken off (the base is the gain over the threshold in whole euros less `A`,
+not below 0): a larger other net `o` and a larger euro e-money token net `x` (the net `o + x`) never give a lower exact
+tax. -/
+theorem exact_gain_mono (year : ℕ) (A : ℤ) (hA : 0 ≤ A) (o1 o2 x1 x2 : ℚ) (ho : o1 ≤ o2) (hx : x1 ≤ x2) :
+    exactTax year (max (yGain year (euros (o1 + x1)) - A) 0) (o1 + x1) x1 ≤
+      exactTax year (max (yGain year (euros (o2 + x2)) - A) 0) (o2 + x2) x2 := by
+  have hn : euros (o1 + x1) ≤ euros (o2 + x2) := euros_mono _ _ (by linarith)
+  have hg := yGain_mono year _ _ hn
+  have h12 : max (yGain year (euros (o1 + x1)) - A) 0 ≤ max (yGain year (euros (o2 + x2)) - A) 0 :=
+    max_le_max (by omega) le_rfl
+  have h0 : 0 ≤ max (yGain year (euros (o1 + x1)) - A) 0 := le_max_right _ _
+  have h12' : ((max (yGain year (euros (o1 + x1)) - A) 0 : ℤ) : ℚ) ≤ max (yGain year (euros (o2 + x2)) - A) 0 := by
+    exact_mod_cast h12
+  by_cases hy : year < 2026
+  · unfold exactTax; rw [if_pos (Or.inl hy), if_pos (Or.inl hy)]; linarith
+  rcases eq_or_lt_of_le h0 with hz | hpos
+  · have := (exactTax_between year _ (o2 + x2) x2 (le_trans h0 h12)).1
+    have hb2 : (0 : ℚ) ≤ ((max (yGain year (euros (o2 + x2)) - A) 0 : ℤ) : ℚ) := by exact_mod_cast le_trans h0 h12
+    have e0 : exactTax year (max (yGain year (euros (o1 + x1)) - A) 0) (o1 + x1) x1 = 0 := by
+      unfold exactTax; rw [if_pos (Or.inr hz.symm.le), ← hz]; simp
+    rw [e0]; linarith
+  · have hT : 0 ≤ threshold year := by unfold threshold; split_ifs <;> norm_num
+    exact exact_step year _ _ _ o1 o2 x1 x2 (by omega) hpos h12
+      (by exact_mod_cast (show 0 ≤ threshold year + A by omega)) ho hx
+      (exactBase_gbase year A hA _ hpos) (exactBase_gbase year A hA _ (lt_of_lt_of_le hpos h12))
+
+/-- The same with the euro e-money token net fixed: a larger net never gives a lower exact tax. -/
+theorem exact_net_mono (year : ℕ) (A : ℤ) (hA : 0 ≤ A) (n1 n2 e : ℚ) (h : n1 ≤ n2) :
+    exactTax year (max (yGain year (euros n1) - A) 0) n1 e ≤ exactTax year (max (yGain year (euros n2) - A) 0) n2 e := by
+  have := exact_gain_mono year A hA (n1 - e) (n2 - e) e e (by linarith) le_rfl
+  rwa [sub_add_cancel, sub_add_cancel] at this
 
 /-- The app's tests (2026, with a €10,000 loss of 2025 carried): €10,000 of gain on BTC and €10,000 on EURCV, base
 €10,000, €5,000 at 26% and €5,000 at 33%: €2,950. BTC +€10,000 and EURCV −€2,000: base €8,000, all at 33%: €2,640.
@@ -1725,8 +1891,8 @@ theorem split_examples :
       split 2026 8000 8000 (-2000) = (0, 8000) ∧ splitTax 2026 8000 8000 (-2000) = 2640 ∧
       split 2026 2000 4000 1000 = (500, 1500) ∧ splitTax 2026 2000 4000 1000 = 625 ∧
       splitForm 2026 2000 4000 1000 = 625 := by
-  norm_num [split, splitTax, splitForm, exactTax, part26, at26, emtPart, otherPart, euros, centsUp, Int.floor_eq_iff,
-    Int.ceil_eq_iff]
+  norm_num [split, splitTax, splitForm, exactTax, other33, exactBase, atOther, emtPart, otherPart, euros, centsUp,
+    Int.floor_eq_iff, Int.ceil_eq_iff]
 
 /-- **IT-9** RT89 rounds 50 cents up: a base of €25 to 2025 is €6.50 of tax, €7 on RT89; €6.49 would be €6. -/
 theorem form_examples :
@@ -1739,30 +1905,52 @@ the other net €0: €2,600. With one dated before it, the EURC loss joins the 
 gain stays (€2,000): €8,000 at 26% and €2,000 at 33%, €2,740. So a later statement date can lower the tax. -/
 theorem later_statement_can_lower_tax :
     splitTax 2026 10000 10000 10000 = 2600 ∧ splitTax 2026 10000 10000 8000 = 2740 := by
-  norm_num [splitTax, exactTax, part26, emtPart, otherPart, centsUp, Int.ceil_eq_iff]
+  norm_num [splitTax, exactTax, other33, exactBase, emtPart, otherPart, euros, centsUp, Int.floor_eq_iff,
+    Int.ceil_eq_iff]
 /-! ## Rule 15: tax if sold today (`itYearTax`, `itTaxOnSale`) -/
 
-/-- `itYearTax` (engine/it.ts:377-381): the year's tax from its net so far, the losses carried in (as one loss of last year) and the euro
+/-- `itYearTax` (engine/it.ts:386-390): the year's tax from its net so far, the losses carried in (as one loss of last year) and the euro
 e-money token net so far, shared as `itSplit` does. -/
 def yearTax (year : ℕ) (net : ℚ) (carried : ℤ) (e : ℚ) : ℚ :=
   splitTax year (use year (yGain year (euros net)) (if 0 < carried then [⟨year - 1, carried⟩] else [])).2.2 net e
 
-/-- `itTaxOnSale` (engine/it.ts:387-389): the rise in the year's tax from one more sale (its gain, and its part that is a euro e-money
+/-- `itTaxOnSale` (engine/it.ts:396-398): the rise in the year's tax from one more sale (its gain, and its part that is a euro e-money
 token's), never below 0. -/
 def taxOnSale (year : ℕ) (gain sofar : ℚ) (carried : ℤ) (eSo eGain : ℚ) : ℚ :=
   max (yearTax year (sofar + gain) carried (eSo + eGain) - yearTax year sofar carried eSo) 0
 
+theorem avail_sortPool (year : ℕ) (pool : List Entry) : avail year (sortPool pool) = avail year pool := by
+  unfold avail amt sortPool
+  exact (((List.mergeSort_perm pool _).filter _).map _).sum_eq
+
+/-- **IT-9** With the same losses carried in (any pool): a larger other net `o` and a larger euro e-money token net `x`
+(the year's net `o + x`) never give less tax: neither the exact tax, the estimate nor RT89. -/
+theorem gain_mono (year : ℕ) (pool : List Entry) (o1 o2 x1 x2 : ℚ) (ho : o1 ≤ o2) (hx : x1 ≤ x2) :
+    exactTax year (yearStep year (o1 + x1) pool).base (o1 + x1) x1 ≤
+        exactTax year (yearStep year (o2 + x2) pool).base (o2 + x2) x2 ∧
+      splitTax year (yearStep year (o1 + x1) pool).base (o1 + x1) x1 ≤
+        splitTax year (yearStep year (o2 + x2) pool).base (o2 + x2) x2 ∧
+      splitForm year (yearStep year (o1 + x1) pool).base (o1 + x1) x1 ≤
+        splitForm year (yearStep year (o2 + x2) pool).base (o2 + x2) x2 := by
+  have key : exactTax year (yearStep year (o1 + x1) pool).base (o1 + x1) x1 ≤
+      exactTax year (yearStep year (o2 + x2) pool).base (o2 + x2) x2 := by
+    simp only [yearStep]
+    rw [base_eq _ _ _ (yGain_nonneg _ _), base_eq _ _ _ (yGain_nonneg _ _), avail_sortPool]
+    exact exact_gain_mono year _ (avail_nonneg _ _) o1 o2 x1 x2 ho hx
+  exact ⟨key, centsUp_mono _ _ key, euros_mono _ _ key⟩
+
+/-- **IT-15** With the same losses carried in: a larger other net and a larger euro e-money token net never give a
+lower `itYearTax`. -/
+theorem yearTax_gain_mono (year : ℕ) (carried : ℤ) (o1 o2 x1 x2 : ℚ) (ho : o1 ≤ o2) (hx : x1 ≤ x2) :
+    yearTax year (o1 + x1) carried x1 ≤ yearTax year (o2 + x2) carried x2 := by
+  unfold yearTax splitTax
+  rw [base_eq _ _ _ (yGain_nonneg _ _), base_eq _ _ _ (yGain_nonneg _ _)]
+  exact centsUp_mono _ _ (exact_gain_mono year _ (avail_nonneg _ _) o1 o2 x1 x2 ho hx)
+
 theorem yearTax_mono (year : ℕ) (a b : ℚ) (carried : ℤ) (e : ℚ) (h : a ≤ b) :
     yearTax year a carried e ≤ yearTax year b carried e := by
-  unfold yearTax
-  have ha := (base_eq year (yGain year (euros a)) (if 0 < carried then [⟨year - 1, carried⟩] else [])
-    (yGain_nonneg _ _))
-  have hb := (base_eq year (yGain year (euros b)) (if 0 < carried then [⟨year - 1, carried⟩] else [])
-    (yGain_nonneg _ _))
-  have := yGain_mono year _ _ (euros_mono a b h)
-  apply (split_mono year _ _ a b e _ _ h).1 <;> rw [ha] <;> try rw [hb]
-  · omega
-  · omega
+  have := yearTax_gain_mono year carried (a - e) (b - e) e e (by linarith) le_rfl
+  rwa [sub_add_cancel, sub_add_cancel] at this
 
 /-- The base of `itYearTax`'s year with `c ≥ 0` carried in as one loss of last year. -/
 theorem yearTax_base (year : ℕ) (g c : ℤ) (hy : 1 ≤ year) (hg : 0 ≤ g) (hc : 0 ≤ c) :
@@ -1782,7 +1970,7 @@ theorem yearTax_carried (year : ℕ) (net : ℚ) (c1 c2 : ℤ) (e : ℚ) (hy : 1
   unfold yearTax
   have hg := yGain_nonneg year (euros net)
   rw [yearTax_base year _ c2 hy hg (by omega), yearTax_base year _ c1 hy hg h1]
-  exact (split_mono year _ _ net net e (le_max_right _ _) (max_le_max (by omega) le_rfl) le_rfl).1
+  exact (split_base_mono year _ _ net e (le_max_right _ _) (max_le_max (by omega) le_rfl)).2.1
 
 /-- **IT-15** Tax if sold today is the year's tax with the sale less without it, never below 0: for a sale that is not
 a euro e-money token's, exactly that rise for a sale at a gain (or break-even), and 0 for a sale at a loss. -/
@@ -1804,21 +1992,23 @@ theorem tax_on_sale_examples :
     taxOnSale 2024 1000 1500 0 0 0 = 130 ∧ taxOnSale 2026 1000 0 0 0 1000 = 260 ∧ yearTax 2026 1000 0 1000 = 260 ∧
       taxOnSale 2026 1000 600 0 600 0 = 330 ∧ yearTax 2026 20000 10000 10000 = 2950 := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
-    norm_num [taxOnSale, yearTax, yGain, threshold, euros, use, usableIn, splitTax, exactTax, part26, emtPart, otherPart,
-      centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
+    norm_num [taxOnSale, yearTax, yGain, threshold, euros, use, usableIn, splitTax, exactTax, other33, exactBase,
+      emtPart, otherPart, centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
 
-/-- Finding (rounding): the net is rounded to whole euros before it is shared, so more euro e-money token gain can
-mean less tax. In 2026 with no losses, €500.25 of euro e-money token gain and €499.50 of other gain: base €1,000,
-tax €294.98; with €500.75 and the same €499.50, base €1,000 still: €294.96. On RT89: €1,000 of other gain and €547.50
-on a euro e-money token make a base of €1,548 and €473; with €548 on the token, the same base and €472. Small: €9 of
-other gain and €1.50 on the token, RT89 €4; €2 on the token, €3. -/
-theorem emt_gain_can_lower_tax :
-    yearTax 2026 (3999 / 4) 0 (2001 / 4) = 14749 / 50 ∧ yearTax 2026 (4001 / 4) 0 (2003 / 4) = 7374 / 25 ∧
-      splitForm 2026 1548 (3095 / 2) (1095 / 2) = 473 ∧ splitForm 2026 1548 1548 548 = 472 ∧
-      euros (3095 / 2) = 1548 ∧ splitForm 2026 11 (21 / 2) (3 / 2) = 4 ∧ splitForm 2026 11 11 2 = 3 ∧
-      euros (21 / 2) = 11 := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> norm_num [yearTax, yGain, threshold, euros, use, splitTax, splitForm,
-    exactTax, part26, emtPart, otherPart, centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
+/-- The app's tests (2026, no losses) for a larger gain in either part: €1,000 of other gain and €547.50 on a euro
+e-money token make a base of €1,548, an estimate of €472.48 and €472 on RT89; €548 on the token, the same base and
+€472. €9 of other gain and €1.50 on the token (base €11), RT89 €3; €2 on the token, €3. €499.50 of other gain and
+€500.25 on the token, an estimate of €294.97; €500.75 on the token, €294.97. -/
+theorem split_rounding_examples :
+    (yearStep 2026 (3095 / 2) []).base = 1548 ∧ (yearStep 2026 1548 []).base = 1548 ∧
+      splitTax 2026 1548 (3095 / 2) (1095 / 2) = 11812 / 25 ∧
+      splitForm 2026 1548 (3095 / 2) (1095 / 2) = 472 ∧ splitForm 2026 1548 1548 548 = 472 ∧
+      (yearStep 2026 (21 / 2) []).base = 11 ∧ (yearStep 2026 11 []).base = 11 ∧
+      splitForm 2026 11 (21 / 2) (3 / 2) = 3 ∧ splitForm 2026 11 11 2 = 3 ∧
+      yearTax 2026 (3999 / 4) 0 (2001 / 4) = 29497 / 100 ∧ yearTax 2026 (4001 / 4) 0 (2003 / 4) = 29497 / 100 := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    norm_num [yearStep, yearTax, sortPool, yGain, threshold, euros, use, splitTax, splitForm, exactTax, other33,
+      exactBase, emtPart, otherPart, centsUp, Int.floor_eq_iff, Int.ceil_eq_iff]
 
 /-! ## Rule 16: the readings of the pending euro tokens and the years as shown (report/it.ts:212-229, 499-536) -/
 
@@ -1888,10 +2078,6 @@ theorem avail_eq (year : ℕ) (pool : List Entry) (h : ∀ e ∈ pool, 0 < e.amo
     by_cases hu : usableIn year e
     · rw [List.filter_cons_of_pos (by simpa using hu), if_pos hu]; simp
     · rw [List.filter_cons_of_neg (by simpa using hu), if_neg hu]; simp
-
-theorem avail_sortPool (year : ℕ) (pool : List Entry) : avail year (sortPool pool) = avail year pool := by
-  unfold avail amt sortPool
-  exact (((List.mergeSort_perm pool _).filter _).map _).sum_eq
 
 /-- **IT-16** Fewer losses from each year (all of them positive) never mean less tax for a reading's year. -/
 theorem avail_le (year : ℕ) (p q : List Entry) (hp : ∀ e ∈ p, 0 < e.amount) (hq : ∀ e ∈ q, 0 < e.amount)
@@ -2171,7 +2357,7 @@ theorem rTax_pool (r : Reading) (year : ℕ) (p q : List Entry) (hp : ∀ e ∈ 
   have hg := yGain_nonneg year (euros (r.net year))
   rw [base_eq _ _ _ hg, base_eq _ _ _ hg, avail_sortPool, avail_sortPool]
   have := avail_le year p q hp hq h
-  exact (split_mono year _ _ _ _ _ (le_max_right _ _) (max_le_max (by omega) le_rfl) le_rfl).1
+  exact (split_base_mono year _ _ _ _ (le_max_right _ _) (max_le_max (by omega) le_rfl)).2.1
 
 theorem ownIn_pos (r : Reading) (pre : List Entry) (first : ℕ) (hpre : ∀ e ∈ pre, 0 < e.amount) :
     ∀ n, ∀ e ∈ ownIn r pre first n, 0 < e.amount
@@ -2296,8 +2482,7 @@ theorem now_ge (rs : ℕ → Reading) (m : ℕ) (pre : List Entry) (first n : �
   have hg2 := yGain_nonneg Y (euros (maxNet rs m Y))
   rw [hc, base_eq _ _ _ hg, avail_sortPool, yearTax_base Y _ _ (by omega) hg2 (avail_nonneg _ _)]
   have hn := le_maxNet rs m Y _ hpk
-  have := yGain_mono Y _ _ (euros_mono _ _ hn)
-  exact (split_mono Y _ _ _ _ _ (le_max_right _ _) (max_le_max (sub_le_sub_right this _) le_rfl) hn).1
+  exact centsUp_mono _ _ (exact_net_mono Y _ (avail_nonneg _ _) _ _ _ hn)
 /-! ## Rule 12: IVCA (DL 201/2011 art. 19 c. 18-bis; Modello Redditi PF, RW col. 33 and RW8) -/
 
 /-- `itIvca`: 0.2% of the value, times the share owned, for the days held (a full year at most) over the days in the

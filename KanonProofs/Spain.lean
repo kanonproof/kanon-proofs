@@ -37,7 +37,19 @@ Modelled line for line, in exact fractions:
 Where the model departs from the code:
 
 * the book keeps only lots with coins left (the code keeps used-up lots at 0 coins, which no sale takes);
-* the crumb tolerance (`CRUMB`, a shortfall below the 40 digits decimal.js keeps) is not modelled;
+* crumbs: the code treats a shortfall at a sale or a move of at most `qty × CRUMB` (beyond the 40 digits decimal.js
+  keeps) as no coins missing; the model has no such tolerance, and any shortfall is a lot at cost 0;
+* `toQty` scaling: the code scales a wrap's slices by `toQty ÷` the coins taken and gives the last slice what is left,
+  so they add up to `toQty` in 40 digits; the model scales every slice, the last too, which in exact fractions is the
+  same amount; a `toQty` of 0 or less is not modelled (`wrapped` asks `0 < toQty`);
+* the code's `++seq` is one counter for all coins and wallets, for roots and steps; `bought`, `sold` and `moved` ask
+  only that a new root exceed every root in the pool, and `wrapped` that the new steps follow each other and exceed
+  every step in the arriving pool (and a missing coins' root exceed its roots, taken before the steps), which the
+  code's do;
+* the code's step is absent for none; the model writes 0 for it (the code's steps, from `++seq`, are ≥ 1; `wrapped`
+  asks its steps to exceed every step in the arriving pool, so a step of 0 arrives only in an empty pool);
+* a slice the code moves or wraps gets a new id (`id~n`); the model keeps the lot's id, which with its day and `seq`
+  is the place a sale reads;
 * decimal.js computes at 40 significant digits; the model uses exact fractions;
 * dates are the number yyyymmdd, which orders like the app's ISO strings;
 * loss ids are taken as distinct (the app's event ids are);
@@ -58,7 +70,16 @@ lots bought the same day, so a later FIFO sale picked a different same-day lot. 
 later sale, from any pool the ledger can reach (`Reach`: purchases, sales, moves, also after a move of part of a lot,
 whose remainder and moved slice share one place, as in the code); `same_day_move` and `two_moves` check the case
 found (two lots of one day at 100 and 200: a sale of one coin costs 100 before a move, after it, and after two moves
-that each take half of the first lot).
+that each take half of the first lot). Found in the second review: a wrap (a move to another coin, `toAsset`, scaled
+by `toQty`) gave its slices their lot's `seq`, so two wraps of one lot at different rates left two slices of one place
+at different costs per coin, and a later move changed a later sale (2 coins for 200, wrapped 1 → 1 and 1 → 1/2: a
+sale of one wrapped coin after a move cost 150, not 100). A new root for each wrapped slice would put a lot wrapped
+and unwrapped the same day after the other lots of that day (A at 100 and B at 300: a sale would take B). The rule
+modelled (kanon-app `claude/wrap-rank`; its sha is to be checked when it lands) makes `seq` a root and a step, ordered
+by day, then root, then step, no step first: a plain move keeps it, a move to another coin or with a `toQty` keeps the
+root and takes a new step, in the order the slices are taken, and an unknown-cost lot gets a new root and no step;
+`Reach.wrapped` models it, `transfer_same_sale` covers pools reached through wraps, and `wrap_then_move` (100) and
+`round_trip` (A stays first) check both cases.
 -/
 
 namespace Kanon.Spain
@@ -66,16 +87,17 @@ namespace Kanon.Spain
 /-! ## 1. One pool per coin across all wallets, first in first out (`runLedger(events, "FIFO", "universal")`) -/
 
 /-- A lot: its wallet, the day it was bought (yyyymmdd), how many coins are left and what they cost, and `seq` its
-place in the order lots arrived (the code's `rank`): a purchase, or the lot at cost 0 for coins missing at a sale or a
-move, gets a new one, larger than every one before; a slice moved between the person's own wallets keeps the `seq` of
-the lot it came from. -/
+place in the order lots arrived (the code's `rank`), a root and a step (0 for none), compared root first: a purchase,
+or the lot at cost 0 for coins missing at a sale or a move, gets a new root and no step; a slice moved between the
+person's own wallets keeps the `seq` of the lot it came from; a slice moved to another coin, or with a `toQty`, keeps
+its lot's root and gets a new step. -/
 structure Lot where
   id : ℕ
   wallet : ℕ
   acquired : ℕ
   qty : ℚ
   cost : ℚ
-  seq : ℕ
+  seq : ℕ × ℕ
 
 /-- `runLedger`'s book key: the coin alone when the scope is universal (Spain), the coin and wallet otherwise. -/
 inductive Scope
@@ -91,7 +113,9 @@ one pool. -/
 theorem universal_one_pool (asset w w' : ℕ) : bookKey .universal asset w = bookKey .universal asset w' := rfl
 
 /-- `byFifo(a, b) ≤ 0`: `a` was bought on an earlier day, or the same day and arrived no later. -/
-abbrev before (a b : Lot) : Prop := a.acquired < b.acquired ∨ (a.acquired = b.acquired ∧ a.seq ≤ b.seq)
+abbrev before (a b : Lot) : Prop :=
+  a.acquired < b.acquired ∨
+    (a.acquired = b.acquired ∧ (a.seq.1 < b.seq.1 ∨ (a.seq.1 = b.seq.1 ∧ a.seq.2 ≤ b.seq.2)))
 
 /-- `Book.add`: a lot goes after every lot `byFifo` puts no later than it (the code's push, or its binary search for
 the first lot that sorts after it). -/
@@ -122,7 +146,7 @@ def totalCost (ls : List Lot) : ℚ := (ls.map Lot.cost).sum
 /-- A sale with `unknownCost`: when the pool holds fewer coins than are sold, the missing ones are a lot bought that
 day at cost 0 (`unknownLot`, with a new `seq`), then the sale runs. -/
 def sale (ls : List Lot) (q : ℚ) (id wallet date seq : ℕ) : List Pick × List Lot :=
-  if held ls < q then sell (add ⟨id, wallet, date, q - held ls, 0, seq⟩ ls) q else sell ls q
+  if held ls < q then sell (add ⟨id, wallet, date, q - held ls, 0, (seq, 0)⟩ ls) q else sell ls q
 
 theorem add_perm (l : Lot) (ls : List Lot) : (add l ls).Perm (l :: ls) := by
   induction ls with
@@ -146,6 +170,10 @@ theorem before_trans {a b c : Lot} (h1 : before a b) (h2 : before b c) : before 
 
 theorem before_of_not {a b : Lot} (h : ¬ before a b) : before b a := by
   unfold before at *; omega
+
+theorem before_antisymm {a b : Lot} (h1 : before a b) (h2 : before b a) :
+    a.acquired = b.acquired ∧ a.seq = b.seq := by
+  unfold before at *; exact ⟨by omega, Prod.ext (by omega) (by omega)⟩
 
 theorem add_sorted (l : Lot) (ls : List Lot) (h : Sorted ls) : Sorted (add l ls) := by
   induction ls with
@@ -219,10 +247,26 @@ theorem sell_left_days (ls : List Lot) (q : ℚ) :
       obtain ⟨y, hy, e⟩ := ih (q - l.qty) x hx
       exact ⟨y, by simp [hy], e⟩
 
-/-- **ES-1** First in first out: in a pool kept oldest first, every coin a sale takes was bought no later than every
-coin it leaves. -/
+/-- The lots a sale leaves were all in the pool before, with the same day and arrival order. -/
+theorem sell_left_keys (ls : List Lot) (q : ℚ) :
+    ∀ x ∈ (sell ls q).2, ∃ y ∈ ls, y.acquired = x.acquired ∧ y.seq = x.seq := by
+  induction ls generalizing q with
+  | nil => simp [sell]
+  | cons l ls ih =>
+    unfold sell; split_ifs
+    · intro x hx; exact ⟨x, hx, rfl, rfl⟩
+    · intro x hx
+      rcases List.mem_cons.mp hx with rfl | hx
+      · exact ⟨l, by simp, rfl, rfl⟩
+      · exact ⟨x, by simp [hx], rfl, rfl⟩
+    · intro x hx
+      obtain ⟨y, hy, e⟩ := ih (q - l.qty) x hx
+      exact ⟨y, by simp [hy], e⟩
+
+/-- **ES-1** First in first out: in a pool kept oldest first, every lot a sale takes from comes no later than every
+lot it leaves, in the pool's order (by day, then arrival). -/
 theorem sell_oldest (ls : List Lot) (q : ℚ) (h : Sorted ls) :
-    ∀ p ∈ (sell ls q).1, ∀ x ∈ (sell ls q).2, p.lot.acquired ≤ x.acquired := by
+    ∀ p ∈ (sell ls q).1, ∀ x ∈ (sell ls q).2, before p.lot x := by
   induction ls generalizing q with
   | nil => simp [sell]
   | cons l ls ih =>
@@ -232,12 +276,12 @@ theorem sell_oldest (ls : List Lot) (q : ℚ) (h : Sorted ls) :
     · intro p hp x hx
       simp at hp; subst hp
       rcases List.mem_cons.mp hx with rfl | hx
-      · simp
-      · have := h.1 x hx; unfold before at this; dsimp only; omega
+      · right; exact ⟨rfl, Or.inr ⟨rfl, le_refl _⟩⟩
+      · exact h.1 x hx
     · intro p hp x hx
       rcases List.mem_cons.mp hp with rfl | hp
-      · obtain ⟨y, hy, e⟩ := sell_left_days ls (q - l.qty) x hx
-        rw [← e]; have := h.1 y hy; unfold before at this; dsimp only; omega
+      · obtain ⟨y, hy, e1, e2⟩ := sell_left_keys ls (q - l.qty) x hx
+        have := h.1 y hy; unfold before at this ⊢; rw [← e1, ← e2]; exact this
       · exact ih (q - l.qty) h.2 p hp x hx
 
 /-- **ES-1** Newer lots untouched: a sale takes the first lots of the pool in order, and what it leaves is the rest
@@ -280,7 +324,7 @@ theorem sale_short (ls : List Lot) (q : ℚ) (id w date seq : ℕ) (hq : ∀ l �
     ((sale ls q id w date seq).1.map Pick.take).sum = q ∧
       ((sale ls q id w date seq).1.map Pick.basis).sum = totalCost ls ∧ (sale ls q id w date seq).2 = [] := by
   unfold sale; rw [if_pos h]
-  set L := add ⟨id, w, date, q - held ls, 0, seq⟩ ls
+  set L := add ⟨id, w, date, q - held ls, 0, (seq, 0)⟩ ls
   have hL : ∀ l ∈ L, 0 < l.qty := fun l hl => by
     rcases List.mem_cons.mp ((add_perm _ ls).mem_iff.mp hl) with rfl | hl
     · simp; linarith
@@ -303,7 +347,7 @@ theorem sell_sorted (ls : List Lot) (q : ℚ) (h : Sorted ls) : Sorted (sell ls 
     · unfold Sorted; rw [List.pairwise_cons]; exact ⟨fun y hy => h.1 y hy, h.2⟩
     · exact ih (q - l.qty) h.2
 
-/-- A move between the person's own wallets of one coin (no `toAsset`): with one pool per coin, the oldest coins of
+/-- A move between the person's own wallets of one coin (no `toAsset`, or the same coin with no `toQty`): with one pool per coin, the oldest coins of
 the pool move; each slice comes back into the same pool with its day, cost and `seq` (`moved.forEach((l) => add(l, source.get(l)))`). -/
 def transfer (ls : List Lot) (q : ℚ) (dest : ℕ) : List Lot :=
   (sell ls q).1.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b) (sell ls q).2
@@ -340,7 +384,7 @@ theorem transfer_keeps (ls : List Lot) (q : ℚ) (dest : ℕ) (hq : ∀ l ∈ ls
 /-- A move of more coins than the wallet holds, with `unknownCost`: every lot moves, and the missing coins arrive in
 the destination as a lot bought that day at cost 0 with a new `seq` (`unknownLot`, its slice added last). -/
 def move (ls : List Lot) (q : ℚ) (id dest date seq : ℕ) : List Lot :=
-  if held ls < q then add ⟨id, dest, date, q - held ls, 0, seq⟩ (transfer ls q dest) else transfer ls q dest
+  if held ls < q then add ⟨id, dest, date, q - held ls, 0, (seq, 0)⟩ (transfer ls q dest) else transfer ls q dest
 
 /-- **ES-1** A move with missing coins adds just those coins, at cost 0; the pool stays oldest first. -/
 theorem move_keeps (ls : List Lot) (q : ℚ) (id dest date seq : ℕ) (hq : ∀ l ∈ ls, 0 < l.qty) (h : Sorted ls) :
@@ -355,17 +399,17 @@ theorem move_keeps (ls : List Lot) (q : ℚ) (id dest date seq : ℕ) (hq : ∀ 
 
 /-- A lot's place, whatever wallet holds it: its id, its day and its `seq`. A slice moved between the person's own
 wallets keeps all three. -/
-def key (l : Lot) : ℕ × ℕ × ℕ := (l.id, l.acquired, l.seq)
+def key (l : Lot) : ℕ × ℕ × (ℕ × ℕ) := (l.id, l.acquired, l.seq)
 
 /-- The coins a sale takes from the lot with place `k`, and their cost. -/
-def takeAt (k : ℕ × ℕ × ℕ) (ps : List Pick) : ℚ := ((ps.filter (fun p => key p.lot = k)).map Pick.take).sum
-def basisAt (k : ℕ × ℕ × ℕ) (ps : List Pick) : ℚ := ((ps.filter (fun p => key p.lot = k)).map Pick.basis).sum
+def takeAt (k : ℕ × ℕ × (ℕ × ℕ)) (ps : List Pick) : ℚ := ((ps.filter (fun p => key p.lot = k)).map Pick.take).sum
+def basisAt (k : ℕ × ℕ × (ℕ × ℕ)) (ps : List Pick) : ℚ := ((ps.filter (fun p => key p.lot = k)).map Pick.basis).sum
 
-theorem takeAt_cons (k : ℕ × ℕ × ℕ) (p : Pick) (ps : List Pick) :
+theorem takeAt_cons (k : ℕ × ℕ × (ℕ × ℕ)) (p : Pick) (ps : List Pick) :
     takeAt k (p :: ps) = (if key p.lot = k then p.take else 0) + takeAt k ps := by
   unfold takeAt; rw [List.filter_cons]; split_ifs <;> simp_all
 
-theorem basisAt_cons (k : ℕ × ℕ × ℕ) (p : Pick) (ps : List Pick) :
+theorem basisAt_cons (k : ℕ × ℕ × (ℕ × ℕ)) (p : Pick) (ps : List Pick) :
     basisAt k (p :: ps) = (if key p.lot = k then p.basis else 0) + basisAt k ps := by
   unfold basisAt; rw [List.filter_cons]; split_ifs <;> simp_all
 
@@ -460,26 +504,26 @@ theorem out_split (x a b : Lot) (L M : List Lot) (hka : key a = key x) (hkb : ke
     · split_ifs <;> linarith
 
 /-- The coins and the cost the pool holds at place `k`. -/
-def heldAt (k : ℕ × ℕ × ℕ) (L : List Lot) : ℚ := ((L.filter (fun l => key l = k)).map Lot.qty).sum
-def costAt (k : ℕ × ℕ × ℕ) (L : List Lot) : ℚ := ((L.filter (fun l => key l = k)).map Lot.cost).sum
+def heldAt (k : ℕ × ℕ × (ℕ × ℕ)) (L : List Lot) : ℚ := ((L.filter (fun l => key l = k)).map Lot.qty).sum
+def costAt (k : ℕ × ℕ × (ℕ × ℕ)) (L : List Lot) : ℚ := ((L.filter (fun l => key l = k)).map Lot.cost).sum
 
-theorem heldAt_cons (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+theorem heldAt_cons (k : ℕ × ℕ × (ℕ × ℕ)) (l : Lot) (L : List Lot) :
     heldAt k (l :: L) = (if key l = k then l.qty else 0) + heldAt k L := by
   unfold heldAt; rw [List.filter_cons]; split_ifs <;> simp_all
 
-theorem costAt_cons (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+theorem costAt_cons (k : ℕ × ℕ × (ℕ × ℕ)) (l : Lot) (L : List Lot) :
     costAt k (l :: L) = (if key l = k then l.cost else 0) + costAt k L := by
   unfold costAt; rw [List.filter_cons]; split_ifs <;> simp_all
 
-theorem heldAt_add (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+theorem heldAt_add (k : ℕ × ℕ × (ℕ × ℕ)) (l : Lot) (L : List Lot) :
     heldAt k (add l L) = (if key l = k then l.qty else 0) + heldAt k L := by
   rw [← heldAt_cons]; unfold heldAt; exact (((add_perm l L).filter _).map _).sum_eq
 
-theorem costAt_add (k : ℕ × ℕ × ℕ) (l : Lot) (L : List Lot) :
+theorem costAt_add (k : ℕ × ℕ × (ℕ × ℕ)) (l : Lot) (L : List Lot) :
     costAt k (add l L) = (if key l = k then l.cost else 0) + costAt k L := by
   rw [← costAt_cons]; unfold costAt; exact (((add_perm l L).filter _).map _).sum_eq
 
-theorem heldAt_nonneg (k : ℕ × ℕ × ℕ) (L : List Lot) (hq : ∀ x ∈ L, 0 < x.qty) : 0 ≤ heldAt k L := by
+theorem heldAt_nonneg (k : ℕ × ℕ × (ℕ × ℕ)) (L : List Lot) (hq : ∀ x ∈ L, 0 < x.qty) : 0 ≤ heldAt k L := by
   induction L with
   | nil => simp [heldAt]
   | cons l L ih =>
@@ -497,7 +541,7 @@ theorem heldAt_pos (L : List Lot) (hq : ∀ x ∈ L, 0 < x.qty) {x : Lot} (hx : 
     · have := ih (fun y hy => hq y (by simp [hy])) hx
       split_ifs <;> linarith [hq l (by simp)]
 
-theorem heldAt_exists {k : ℕ × ℕ × ℕ} {L : List Lot} (h : 0 < heldAt k L) : ∃ y ∈ L, key y = k := by
+theorem heldAt_exists {k : ℕ × ℕ × (ℕ × ℕ)} {L : List Lot} (h : 0 < heldAt k L) : ∃ y ∈ L, key y = k := by
   induction L with
   | nil => simp [heldAt] at h
   | cons l L ih =>
@@ -555,7 +599,7 @@ theorem good_tail {l : Lot} {L : List Lot} (h : Kept (l :: L)) : Kept L := by
 theorem head_before {m y : Lot} {M : List Lot} (h : Sorted (m :: M)) (hy : y ∈ m :: M) : before m y := by
   unfold Sorted at h; rw [List.pairwise_cons] at h
   rcases List.mem_cons.mp hy with rfl | hy
-  · right; exact ⟨rfl, le_refl _⟩
+  · right; exact ⟨rfl, Or.inr ⟨rfl, le_refl _⟩⟩
   · exact h.1 y hy
 
 /-- The first `q` coins of a lot, and the rest of it, at its cost per coin. -/
@@ -622,10 +666,11 @@ theorem data_out (n : ℕ) : ∀ L M : List Lot, L.length + M.length ≤ n → K
       simp only [key, Prod.mk.injEq] at ey ez
       obtain ⟨ey1, ey2, ey3⟩ := ey
       obtain ⟨ez1, ez2, ez3⟩ := ez
-      have ea : m.acquired = l.acquired := by unfold before at b1 b2; omega
-      have es : m.seq = l.seq := by unfold before at b1 b2; omega
+      have b1' : before m l := by unfold before at b1 ⊢; rw [← ey2, ← ey3]; exact b1
+      have b2' : before l m := by unfold before at b2 ⊢; rw [← ez2, ← ez3]; exact b2
+      obtain ⟨ea, es⟩ := before_antisymm b1' b2'
       have hk : key m = key l := by
-        have := (hM.2.2 m (by simp) y hy (by omega) (by omega)).1
+        have := (hM.2.2 m (by simp) y hy (by rw [ea, ey2]) (by rw [es, ey3])).1
         simp only [key, Prod.mk.injEq]; exact ⟨by rw [this, ey1], ea, es⟩
       have u1 := costAt_unit l (l :: L) (fun a ha e1 e2 => (hL.2.2 a ha l (by simp) e1 e2).2)
       have u2 := costAt_unit m (m :: M) (fun a ha e1 e2 => (hM.2.2 a ha m (by simp) e1 e2).2)
@@ -649,7 +694,7 @@ theorem data_out (n : ℕ) : ∀ L M : List Lot, L.length + M.length ≤ n → K
           (fun k => (hc k).symm) hk.symm hu.symm h)
 
 /-- What a sale takes from each place and what it leaves there add up to what the place held. -/
-theorem sell_at (L : List Lot) (r : ℚ) (k : ℕ × ℕ × ℕ) (hq : ∀ l ∈ L, 0 < l.qty) :
+theorem sell_at (L : List Lot) (r : ℚ) (k : ℕ × ℕ × (ℕ × ℕ)) (hq : ∀ l ∈ L, 0 < l.qty) :
     takeAt k (sell L r).1 + heldAt k (sell L r).2 = heldAt k L ∧
       basisAt k (sell L r).1 + costAt k (sell L r).2 = costAt k L := by
   have t0 : takeAt k [] = 0 := by simp [takeAt]
@@ -722,7 +767,7 @@ theorem mem_foldl (dest : ℕ) (ps : List Pick) (R : List Lot) :
       · exact Or.inl h
     · exact Or.inr ⟨p', by simp [hp'], e⟩
 
-theorem foldl_at (dest : ℕ) (ps : List Pick) (R : List Lot) (k : ℕ × ℕ × ℕ) :
+theorem foldl_at (dest : ℕ) (ps : List Pick) (R : List Lot) (k : ℕ × ℕ × (ℕ × ℕ)) :
     heldAt k (ps.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b) R) =
         heldAt k R + takeAt k ps ∧
       costAt k (ps.foldl (fun b p => add { p.lot with wallet := dest, qty := p.take, cost := p.basis } b) R) =
@@ -738,7 +783,7 @@ theorem foldl_at (dest : ℕ) (ps : List Pick) (R : List Lot) (k : ℕ × ℕ ×
     constructor <;> ring
 
 /-- A move between the person's own wallets keeps, at every place, the coins and their cost. -/
-theorem transfer_at (L : List Lot) (q : ℚ) (dest : ℕ) (k : ℕ × ℕ × ℕ) (hq : ∀ l ∈ L, 0 < l.qty) :
+theorem transfer_at (L : List Lot) (q : ℚ) (dest : ℕ) (k : ℕ × ℕ × (ℕ × ℕ)) (hq : ∀ l ∈ L, 0 < l.qty) :
     heldAt k (transfer L q dest) = heldAt k L ∧ costAt k (transfer L q dest) = costAt k L := by
   obtain ⟨a1, a2⟩ := foldl_at dest (sell L q).1 (sell L q).2 k
   obtain ⟨b1, b2⟩ := sell_at L q k hq
@@ -774,34 +819,173 @@ theorem good_add {L : List Lot} {l : Lot} (h : Kept L) (hl : 0 < l.qty) (hf : �
     · subst eb; exact absurd e2 (hf a ma)
     · exact h.2.2 a ma b mb e1 e2
 
-/-- The pools the ledger can reach: from empty, by purchases (each with a new `seq`, larger than every one before),
-sales (with `unknownCost`), moves between the person's own wallets, and moves of more coins than held. -/
+/-- The slices a wrap (a move with `toAsset`) takes, in the order the code's `moved` holds them: the pool's lots
+oldest first, then, for coins missing, the lot at cost 0 for them (`unknownLot`, bought that day, a new root `s`) last. -/
+def wrapPicks (L : List Lot) (q : ℚ) (id w date s : ℕ) : List Pick :=
+  if held L < q then (sell L q).1 ++ [⟨⟨id, w, date, q - held L, 0, (s, 0)⟩, q - held L, 0⟩] else (sell L q).1
+
+/-- A slice's coins on arrival: as taken when the wrap has no `toQty`, else scaled by `toQty ÷` all coins taken. -/
+def scaled (tq : Option ℚ) (all take : ℚ) : ℚ :=
+  match tq with
+  | none => take
+  | some t => take * t / all
+
+/-- The slices arriving from a move that names another coin or a `toQty`: each keeps its id, day and cost, its coins
+are `scaled`, and its `seq` is its lot's root with a new step, the steps following each other in the order taken, from
+`c`. -/
+def wrapSlices : List Pick → ℕ → Option ℚ → ℚ → ℕ → List Lot
+  | [], _, _, _, _ => []
+  | p :: ps, dest, tq, all, c =>
+    { p.lot with wallet := dest, qty := scaled tq all p.take, cost := p.basis, seq := (p.lot.seq.1, c) } ::
+      wrapSlices ps dest tq all (c + 1)
+
+/-- The arriving coin's pool `T` after a wrap of `q` coins from the pool `L` (kanon-app 3ed8522): the slices of the
+pool's lots with their new steps from `c0`, then, for coins missing, the unknown-cost slice, which keeps its own new
+root `s`; all scaled to what arrives. -/
+def wrapIn (T L : List Lot) (q : ℚ) (id w date s dest : ℕ) (tq : Option ℚ) (c0 : ℕ) : List Lot :=
+  (wrapSlices (sell L q).1 dest tq ((wrapPicks L q id w date s).map Pick.take).sum c0 ++
+      (if held L < q then
+        [(⟨id, dest, date, scaled tq ((wrapPicks L q id w date s).map Pick.take).sum (q - held L), 0, (s, 0)⟩ : Lot)]
+      else [])).foldl (fun b l => add l b) T
+
+theorem wrapSlices_mem (ps : List Pick) (dest : ℕ) (tq : Option ℚ) (all : ℚ) (c : ℕ) :
+    ∀ x ∈ wrapSlices ps dest tq all c, ∃ p ∈ ps, ∃ n, c ≤ n ∧ x.seq = (p.lot.seq.1, n) ∧
+      x.qty = scaled tq all p.take := by
+  induction ps generalizing c with
+  | nil => simp [wrapSlices]
+  | cons p ps ih =>
+    intro x hx
+    rcases List.mem_cons.mp hx with rfl | hx
+    · exact ⟨p, by simp, c, le_refl _, rfl, rfl⟩
+    · obtain ⟨q, hq, n, h1, e1, e2⟩ := ih (c + 1) x hx
+      exact ⟨q, by simp [hq], n, by omega, e1, e2⟩
+
+theorem wrapSlices_order (ps : List Pick) (dest : ℕ) (tq : Option ℚ) (all : ℚ) (c : ℕ) :
+    (wrapSlices ps dest tq all c).Pairwise (fun a b => a.seq ≠ b.seq) := by
+  induction ps generalizing c with
+  | nil => simp [wrapSlices]
+  | cons p ps ih =>
+    simp only [wrapSlices, List.pairwise_cons]
+    refine ⟨fun x hx e => ?_, ih (c + 1)⟩
+    obtain ⟨q, -, n, h1, e1, -⟩ := wrapSlices_mem ps dest tq all (c + 1) x hx
+    rw [e1] at e
+    have := congrArg Prod.snd e
+    simp at this; omega
+
+/-- Lots arriving one after another, each with a `seq` larger than every one before, keep a pool as the ledger keeps
+it. -/
+theorem good_arrive (S : List Lot) : ∀ T : List Lot, Kept T → (∀ x ∈ S, 0 < x.qty) →
+    S.Pairwise (fun a b => a.seq ≠ b.seq) → (∀ x ∈ T, ∀ y ∈ S, x.seq ≠ y.seq) →
+    Kept (S.foldl (fun b l => add l b) T) := by
+  induction S with
+  | nil => intro T h _ _ _; exact h
+  | cons y S ih =>
+    intro T h hq hs hf
+    rw [List.pairwise_cons] at hs
+    simp only [List.foldl_cons]
+    refine ih _ (good_add h (hq y (by simp)) (fun x hx => hf x hx y (by simp)))
+      (fun x hx => hq x (by simp [hx])) hs.2 (fun x hx z hz => ?_)
+    rcases List.mem_cons.mp ((add_perm y T).mem_iff.mp hx) with rfl | hx
+    · exact hs.1 z hz
+    · exact hf x hx z (by simp [hz])
+
+/-- A wrap keeps the arriving pool as the ledger keeps it, when its new steps are larger than every step in that pool
+and, for coins missing, the unknown-cost slice's new root `s` is larger than every root in that pool and taken before
+those steps. -/
+theorem good_wrap {L T : List Lot} (q : ℚ) (id w date s dest : ℕ) (tq : Option ℚ) (c0 : ℕ) (hL : Kept L)
+    (hT : Kept T) (hc0 : ∀ x ∈ T, x.seq.2 < c0)
+    (hs : held L < q → (∀ x ∈ T, x.seq.1 < s) ∧ s < c0) (hto : ∀ t, tq = some t → 0 < t) :
+    Kept (wrapIn T L q id w date s dest tq c0) := by
+  set ps := wrapPicks L q id w date s
+  set all := (ps.map Pick.take).sum
+  have hp : ∀ p ∈ ps, 0 < p.take := by
+    simp only [ps]; unfold wrapPicks; split_ifs with hh
+    · intro p hp
+      rcases List.mem_append.mp hp with hp | hp
+      · exact (sell_picks L q hL.2.1 p hp).2.1
+      · simp only [List.mem_singleton] at hp; subst hp; dsimp only; linarith
+    · exact fun p hp => (sell_picks L q hL.2.1 p hp).2.1
+  have hsc : ∀ p ∈ ps, 0 < scaled tq all p.take := by
+    intro p hpm
+    have h1 := hp p hpm
+    cases tq with
+    | none => exact h1
+    | some t =>
+      have h2 : p.take ≤ all :=
+        List.single_le_sum (fun a ha => by
+          obtain ⟨b, hb, rfl⟩ := List.mem_map.mp ha; exact (hp b hb).le) _ (List.mem_map.mpr ⟨p, hpm, rfl⟩)
+      exact div_pos (mul_pos h1 (hto t rfl)) (lt_of_lt_of_le h1 h2)
+  have hsub : ∀ p ∈ (sell L q).1, p ∈ ps := by
+    intro p hp; simp only [ps]; unfold wrapPicks; split_ifs <;> simp [hp]
+  have hmiss : held L < q → (⟨⟨id, w, date, q - held L, 0, (s, 0)⟩, q - held L, 0⟩ : Pick) ∈ ps := by
+    intro hh; simp only [ps]; unfold wrapPicks; rw [if_pos hh]; simp
+  unfold wrapIn
+  refine good_arrive _ T hT (fun x hx => ?_) ?_ (fun x hx y hy e => ?_)
+  · rcases List.mem_append.mp hx with hx | hx
+    · obtain ⟨p, hpm, n, -, -, e⟩ := wrapSlices_mem _ _ _ _ _ x hx
+      rw [e]; exact hsc p (hsub p hpm)
+    · split_ifs at hx with hh
+      · simp only [List.mem_singleton] at hx; subst hx; exact hsc _ (hmiss hh)
+      · simp at hx
+  · rw [List.pairwise_append]
+    refine ⟨wrapSlices_order _ _ _ _ _, by split_ifs <;> simp, fun a ha b hb e => ?_⟩
+    split_ifs at hb with hh
+    · simp only [List.mem_singleton] at hb; subst hb
+      obtain ⟨p, -, n, hn, e1, -⟩ := wrapSlices_mem _ _ _ _ _ a ha
+      have h1 := congrArg Prod.snd (e1.symm.trans e)
+      simp at h1; have := (hs hh).2; omega
+    · simp at hb
+  · rcases List.mem_append.mp hy with hy | hy
+    · obtain ⟨p, -, n, hn, e1, -⟩ := wrapSlices_mem _ _ _ _ _ y hy
+      have := hc0 x hx
+      rw [e, e1] at this; simp at this; omega
+    · split_ifs at hy with hh
+      · simp only [List.mem_singleton] at hy; subst hy
+        have := (hs hh).1 x hx
+        rw [e] at this; simp at this
+      · simp at hy
+
+/-- The pools the ledger can reach: from empty, by purchases (each with a new root, larger than every one before),
+sales (with `unknownCost`), moves between the person's own wallets, moves of more coins than held, and wraps. A move
+with a `toAsset` of the same coin and no `toQty` is a plain move (`transferred`, `moved`). Any other wrap leaves its
+pool as `sent` (the coins taken; the lot at cost 0 for coins missing never enters it) and arrives in the pool `T` of
+the coin named (the same coin too, after `sent`) as `wrapped`: its slices in the order taken, coins `scaled`, each
+with its lot's root and a new step, the steps one after another and larger than every step in `T`, and for coins
+missing the unknown-cost slice last with its own new root `s`, taken before those steps. -/
 inductive Reach : List Lot → Prop
   | empty : Reach []
-  | bought (L : List Lot) (l : Lot) : Reach L → 0 < l.qty → (∀ x ∈ L, x.seq < l.seq) → Reach (add l L)
-  | sold (L : List Lot) (q : ℚ) (id w date seq : ℕ) : Reach L → (∀ x ∈ L, x.seq < seq) →
+  | bought (L : List Lot) (l : Lot) : Reach L → 0 < l.qty → (∀ x ∈ L, x.seq.1 < l.seq.1) → Reach (add l L)
+  | sold (L : List Lot) (q : ℚ) (id w date seq : ℕ) : Reach L → (∀ x ∈ L, x.seq.1 < seq) →
       Reach (sale L q id w date seq).2
   | transferred (L : List Lot) (q : ℚ) (dest : ℕ) : Reach L → Reach (transfer L q dest)
-  | moved (L : List Lot) (q : ℚ) (id dest date seq : ℕ) : Reach L → (∀ x ∈ L, x.seq < seq) →
+  | moved (L : List Lot) (q : ℚ) (id dest date seq : ℕ) : Reach L → (∀ x ∈ L, x.seq.1 < seq) →
       Reach (move L q id dest date seq)
+  | sent (L : List Lot) (q : ℚ) : Reach L → Reach (sell L q).2
+  | wrapped (L T : List Lot) (q : ℚ) (id w date s dest : ℕ) (tq : Option ℚ) (c0 : ℕ) : Reach L → Reach T →
+      (∀ x ∈ T, x.seq.2 < c0) → (held L < q → (∀ x ∈ T, x.seq.1 < s) ∧ s < c0) →
+      (∀ t, tq = some t → 0 < t) → Reach (wrapIn T L q id w date s dest tq c0)
 
 /-- Every pool the ledger can reach is oldest first, its lots hold coins, and lots sharing a day and arrival order
 are slices of one lot at one cost per coin. -/
 theorem good_of_reach {L : List Lot} (h : Reach L) : Kept L := by
   induction h with
   | empty => exact ⟨by simp [Sorted], by simp, by simp⟩
-  | bought L l _ hl hf ih => exact good_add ih hl (fun x hx => (hf x hx).ne)
+  | bought L l _ hl hf ih => exact good_add ih hl (fun x hx e => by have := hf x hx; rw [e] at this; omega)
   | sold L q id w date seq _ hf ih =>
     unfold sale; split_ifs with hs
-    · exact good_sell q (good_add ih (show 0 < q - held L by linarith) (fun x hx => (hf x hx).ne))
+    · exact good_sell q (good_add ih (show 0 < q - held L by linarith)
+      (fun x hx e => by have := hf x hx; rw [e] at this; simp at this))
     · exact good_sell q ih
   | transferred L q dest _ ih => exact good_transfer q dest ih
   | moved L q id dest date seq _ hf ih =>
     unfold move; split_ifs with hs
     · refine good_add (good_transfer q dest ih) (show 0 < q - held L by linarith) (fun x hx => ?_)
       obtain ⟨⟨y, hy, _, _, e, _⟩, _⟩ := transfer_like L q dest ih.2.1 x hx
-      rw [← e]; exact (hf y hy).ne
+      intro e2; have := hf y hy; rw [e, e2] at this; simp at this
     · exact good_transfer q dest ih
+  | sent L q _ ih => exact good_sell q ih
+  | wrapped L T q id w date s dest tq c0 _ _ hc0 hs hto ihL ihT =>
+    exact good_wrap q id w date s dest tq c0 ihL ihT hc0 hs hto
 
 /-- **ES-1** A move between the person's own wallets does not change a later sale: from any pool the ledger can
 reach (purchases, sales, moves, including after earlier moves of part of a lot), a sale of any amount after the move
@@ -824,16 +1008,66 @@ theorem move_same_sale (ls : List Lot) (q r : ℚ) (id dest date seq : ℕ) (h :
 /-- **ES-1** The case found in review: two lots bought the same day, the first for 100, the second for 200. A sale of
 one coin costs 100, before a move of one coin between the person's own wallets and after it. -/
 theorem same_day_move :
-    let L : List Lot := [⟨1, 0, 20250101, 1, 100, 1⟩, ⟨2, 0, 20250101, 1, 200, 2⟩]
+    let L : List Lot := [⟨1, 0, 20250101, 1, 100, (1, 0)⟩, ⟨2, 0, 20250101, 1, 200, (2, 0)⟩]
     ((sell L 1).1.map Pick.basis).sum = 100 ∧ ((sell (transfer L 1 7) 1).1.map Pick.basis).sum = 100 := by
-  norm_num [sell, transfer, add, before]
+  norm_num (config := { decide := true }) [sell, transfer, add, before]
 
 /-- **ES-1** Two moves: the lots of 100 and 200 bought the same day; half of the first lot moves to another wallet,
 then the other half moves to a third. A sale of one coin still takes the first lot and costs 100. -/
 theorem two_moves :
-    let L : List Lot := [⟨1, 0, 20250101, 1, 100, 1⟩, ⟨2, 0, 20250101, 1, 200, 2⟩]
+    let L : List Lot := [⟨1, 0, 20250101, 1, 100, (1, 0)⟩, ⟨2, 0, 20250101, 1, 200, (2, 0)⟩]
     ((sell (transfer (transfer L (1 / 2) 7) (1 / 2) 8) 1).1.map Pick.basis).sum = 100 := by
-  norm_num [sell, transfer, add, before]
+  norm_num (config := { decide := true }) [sell, transfer, add, before]
+
+/-- **ES-1** The wrap found in review: 2 coins bought for 200 (`seq` `(1, 0)`, a root and no step); one is wrapped into 1 coin of another
+asset (its slice gets `(1, 2)`), then another into 1/2 coin (`(1, 3)`). A sale of one wrapped coin takes the first
+slice and costs 100, before a move of one wrapped coin between the person's own wallets and after it. -/
+theorem wrap_then_move :
+    let L : List Lot := [⟨1, 0, 20250101, 2, 200, (1, 0)⟩]
+    let W := wrapIn (wrapIn [] L 1 9 0 20250102 0 0 (some 1) 2) (sell L 1).2 1 9 0 20250103 0 0 (some (1 / 2)) 3
+    Reach W ∧ ((sell W 1).1.map Pick.basis).sum = 100 ∧ ((sell (transfer W 1 7) 1).1.map Pick.basis).sum = 100 := by
+  have r0 : Reach [⟨1, 0, 20250101, 2, 200, (1, 0)⟩] := by
+    have := Reach.bought [] ⟨1, 0, 20250101, 2, 200, (1, 0)⟩ Reach.empty (by norm_num) (by simp)
+    simpa [add] using this
+  refine ⟨?_, ?_⟩
+  · refine Reach.wrapped _ _ 1 9 0 20250103 0 0 (some (1 / 2)) 3 (Reach.sent _ 1 r0) ?_ ?_ ?_ (by simp)
+    · exact Reach.wrapped _ [] 1 9 0 20250102 0 0 (some 1) 2 r0 Reach.empty (by simp)
+        (by norm_num [held]) (by simp)
+    · norm_num (config := { decide := true }) [wrapIn, wrapPicks, wrapSlices, scaled, held, sell, add]
+    · norm_num [held, sell]
+  · norm_num (config := { decide := true }) [wrapIn, wrapPicks, wrapSlices, scaled, held, sell, transfer, add, before]
+
+/-- **ES-1** A round trip keeps a lot's place: lot A (1 coin for 100, `seq` `(1, 0)`) and lot B (1 coin
+for 300, `(2, 0)`) are bought the same day; A is wrapped into another coin (`(1, 3)`) and back (`(1, 4)`, root 1
+sorting before root 2). A sale of one coin still takes A and costs 100. -/
+theorem round_trip :
+    let L : List Lot := [⟨1, 0, 20250101, 1, 100, (1, 0)⟩, ⟨2, 0, 20250101, 1, 300, (2, 0)⟩]
+    let E := wrapIn (sell L 1).2 (wrapIn [] L 1 9 0 20250102 0 0 none 3) 1 9 0 20250103 0 0 none 4
+    Reach E ∧ (sell E 1).1.map (fun p => p.lot.id) = [1] ∧ ((sell E 1).1.map Pick.basis).sum = 100 := by
+  have r0 : Reach [⟨1, 0, 20250101, 1, 100, (1, 0)⟩, ⟨2, 0, 20250101, 1, 300, (2, 0)⟩] := by
+    have h1 := Reach.bought [] ⟨1, 0, 20250101, 1, 100, (1, 0)⟩ Reach.empty (by norm_num) (by simp)
+    have h2 := Reach.bought _ ⟨2, 0, 20250101, 1, 300, (2, 0)⟩ h1 (by norm_num) (by simp [add])
+    simpa [add, before] using h2
+  refine ⟨?_, ?_⟩
+  · refine Reach.wrapped _ _ 1 9 0 20250103 0 0 none 4 ?_ (Reach.sent _ 1 r0) ?_ ?_ (by simp)
+    · exact Reach.wrapped _ [] 1 9 0 20250102 0 0 none 3 r0 Reach.empty (by simp) (by norm_num [held]) (by simp)
+    · norm_num (config := { decide := true }) [held, sell]
+    · norm_num [wrapIn, wrapPicks, wrapSlices, scaled, held, sell, add]
+  · norm_num (config := { decide := true }) [wrapIn, wrapPicks, wrapSlices, scaled, held, sell, add, before]
+
+/-- Under the old rule (a wrapped slice keeps its lot's `seq`), the two wraps give two slices of one place at
+different costs per coin, and the sale after the move costs 150. -/
+example :
+    let W : List Lot := [⟨1, 0, 20250101, 1, 100, (1, 0)⟩, ⟨1, 0, 20250101, 1 / 2, 100, (1, 0)⟩]
+    ((sell W 1).1.map Pick.basis).sum = 100 ∧ ((sell (transfer W 1 7) 1).1.map Pick.basis).sum = 150 := by
+  norm_num (config := { decide := true }) [sell, transfer, add, before]
+
+/-- Under the rule of a new root for every wrapped slice, the round trip puts A after B (`(4, 0)` after `(2, 0)`),
+and the sale takes B at 300. -/
+example :
+    let E : List Lot := [⟨2, 0, 20250101, 1, 300, (2, 0)⟩, ⟨1, 0, 20250101, 1, 100, (4, 0)⟩]
+    Sorted E ∧ ((sell E 1).1.map Pick.basis).sum = 300 := by
+  norm_num (config := { decide := true }) [Sorted, sell, before]
 
 /-! ## 2. Rounding to the cent (`cents`: Decimal's ROUND_HALF_UP, half away from zero) -/
 

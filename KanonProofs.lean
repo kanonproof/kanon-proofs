@@ -51,3 +51,4 @@ import KanonProofs.DaAdjust
 import KanonProofs.Alerts
 import KanonProofs.France
 import KanonProofs.Spain
+import KanonProofs.SpainPermuta

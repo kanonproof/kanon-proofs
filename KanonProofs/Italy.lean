@@ -680,7 +680,9 @@ def byKind (ops : List Op) : List Op :=
     ops.filter (rank · == 4)
 
 /-- **IT-2** Crypto for crypto of the same kind (all coins, all e-money tokens, or all NFTs) with no money received: one
-untaxed swap, with the money paid on top (when known and above 0) added to the cost carried. -/
+untaxed swap, with the money paid on top (when known and above 0) added to the cost carried. Grouping the swaps by
+kind (an NFT for an NFT, an e-money token for an e-money token) is KANON's reading of Circolare 30/E, pp. 47-48
+(crypto-assets with the same features and functions). -/
 theorem same_kind_untaxed (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ [])
     (hf : h.fIn = []) (hs : sameKind h.out h.inn = true) :
     classify euro h = [.swap (coins h.out) (gots h.inn) (paidOf h.fOut)] := by
@@ -723,7 +725,8 @@ theorem apart_exchange_taxed (euro : Mv → Bool) (h : SwapH) (v : ℚ) (hk : h.
 
 /-- **IT-3** NFTs: an NFT for NFTs (no money in) is an untaxed swap. Crypto for an NFT or an NFT for crypto (every leg
 of one side an NFT, none of the other), with no money: a taxable exchange at the value of what came in, or, when that
-has no price, at the value of what was given; what came in is bought at that same value. -/
+has no price, at the value of what was given; what came in is bought at that same value. Treating an NFT for an NFT
+as a swap of one kind is KANON's reading of Circolare 30/E, pp. 47-48 (same features and functions). -/
 theorem nft_rules (euro : Mv → Bool) (h : SwapH) (hk : h.keepsCost = false) (ho : h.out ≠ []) (hi : h.inn ≠ []) :
     (h.fIn = [] → (∀ m ∈ h.out ++ h.inn, m.nft = true) →
       classify euro h = [.swap (coins h.out) (gots h.inn) (paidOf h.fOut)]) ∧
@@ -826,7 +829,7 @@ theorem case_a_zero (euro : Mv → Bool) (h : SwapH) (y : Mv) (ys : List Mv) (hk
   simp [classify, hk, ho, hi', hf, hfo, hs, splitMixed, h1, hh, hkeep, hsell, hv]
 
 /-- **IT-2** Case B, everything given of one kind (`y` the first leg given, received legs not all of one kind): with
-`vg > 0` the value of the legs received of another kind (`got`) and `va > 0` the value of all received, one part swap
+`vg ≠ 0` the value of the legs received of another kind (`got`) and `va > 0` the value of all received, one part swap
 of every coin given realises the share `f = vg ÷ va` of their cost in one line at `vg` and carries the rest to the legs
 received of the kind given (`keep`); `got` is bought at `vg`. -/
 theorem case_b (euro : Mv → Bool) (h : SwapH) (y : Mv) (ys : List Mv) (vg va : ℚ) (hk : h.keepsCost = false)
@@ -2547,11 +2550,13 @@ theorem ivca_examples :
 /-! ## Rule 13: next year's IVCA instalments (the report's note; not computed by the app) -/
 
 /-- The note: from €52, next year's instalments equal this year's tax: from €257.52, 40% by 30 June and 60% by
-30 November; below that, all by 30 November. (by 30 June, by 30 November), exact. -/
+30 November; below that, all by 30 November. (by 30 June, by 30 November), exact. "Below €52" follows the app's
+note; for a tax in whole euros it is the same as the law's "not over €51.65". -/
 def instalments (t : ℚ) : ℚ × ℚ :=
   if t < 52 then (0, 0) else if 25752 / 100 ≤ t then (t * 40 / 100, t - t * 40 / 100) else (0, t)
 
-/-- **IT-13** Below €52 no instalment; from €52 the instalments add up to the tax; from €257.52 the first is 40% and
+/-- **IT-13** Below €52 no instalment (for whole euros, the law's "not over €51.65", as the app's note says); from €52
+the instalments add up to the tax; from €257.52 the first is 40% and
 the second 60%; between, all in the second. -/
 theorem instalments_spec (t : ℚ) :
     (t < 52 → instalments t = (0, 0)) ∧

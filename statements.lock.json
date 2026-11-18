@@ -1,5 +1,5 @@
 {
-  "reviewedBy": "Spain round 3 2026-11-15 (audit/REVIEW-2026-11-15-spain.md), statements reviewed against kanon-app a4a0731 lots.ts and LIRPF arts 37.2/33.5.e, OK to lock; France NFT statements, 2 rounds (audit/REVIEW-2026-11-15-frnft.md)",
+  "reviewedBy": "Spain round 3 2026-11-15 (audit/REVIEW-2026-11-15-spain.md), statements reviewed against kanon-app a4a0731 lots.ts and LIRPF arts 37.2/33.5.e, OK to lock; France NFT statements, 2 rounds (audit/REVIEW-2026-11-15-frnft.md); Italy 2026-11-15: 171 statements reviewed (audit/REVIEW-2026-11-15-italy.md), OK to lock",
   "theorems": {
     "Kanon.Alerts.atLeast_iff": {
       "file": "Alerts.lean",
@@ -1076,6 +1076,690 @@
     "Kanon.India.tax_rate": {
       "file": "India.lean",
       "sha": "ddb9292594de5c5f"
+    },
+    "Kanon.Italy.account_close": {
+      "file": "Italy.lean",
+      "sha": "120179685ae2ff61"
+    },
+    "Kanon.Italy.amt_sortPool": {
+      "file": "Italy.lean",
+      "sha": "5ffcb05a5fd92994"
+    },
+    "Kanon.Italy.apart_exchange_taxed": {
+      "file": "Italy.lean",
+      "sha": "3d2cd3250304b6b3"
+    },
+    "Kanon.Italy.assumed_every_day": {
+      "file": "Italy.lean",
+      "sha": "bea39e95e5f1b66e"
+    },
+    "Kanon.Italy.atOther_bounds": {
+      "file": "Italy.lean",
+      "sha": "79a1d3231382cab4"
+    },
+    "Kanon.Italy.avail_eq": {
+      "file": "Italy.lean",
+      "sha": "e60df24405df1b49"
+    },
+    "Kanon.Italy.avail_le": {
+      "file": "Italy.lean",
+      "sha": "157ba729afca7c76"
+    },
+    "Kanon.Italy.avail_nonneg": {
+      "file": "Italy.lean",
+      "sha": "747c3d524de71fef"
+    },
+    "Kanon.Italy.avail_sortPool": {
+      "file": "Italy.lean",
+      "sha": "d7e781c82a3060a8"
+    },
+    "Kanon.Italy.base_bounds": {
+      "file": "Italy.lean",
+      "sha": "55e7bf765112ff74"
+    },
+    "Kanon.Italy.base_eq": {
+      "file": "Italy.lean",
+      "sha": "2981c55761427b87"
+    },
+    "Kanon.Italy.beats_order": {
+      "file": "Italy.lean",
+      "sha": "8aca4e7de0d0c2e1"
+    },
+    "Kanon.Italy.both_mixed_whole": {
+      "file": "Italy.lean",
+      "sha": "db49923d491265fb"
+    },
+    "Kanon.Italy.bought_with_money": {
+      "file": "Italy.lean",
+      "sha": "3886b9e7eeb9ebd1"
+    },
+    "Kanon.Italy.buy_lot": {
+      "file": "Italy.lean",
+      "sha": "e53fe6720dfced6b"
+    },
+    "Kanon.Italy.buys_total": {
+      "file": "Italy.lean",
+      "sha": "0f27c2f919804ade"
+    },
+    "Kanon.Italy.byKind_buys": {
+      "file": "Italy.lean",
+      "sha": "b269115384bc802a"
+    },
+    "Kanon.Italy.byYr_common": {
+      "file": "Italy.lean",
+      "sha": "a7635ac7f217e134"
+    },
+    "Kanon.Italy.byYr_cons": {
+      "file": "Italy.lean",
+      "sha": "6804f565cd411e61"
+    },
+    "Kanon.Italy.byYr_map": {
+      "file": "Italy.lean",
+      "sha": "58d7ea78279c95ef"
+    },
+    "Kanon.Italy.byYr_none": {
+      "file": "Italy.lean",
+      "sha": "ef1d3944d0929678"
+    },
+    "Kanon.Italy.byYr_nonneg": {
+      "file": "Italy.lean",
+      "sha": "70bb511667482a8e"
+    },
+    "Kanon.Italy.carry_four_years": {
+      "file": "Italy.lean",
+      "sha": "ce095cf07a42920b"
+    },
+    "Kanon.Italy.carry_le": {
+      "file": "Italy.lean",
+      "sha": "b8a9aec0156baba1"
+    },
+    "Kanon.Italy.carry_window": {
+      "file": "Italy.lean",
+      "sha": "55552cac991882eb"
+    },
+    "Kanon.Italy.case_a": {
+      "file": "Italy.lean",
+      "sha": "d60b2770923fa26c"
+    },
+    "Kanon.Italy.case_a_cost": {
+      "file": "Italy.lean",
+      "sha": "80b5729641b6048a"
+    },
+    "Kanon.Italy.case_a_qty": {
+      "file": "Italy.lean",
+      "sha": "c3ca190e6aa7f50b"
+    },
+    "Kanon.Italy.case_a_zero": {
+      "file": "Italy.lean",
+      "sha": "b39e699e43ee4fa4"
+    },
+    "Kanon.Italy.case_b": {
+      "file": "Italy.lean",
+      "sha": "9aaaac8710b2f4c6"
+    },
+    "Kanon.Italy.case_b_cost": {
+      "file": "Italy.lean",
+      "sha": "3c1497d5b1d2933f"
+    },
+    "Kanon.Italy.case_b_share": {
+      "file": "Italy.lean",
+      "sha": "019f54ae1935bc8a"
+    },
+    "Kanon.Italy.case_b_zero": {
+      "file": "Italy.lean",
+      "sha": "3a99f93f96768547"
+    },
+    "Kanon.Italy.centsUp_bounds": {
+      "file": "Italy.lean",
+      "sha": "e5450f368322da97"
+    },
+    "Kanon.Italy.centsUp_mono": {
+      "file": "Italy.lean",
+      "sha": "5034375b545dd333"
+    },
+    "Kanon.Italy.centsUp_nonneg": {
+      "file": "Italy.lean",
+      "sha": "7a470cf6e2ab228b"
+    },
+    "Kanon.Italy.circolare_p51": {
+      "file": "Italy.lean",
+      "sha": "8adeba5bca2c8508"
+    },
+    "Kanon.Italy.circolare_swap": {
+      "file": "Italy.lean",
+      "sha": "a7ca41153523a77e"
+    },
+    "Kanon.Italy.common_mem": {
+      "file": "Italy.lean",
+      "sha": "dce27bac4918491d"
+    },
+    "Kanon.Italy.deadlines_2023_2100": {
+      "file": "Italy.lean",
+      "sha": "f85462c149be24b0"
+    },
+    "Kanon.Italy.deadlines_examples": {
+      "file": "Italy.lean",
+      "sha": "4c2d2ed55aef2cbf"
+    },
+    "Kanon.Italy.deadlines_never_early": {
+      "file": "Italy.lean",
+      "sha": "882d5a2dd388a964"
+    },
+    "Kanon.Italy.deadlines_rule": {
+      "file": "Italy.lean",
+      "sha": "c9481a779369876d"
+    },
+    "Kanon.Italy.dispose_line": {
+      "file": "Italy.lean",
+      "sha": "ca3d6494f22891ee"
+    },
+    "Kanon.Italy.dispose_no_lots": {
+      "file": "Italy.lean",
+      "sha": "daa075ec4653911a"
+    },
+    "Kanon.Italy.drop_no_line": {
+      "file": "Italy.lean",
+      "sha": "0c68bfa5a7c2f160"
+    },
+    "Kanon.Italy.earlier_examples": {
+      "file": "Italy.lean",
+      "sha": "044620c2320d898f"
+    },
+    "Kanon.Italy.earlier_window": {
+      "file": "Italy.lean",
+      "sha": "b56f3fe19f67aaa6"
+    },
+    "Kanon.Italy.earlier_years": {
+      "file": "Italy.lean",
+      "sha": "365fd40d1b1e5562"
+    },
+    "Kanon.Italy.euro_redeem_2025_taxed": {
+      "file": "Italy.lean",
+      "sha": "e096fa75a12d986e"
+    },
+    "Kanon.Italy.euro_redeem_iff": {
+      "file": "Italy.lean",
+      "sha": "4faa8d3d493777eb"
+    },
+    "Kanon.Italy.euros_add_int": {
+      "file": "Italy.lean",
+      "sha": "73ac96706d09fcd7"
+    },
+    "Kanon.Italy.euros_bounds": {
+      "file": "Italy.lean",
+      "sha": "6bc10ff520d6ba82"
+    },
+    "Kanon.Italy.euros_half_up": {
+      "file": "Italy.lean",
+      "sha": "16a82dcd75ba21fe"
+    },
+    "Kanon.Italy.euros_int": {
+      "file": "Italy.lean",
+      "sha": "8004d336d5cd3013"
+    },
+    "Kanon.Italy.euros_mono": {
+      "file": "Italy.lean",
+      "sha": "b45f4e0575afacf7"
+    },
+    "Kanon.Italy.euros_nonneg": {
+      "file": "Italy.lean",
+      "sha": "d5b9795e7e2b8918"
+    },
+    "Kanon.Italy.exactBase_bounds": {
+      "file": "Italy.lean",
+      "sha": "936241cadaf9f436"
+    },
+    "Kanon.Italy.exactBase_gbase": {
+      "file": "Italy.lean",
+      "sha": "b75389508a51c648"
+    },
+    "Kanon.Italy.exactTax_between": {
+      "file": "Italy.lean",
+      "sha": "cc237f0bd61e3bc5"
+    },
+    "Kanon.Italy.exactTax_eq": {
+      "file": "Italy.lean",
+      "sha": "83556eb40e4f125b"
+    },
+    "Kanon.Italy.exact_gain_mono": {
+      "file": "Italy.lean",
+      "sha": "e16d785762bc8cae"
+    },
+    "Kanon.Italy.exact_net_mono": {
+      "file": "Italy.lean",
+      "sha": "8813fc2ccb5977c9"
+    },
+    "Kanon.Italy.exact_step": {
+      "file": "Italy.lean",
+      "sha": "ccac6a1a93bc7f7e"
+    },
+    "Kanon.Italy.expiry": {
+      "file": "Italy.lean",
+      "sha": "7510adf276b22394"
+    },
+    "Kanon.Italy.faq_2024": {
+      "file": "Italy.lean",
+      "sha": "d42182bb326ef5fe"
+    },
+    "Kanon.Italy.filter_kind_nil": {
+      "file": "Italy.lean",
+      "sha": "cbe1fe7a587d21b9"
+    },
+    "Kanon.Italy.filter_split": {
+      "file": "Italy.lean",
+      "sha": "aaaac0a19f3f5905"
+    },
+    "Kanon.Italy.foldl_max": {
+      "file": "Italy.lean",
+      "sha": "824caec5962a22c4"
+    },
+    "Kanon.Italy.form_examples": {
+      "file": "Italy.lean",
+      "sha": "d6ce52562092caeb"
+    },
+    "Kanon.Italy.form_half_up": {
+      "file": "Italy.lean",
+      "sha": "a57fb58c4b4366f1"
+    },
+    "Kanon.Italy.gain_mono": {
+      "file": "Italy.lean",
+      "sha": "7821c592effb9333"
+    },
+    "Kanon.Italy.gain_or_loss": {
+      "file": "Italy.lean",
+      "sha": "daaf4e132dd620cf"
+    },
+    "Kanon.Italy.income_line": {
+      "file": "Italy.lean",
+      "sha": "9b029ca5fc671134"
+    },
+    "Kanon.Italy.instalments_spec": {
+      "file": "Italy.lean",
+      "sha": "a2629cf564a96fcb"
+    },
+    "Kanon.Italy.ivca_bounds": {
+      "file": "Italy.lean",
+      "sha": "a759040d2ef183eb"
+    },
+    "Kanon.Italy.ivca_due": {
+      "file": "Italy.lean",
+      "sha": "1910cb04b7bcf723"
+    },
+    "Kanon.Italy.ivca_examples": {
+      "file": "Italy.lean",
+      "sha": "60157e6d90604e56"
+    },
+    "Kanon.Italy.ivca_full_year": {
+      "file": "Italy.lean",
+      "sha": "bbb9d9c4273ae943"
+    },
+    "Kanon.Italy.later_statement_can_lower_tax": {
+      "file": "Italy.lean",
+      "sha": "30310d5378649822"
+    },
+    "Kanon.Italy.later_statement_rate": {
+      "file": "Italy.lean",
+      "sha": "df9450bd9b8194be"
+    },
+    "Kanon.Italy.le_maxNet": {
+      "file": "Italy.lean",
+      "sha": "a86bab86d43bbe1f"
+    },
+    "Kanon.Italy.lifo_example": {
+      "file": "Italy.lean",
+      "sha": "edbf37bd9e222672"
+    },
+    "Kanon.Italy.lowest_le": {
+      "file": "Italy.lean",
+      "sha": "ed6ea15cfb6537ad"
+    },
+    "Kanon.Italy.lp_case_a": {
+      "file": "Italy.lean",
+      "sha": "13f026c248e39496"
+    },
+    "Kanon.Italy.lp_case_b": {
+      "file": "Italy.lean",
+      "sha": "a7ddc0142a1414bc"
+    },
+    "Kanon.Italy.map_const_sum": {
+      "file": "Italy.lean",
+      "sha": "03334c97971f3c3a"
+    },
+    "Kanon.Italy.money_in_taxed": {
+      "file": "Italy.lean",
+      "sha": "d9ca1e44feefe10f"
+    },
+    "Kanon.Italy.net_any_order": {
+      "file": "Italy.lean",
+      "sha": "9b588cadf86666bf"
+    },
+    "Kanon.Italy.net_split": {
+      "file": "Italy.lean",
+      "sha": "12957a0a208375d7"
+    },
+    "Kanon.Italy.nft_rules": {
+      "file": "Italy.lean",
+      "sha": "ad76614c17e580c8"
+    },
+    "Kanon.Italy.no_threshold_2025": {
+      "file": "Italy.lean",
+      "sha": "6cebf83a785b463c"
+    },
+    "Kanon.Italy.not_pending": {
+      "file": "Italy.lean",
+      "sha": "36bc96fbf40764cb"
+    },
+    "Kanon.Italy.now_ge": {
+      "file": "Italy.lean",
+      "sha": "e6aa35fa556bc4db"
+    },
+    "Kanon.Italy.oldest_first": {
+      "file": "Italy.lean",
+      "sha": "4c8a44dfc60789f5"
+    },
+    "Kanon.Italy.other33_base_mono": {
+      "file": "Italy.lean",
+      "sha": "ae5fbed639359665"
+    },
+    "Kanon.Italy.other33_bounds": {
+      "file": "Italy.lean",
+      "sha": "91f880ff96e90d32"
+    },
+    "Kanon.Italy.other33_rat": {
+      "file": "Italy.lean",
+      "sha": "35aeb188341a3277"
+    },
+    "Kanon.Italy.ownIn_pos": {
+      "file": "Italy.lean",
+      "sha": "81a55d92d7a8329d"
+    },
+    "Kanon.Italy.own_le_shown": {
+      "file": "Italy.lean",
+      "sha": "290038758a69e9b0"
+    },
+    "Kanon.Italy.part_conserves": {
+      "file": "Italy.lean",
+      "sha": "27bb2190c740999c"
+    },
+    "Kanon.Italy.part_line": {
+      "file": "Italy.lean",
+      "sha": "1d4e2ef1e489b2a9"
+    },
+    "Kanon.Italy.partial_rate": {
+      "file": "Italy.lean",
+      "sha": "c83a6194c0f892c7"
+    },
+    "Kanon.Italy.pending_before": {
+      "file": "Italy.lean",
+      "sha": "9ee2306a547e9416"
+    },
+    "Kanon.Italy.pending_from": {
+      "file": "Italy.lean",
+      "sha": "bce6006f90802ead"
+    },
+    "Kanon.Italy.pending_rate": {
+      "file": "Italy.lean",
+      "sha": "fb8d84afa3e7fb9f"
+    },
+    "Kanon.Italy.pickN_spec": {
+      "file": "Italy.lean",
+      "sha": "ec71ad1098ececfe"
+    },
+    "Kanon.Italy.pick_max": {
+      "file": "Italy.lean",
+      "sha": "506cd5f5d24961be"
+    },
+    "Kanon.Italy.pick_unique": {
+      "file": "Italy.lean",
+      "sha": "3703274f8325b409"
+    },
+    "Kanon.Italy.portion_sum": {
+      "file": "Italy.lean",
+      "sha": "dca63a03c7d7a4e8"
+    },
+    "Kanon.Italy.pushAll_cost": {
+      "file": "Italy.lean",
+      "sha": "f1f4ffe386b61e72"
+    },
+    "Kanon.Italy.rTax_pool": {
+      "file": "Italy.lean",
+      "sha": "a4a98e2d91d0a70f"
+    },
+    "Kanon.Italy.rat_mono_o": {
+      "file": "Italy.lean",
+      "sha": "18d9bb49c54ebda7"
+    },
+    "Kanon.Italy.rat_nonneg": {
+      "file": "Italy.lean",
+      "sha": "2321c0631f138d96"
+    },
+    "Kanon.Italy.redeem_before_day": {
+      "file": "Italy.lean",
+      "sha": "7558a3f9dbef1187"
+    },
+    "Kanon.Italy.redeem_days": {
+      "file": "Italy.lean",
+      "sha": "e5caa543912173f2"
+    },
+    "Kanon.Italy.residues_pos": {
+      "file": "Italy.lean",
+      "sha": "5b3062ab7b3c31a3"
+    },
+    "Kanon.Italy.residues_window": {
+      "file": "Italy.lean",
+      "sha": "cded762b14d7adb3"
+    },
+    "Kanon.Italy.run_accounts": {
+      "file": "Italy.lean",
+      "sha": "2ab5dfdf5e174cce"
+    },
+    "Kanon.Italy.run_append": {
+      "file": "Italy.lean",
+      "sha": "a90273e002302c4a"
+    },
+    "Kanon.Italy.run_buys": {
+      "file": "Italy.lean",
+      "sha": "56ca054c3a6f65a8"
+    },
+    "Kanon.Italy.sale_for_money": {
+      "file": "Italy.lean",
+      "sha": "87cacfef38da084c"
+    },
+    "Kanon.Italy.same_kind_untaxed": {
+      "file": "Italy.lean",
+      "sha": "da7adf77f3ba48fd"
+    },
+    "Kanon.Italy.share_mono_o": {
+      "file": "Italy.lean",
+      "sha": "a9fba89f56b8ba9c"
+    },
+    "Kanon.Italy.share_mono_x": {
+      "file": "Italy.lean",
+      "sha": "61671226fdf7ee90"
+    },
+    "Kanon.Italy.short_only_when_empty": {
+      "file": "Italy.lean",
+      "sha": "4455b9fb8e35e0ff"
+    },
+    "Kanon.Italy.shown_max": {
+      "file": "Italy.lean",
+      "sha": "6c0afd8091d00ac1"
+    },
+    "Kanon.Italy.shown_pick": {
+      "file": "Italy.lean",
+      "sha": "4871830be3a8aab5"
+    },
+    "Kanon.Italy.shown_res": {
+      "file": "Italy.lean",
+      "sha": "07b7489156ac0fe4"
+    },
+    "Kanon.Italy.sortPool_of_sorted": {
+      "file": "Italy.lean",
+      "sha": "8685f62ba41b964f"
+    },
+    "Kanon.Italy.sortPool_sorted": {
+      "file": "Italy.lean",
+      "sha": "f6f4f826477b24d7"
+    },
+    "Kanon.Italy.split_all_emt": {
+      "file": "Italy.lean",
+      "sha": "03ac37666c9e634b"
+    },
+    "Kanon.Italy.split_base_mono": {
+      "file": "Italy.lean",
+      "sha": "1cb15934eff159b2"
+    },
+    "Kanon.Italy.split_before_2026": {
+      "file": "Italy.lean",
+      "sha": "75b55e63dbca3603"
+    },
+    "Kanon.Italy.split_between": {
+      "file": "Italy.lean",
+      "sha": "09d33f0abce3ed09"
+    },
+    "Kanon.Italy.split_examples": {
+      "file": "Italy.lean",
+      "sha": "8971b7ca69bfd295"
+    },
+    "Kanon.Italy.split_no_emt": {
+      "file": "Italy.lean",
+      "sha": "163fc4f44b33f3dd"
+    },
+    "Kanon.Italy.split_none_apart": {
+      "file": "Italy.lean",
+      "sha": "2e2c84c2afe8bcdc"
+    },
+    "Kanon.Italy.split_parts": {
+      "file": "Italy.lean",
+      "sha": "a48a672fab846554"
+    },
+    "Kanon.Italy.split_prop": {
+      "file": "Italy.lean",
+      "sha": "69e75e5d8e044ff4"
+    },
+    "Kanon.Italy.split_rounding_examples": {
+      "file": "Italy.lean",
+      "sha": "6a6c417966f0d159"
+    },
+    "Kanon.Italy.statement_gain_less_tax": {
+      "file": "Italy.lean",
+      "sha": "130798adb3fc12ab"
+    },
+    "Kanon.Italy.swap_conserves": {
+      "file": "Italy.lean",
+      "sha": "984fe7f0e996cdea"
+    },
+    "Kanon.Italy.swap_no_line": {
+      "file": "Italy.lean",
+      "sha": "c2342b3554dd81e9"
+    },
+    "Kanon.Italy.takeAll_cost": {
+      "file": "Italy.lean",
+      "sha": "f5307a7b5a593886"
+    },
+    "Kanon.Italy.takeAll_no_lots": {
+      "file": "Italy.lean",
+      "sha": "b1c432839d6a68c7"
+    },
+    "Kanon.Italy.take_cost": {
+      "file": "Italy.lean",
+      "sha": "d7f69f2bf66f4ba6"
+    },
+    "Kanon.Italy.take_empty": {
+      "file": "Italy.lean",
+      "sha": "a13fac87691962b1"
+    },
+    "Kanon.Italy.take_newest_first": {
+      "file": "Italy.lean",
+      "sha": "2118bc5e27d77c18"
+    },
+    "Kanon.Italy.take_qty": {
+      "file": "Italy.lean",
+      "sha": "2215aca85e54a368"
+    },
+    "Kanon.Italy.take_short_bounds": {
+      "file": "Italy.lean",
+      "sha": "3a701c296f84e3d5"
+    },
+    "Kanon.Italy.tax_mono": {
+      "file": "Italy.lean",
+      "sha": "7504fcba92a39c93"
+    },
+    "Kanon.Italy.tax_nonneg": {
+      "file": "Italy.lean",
+      "sha": "0185926705adef29"
+    },
+    "Kanon.Italy.tax_on_sale": {
+      "file": "Italy.lean",
+      "sha": "9f347ab01c46f619"
+    },
+    "Kanon.Italy.tax_on_sale_examples": {
+      "file": "Italy.lean",
+      "sha": "6d22f80ad8a40acc"
+    },
+    "Kanon.Italy.threshold_2023_24": {
+      "file": "Italy.lean",
+      "sha": "051925481c86bd91"
+    },
+    "Kanon.Italy.total_update": {
+      "file": "Italy.lean",
+      "sha": "8976feda1933b188"
+    },
+    "Kanon.Italy.use_base": {
+      "file": "Italy.lean",
+      "sha": "49a3178579820a9a"
+    },
+    "Kanon.Italy.use_conserves": {
+      "file": "Italy.lean",
+      "sha": "8a5dd4d82dd073c3"
+    },
+    "Kanon.Italy.use_mem": {
+      "file": "Italy.lean",
+      "sha": "943985b60a0139b3"
+    },
+    "Kanon.Italy.used_window": {
+      "file": "Italy.lean",
+      "sha": "2fd8c34d9f1976e4"
+    },
+    "Kanon.Italy.work_on": {
+      "file": "Italy.lean",
+      "sha": "0b37b2098788f64f"
+    },
+    "Kanon.Italy.work_spec": {
+      "file": "Italy.lean",
+      "sha": "9bb76d950a12644a"
+    },
+    "Kanon.Italy.yGain_mono": {
+      "file": "Italy.lean",
+      "sha": "051d88254125a8dd"
+    },
+    "Kanon.Italy.yGain_nonneg": {
+      "file": "Italy.lean",
+      "sha": "ebc00f11709fb5ba"
+    },
+    "Kanon.Italy.yLoss_nonneg": {
+      "file": "Italy.lean",
+      "sha": "c710f38e4b404d20"
+    },
+    "Kanon.Italy.yearTax_base": {
+      "file": "Italy.lean",
+      "sha": "f3500cd6867854e5"
+    },
+    "Kanon.Italy.yearTax_carried": {
+      "file": "Italy.lean",
+      "sha": "7fd44e3c89113a9f"
+    },
+    "Kanon.Italy.yearTax_gain_mono": {
+      "file": "Italy.lean",
+      "sha": "53f9711d1613750e"
+    },
+    "Kanon.Italy.yearTax_mono": {
+      "file": "Italy.lean",
+      "sha": "5587620794143baa"
+    },
+    "Kanon.Italy.year_accounts": {
+      "file": "Italy.lean",
+      "sha": "03556616fbb40cdb"
     },
     "Kanon.Korea.before_2027": {
       "file": "Korea.lean",
